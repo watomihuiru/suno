@@ -311,15 +311,12 @@
     const SECRET_KEY = 'messisipi'; // <<< !!! ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
     let pollingInterval; let currentTabName = 'generate';
     const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
-    const LOCAL_STORAGE_KEY = 'sunoPlaygroundSongs';
 
     // --- ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ ---
     const customModeToggle=document.getElementById("g-customMode"),simpleModeFields=document.getElementById("simple-mode-fields"),customModeFields=document.getElementById("custom-mode-fields"),modelValueInput=document.getElementById("g-model-value"),selectButton=document.getElementById("select-model-button"),selectDropdown=document.getElementById("select-model-dropdown"),styleTextarea=document.getElementById("g-style"),promptTextarea=document.getElementById("g-prompt"),instrumentalToggle=document.getElementById("g-instrumental"),promptGroup=document.getElementById("g-prompt-group"),descriptionGroup=document.getElementById("g-song-description-group"),statusContainer=document.getElementById("status-container"),songListContainer = document.getElementById('song-list-container'), emptyListMessage = document.getElementById('empty-list-message'), logsNotificationDot = document.getElementById('logs-notification-dot');
     const globalPlayer={container:document.getElementById("global-player-container"),audio:document.getElementById("global-audio-player"),cover:document.getElementById("player-cover"),title:document.getElementById("player-title"),seekBar:document.getElementById("seek-bar"),playPauseBtn:document.getElementById("play-pause-btn"),currentTime:document.getElementById("current-time"),totalDuration:document.getElementById("total-duration"),currentSongId:null};
     const loginElements = { overlay: document.getElementById('login-overlay'), container: document.getElementById('app-container'), input: document.getElementById('access-key-input'), button: document.getElementById('access-key-button'), error: document.getElementById('login-error-message') };
 
-    // --- LOCALSTORAGE & HELPERS ---
-    const storage = { getSongs: () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [], saveSong: (songData, requestParams) => { const songs = storage.getSongs(); if (!songs.some(s => s.songData.id === songData.id)) { songs.push({ songData, requestParams }); localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(songs)); } } };
     function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'--:--';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
 
     // --- ЛОГИКА АВТОРИЗАЦИИ ---
@@ -371,8 +368,7 @@
         } finally { setTimeout(() => { button.textContent = originalText; button.style.cursor = 'pointer'; }, 1000); }
     }
 
-    function addSongToList(songData, requestParams, shouldSave = true) {
-        if (shouldSave) storage.saveSong(songData, requestParams);
+    function addSongToList(songData, requestParams) {
         if (emptyListMessage) emptyListMessage.style.display = 'none';
         const card = document.createElement('div'); card.className = 'song-card'; card.id = `song-${songData.id}`;
         let friendlyModelName = 'v4';
@@ -415,7 +411,7 @@
         }
     }
 
-    function startPolling(taskId) {
+    async function startPolling(taskId) {
         if (pollingInterval) clearInterval(pollingInterval); createPlaceholderCard(taskId);
         updateStatus(`⏳ Задача ${taskId.slice(0,8)}... в очереди. Начинаем проверку...`); let progress = 0;
         pollingInterval = setInterval(async () => {
@@ -435,10 +431,10 @@
                     updateStatus("✅ Задача выполнена!", true);
                     const placeholder = document.getElementById(`placeholder-${taskId}`);
                     if(placeholder) placeholder.remove();
-                    if (taskData.response && Array.isArray(taskData.response.sunoData)) {
-                        taskData.response.sunoData.forEach(song => { addSongToList(song, taskData.param); });
-                        handleApiCall("/api/chat/credit", { method: "GET" }, true);
-                    }
+                    // Песни теперь сохраняются на бэкенде, нам не нужно их здесь добавлять
+                    // Вместо этого, просто перезагружаем список с сервера
+                    await loadSongsFromServer();
+                    await handleApiCall("/api/chat/credit", { method: "GET" }, true);
                 } else if (pendingStates.includes(statusLowerCase)) {
                     updateStatus(`⏳ Статус: ${taskData.status}. Следующая проверка через 10 сек...`);
                 } else { handleTaskError(taskId, taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); }
@@ -513,13 +509,29 @@
         return allValid;
     }
     
+    async function loadSongsFromServer() {
+        try {
+            const response = await fetch('/api/songs');
+            const songs = await response.json();
+            songListContainer.innerHTML = ''; // Очищаем старый список
+            if (songs.length > 0) {
+                emptyListMessage.style.display = 'none';
+                songs.forEach(songInfo => {
+                    addSongToList(songInfo.songData, songInfo.requestParams);
+                });
+            } else {
+                songListContainer.innerHTML = '<p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>';
+            }
+        } catch(e) {
+            console.error("Не удалось загрузить песни с сервера", e);
+        }
+    }
+
     function initializeApp() {
         toggleGeneratorMode();
         updateCharacterLimits(modelValueInput.value);
         handleApiCall("/api/chat/credit", { method: "GET" }, true);
-        storage.getSongs().forEach(songInfo => {
-            addSongToList(songInfo.songData, songInfo.requestParams, false);
-        });
+        loadSongsFromServer();
     }
 
     // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
