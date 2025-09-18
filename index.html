@@ -190,78 +190,117 @@
             width: 14px; height: 14px; background: var(--text-primary);
             border-radius: 50%; cursor: pointer;
         }
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(14, 17, 23, 0.95);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        #login-box {
+            background-color: var(--bg-card); padding: 32px;
+            border-radius: 8px; border: 1px solid var(--border);
+            text-align: center; width: 100%; max-width: 340px;
+        }
+        #login-box h3 { margin-bottom: 16px; font-weight: 600; }
+        #access-key-input {
+            width: 100%; padding: 10px 12px; background-color: var(--bg-input);
+            border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
+            font-size: 16px; text-align: center;
+        }
+        #access-key-button {
+            width: 100%; margin-top: 16px; background-color: var(--accent-blue);
+            border: none; padding: 10px; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #access-key-button:hover { background-color: var(--accent-blue-hover); }
+        #login-error-message {
+            color: var(--accent-red); margin-top: 12px;
+            height: 16px; font-size: 14px;
+        }
 
         @media (max-width: 900px) { .page-container { grid-template-columns: 1fr; } .main-card, .library-card { grid-column: auto; } }
     </style>
 </head>
 <body>
 
-    <div class="page-container">
-        <header class="header">
-            <div><h1>Suno Playground</h1><p>Тестируйте API с помощью форм и получайте ответы в реальном времени.</p></div>
-            <div id="credits-container" class="credits-display" style="display: none;">
-                <span class="credits-value" id="credits-value">...</span>
-                <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
-            </div>
-        </header>
-
-        <div class="card main-card">
-            <div class="tabs">
-                <button class="tab-button active" onclick="openTab(event, 'generate')">Создать</button>
-                <button class="tab-button" onclick="openTab(event, 'extend')">Продлить</button>
-                <button class="tab-button" onclick="openTab(event, 'upload')">Загрузить</button>
-                <button class="tab-button" id="logs-tab-button" onclick="openTab(event, 'logs')">Логи<span id="logs-notification-dot" class="notification-dot"></span></button>
-            </div>
-
-            <div id="generate" class="tab-content active">
-                <form id="generate-music-form" class="form-grid">
-                    <div class="form-row"><label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label><div class="custom-select-wrapper"><input type="hidden" id="g-model-value" value="V4_5PLUS"><div class="select-button" id="select-model-button">V4.5+</div><div class="select-dropdown" id="select-model-dropdown"><div class="select-option selected" data-value="V4_5PLUS">V4.5+</div><div class="select-option" data-value="V4_5">V4.5</div><div class="select-option" data-value="V4">V4</div><div class="select-option" data-value="V3_5">V3.5</div></div></div></div>
-                    <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea></div></div>
-                    <div id="custom-mode-fields" class="form-grid">
-                        <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"></div>
-                        <div class="form-group"><label for="g-style">Стиль музыки</label><textarea id="g-style" oninput="updateCharCounter(this, 'g-style-counter')"></textarea><div id="g-style-counter" class="char-counter"></div></div>
-                        <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt" oninput="updateCharCounter(this, 'g-prompt-counter')"></textarea><div id="g-prompt-counter" class="char-counter"></div></div>
-                        <hr class="divider">
-                        <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
-                        <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
-                        <div class="form-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                    </div>
-                    <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать музыку</button>
-                </form>
-            </div>
-            
-            <div id="extend" class="tab-content"><form id="extend-music-form" class="form-grid"><div class="form-group"><label for="e-audioId">Audio ID</label><input type="text" id="e-audioId" placeholder="ID трека для продления" required></div><div class="form-group"><label for="e-continueAt">Продлить с (секунды)</label><input type="number" id="e-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить трек</button></form></div>
-            <div id="upload" class="tab-content"><div class="form-grid"><form id="upload-cover-form" class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Создать кавер</button></form><hr class="divider"><form id="upload-extend-form" class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div></div>
-            
-            <div id="logs" class="tab-content">
-                <div id="logs-content">
-                    <h4>Статус операции</h4>
-                    <div id="status-container"><p class="status-message">Ожидание запуска задачи...</p></div>
-                    <h4>Ответ API</h4>
-                    <pre id="response-output">Ожидание вызова API...</pre>
-                </div>
-            </div>
+    <div id="login-overlay">
+        <div id="login-box">
+            <h3>Введите ключ доступа</h3>
+            <input type="password" id="access-key-input" placeholder="••••••••">
+            <button id="access-key-button">Войти</button>
+            <p id="login-error-message"></p>
         </div>
-
-        <div class="card library-card">
-            <h4>Библиотека</h4>
-            <hr class="divider">
-            <div id="song-list-container">
-                <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
-            </div>
-            <div id="global-player-container">
-                <audio id="global-audio-player"></audio>
-                <img id="player-cover" src="" alt="cover">
-                <div id="player-info">
-                    <div id="player-title"></div>
-                    <input type="range" id="seek-bar" value="0" step="1">
+    </div>
+    
+    <div id="app-container" style="display: none;">
+        <div class="page-container">
+            <header class="header">
+                <div><h1>Suno Playground</h1><p>Тестируйте API с помощью форм и получайте ответы в реальном времени.</p></div>
+                <div id="credits-container" class="credits-display" style="display: none;">
+                    <span class="credits-value" id="credits-value">...</span>
+                    <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
                 </div>
-                <div id="player-controls">
-                    <span id="current-time" class="time-display">0:00</span>
-                    <button id="play-pause-btn">
-                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-                    </button>
-                    <span id="total-duration" class="time-display">0:00</span>
+            </header>
+
+            <div class="card main-card">
+                <div class="tabs">
+                    <button class="tab-button active" onclick="openTab(event, 'generate')">Создать</button>
+                    <button class="tab-button" onclick="openTab(event, 'extend')">Продлить</button>
+                    <button class="tab-button" onclick="openTab(event, 'upload')">Загрузить</button>
+                    <button class="tab-button" id="logs-tab-button" onclick="openTab(event, 'logs')">Логи<span id="logs-notification-dot" class="notification-dot"></span></button>
+                </div>
+
+                <div id="generate" class="tab-content active">
+                    <form id="generate-music-form" class="form-grid">
+                        <div class="form-row"><label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label><div class="custom-select-wrapper"><input type="hidden" id="g-model-value" value="V4_5PLUS"><div class="select-button" id="select-model-button">V4.5+</div><div class="select-dropdown" id="select-model-dropdown"><div class="select-option selected" data-value="V4_5PLUS">V4.5+</div><div class="select-option" data-value="V4_5">V4.5</div><div class="select-option" data-value="V4">V4</div><div class="select-option" data-value="V3_5">V3.5</div></div></div></div>
+                        <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea></div></div>
+                        <div id="custom-mode-fields" class="form-grid">
+                            <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"></div>
+                            <div class="form-group"><label for="g-style">Стиль музыки</label><textarea id="g-style" oninput="updateCharCounter(this, 'g-style-counter')"></textarea><div id="g-style-counter" class="char-counter"></div></div>
+                            <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt" oninput="updateCharCounter(this, 'g-prompt-counter')"></textarea><div id="g-prompt-counter" class="char-counter"></div></div>
+                            <hr class="divider">
+                            <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
+                            <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
+                            <div class="form-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                        </div>
+                        <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать музыку</button>
+                    </form>
+                </div>
+                
+                <div id="extend" class="tab-content"><form id="extend-music-form" class="form-grid"><div class="form-group"><label for="e-audioId">Audio ID</label><input type="text" id="e-audioId" placeholder="ID трека для продления" required></div><div class="form-group"><label for="e-continueAt">Продлить с (секунды)</label><input type="number" id="e-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить трек</button></form></div>
+                <div id="upload" class="tab-content"><div class="form-grid"><form id="upload-cover-form" class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Создать кавер</button></form><hr class="divider"><form id="upload-extend-form" class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div></div>
+                
+                <div id="logs" class="tab-content">
+                    <div id="logs-content">
+                        <h4>Статус операции</h4>
+                        <div id="status-container"><p class="status-message">Ожидание запуска задачи...</p></div>
+                        <h4>Ответ API</h4>
+                        <pre id="response-output">Ожидание вызова API...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card library-card">
+                <h4>Библиотека</h4>
+                <hr class="divider">
+                <div id="song-list-container">
+                    <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
+                </div>
+                <div id="global-player-container">
+                    <audio id="global-audio-player"></audio>
+                    <img id="player-cover" src="" alt="cover">
+                    <div id="player-info">
+                        <div id="player-title"></div>
+                        <input type="range" id="seek-bar" value="0" step="1">
+                    </div>
+                    <div id="player-controls">
+                        <span id="current-time" class="time-display">0:00</span>
+                        <button id="play-pause-btn">
+                            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+                        </button>
+                        <span id="total-duration" class="time-display">0:00</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -269,6 +308,7 @@
 
 <script>
     // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+    const SECRET_KEY = 'messisipi'; // <<< !!! ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
     let pollingInterval; let currentTabName = 'generate';
     const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
     const LOCAL_STORAGE_KEY = 'sunoPlaygroundSongs';
@@ -276,33 +316,36 @@
     // --- ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ ---
     const customModeToggle=document.getElementById("g-customMode"),simpleModeFields=document.getElementById("simple-mode-fields"),customModeFields=document.getElementById("custom-mode-fields"),modelValueInput=document.getElementById("g-model-value"),selectButton=document.getElementById("select-model-button"),selectDropdown=document.getElementById("select-model-dropdown"),styleTextarea=document.getElementById("g-style"),promptTextarea=document.getElementById("g-prompt"),instrumentalToggle=document.getElementById("g-instrumental"),promptGroup=document.getElementById("g-prompt-group"),descriptionGroup=document.getElementById("g-song-description-group"),statusContainer=document.getElementById("status-container"),songListContainer = document.getElementById('song-list-container'), emptyListMessage = document.getElementById('empty-list-message'), logsNotificationDot = document.getElementById('logs-notification-dot');
     const globalPlayer={container:document.getElementById("global-player-container"),audio:document.getElementById("global-audio-player"),cover:document.getElementById("player-cover"),title:document.getElementById("player-title"),seekBar:document.getElementById("seek-bar"),playPauseBtn:document.getElementById("play-pause-btn"),currentTime:document.getElementById("current-time"),totalDuration:document.getElementById("total-duration"),currentSongId:null};
-    
+    const loginElements = { overlay: document.getElementById('login-overlay'), container: document.getElementById('app-container'), input: document.getElementById('access-key-input'), button: document.getElementById('access-key-button'), error: document.getElementById('login-error-message') };
+
     // --- LOCALSTORAGE & HELPERS ---
-    const storage = {
-        getSongs: () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [],
-        saveSong: (songData, requestParams) => {
-            const songs = storage.getSongs();
-            if (!songs.some(s => s.songData.id === songData.id)) {
-                songs.push({ songData, requestParams });
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(songs));
-            }
-        }
-    };
+    const storage = { getSongs: () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [], saveSong: (songData, requestParams) => { const songs = storage.getSongs(); if (!songs.some(s => s.songData.id === songData.id)) { songs.push({ songData, requestParams }); localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(songs)); } } };
     function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'--:--';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
+
+    // --- ЛОГИКА АВТОРИЗАЦИИ ---
+    function handleLogin() {
+        if (loginElements.input.value === SECRET_KEY) {
+            loginElements.overlay.style.display = 'none';
+            loginElements.container.style.display = 'block';
+            sessionStorage.setItem('is-authenticated', 'true');
+            initializeApp();
+        } else {
+            loginElements.error.textContent = 'Неверный ключ';
+            loginElements.input.value = '';
+        }
+    }
+    loginElements.button.addEventListener('click', handleLogin);
+    loginElements.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
 
     // --- ЛОГИКА ПЛЕЕРА ---
     function playSong(songData) {
         document.querySelectorAll('.song-cover').forEach(el=>el.classList.remove('playing','paused'));
         const coverEl=document.getElementById(`cover-${songData.id}`);
-        if(globalPlayer.currentSongId===songData.id&&!globalPlayer.audio.paused){
-            globalPlayer.audio.pause();
-            if(coverEl)coverEl.classList.add('paused');
+        if(globalPlayer.currentSongId===songData.id&&!globalPlayer.audio.paused){ globalPlayer.audio.pause(); if(coverEl)coverEl.classList.add('paused');
         }else{
             if(globalPlayer.currentSongId!==songData.id){
-                globalPlayer.audio.src=songData.streamAudioUrl;
-                globalPlayer.currentSongId=songData.id;
-                globalPlayer.cover.src=songData.imageUrl;
-                globalPlayer.title.textContent=songData.title||'Без названия';
+                globalPlayer.audio.src=songData.streamAudioUrl; globalPlayer.currentSongId=songData.id;
+                globalPlayer.cover.src=songData.imageUrl; globalPlayer.title.textContent=songData.title||'Без названия';
                 globalPlayer.container.style.display='flex';
             }
             globalPlayer.audio.play();
@@ -318,55 +361,32 @@
 
     // --- ЛОГИКА ИНТЕРФЕЙСА ---
     async function downloadSong(event, url, filename) {
-        event.preventDefault();
-        const button = event.currentTarget;
-        const originalText = button.textContent;
-        button.textContent = 'Скачивание...';
-        button.style.cursor = 'wait';
+        event.preventDefault(); const button = event.currentTarget; const originalText = button.textContent;
+        button.textContent = 'Скачивание...'; button.style.cursor = 'wait';
         try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(blobUrl);
-            a.remove();
-        } catch (error) {
-            console.error('Download failed:', error);
-            button.textContent = 'Ошибка';
-        } finally {
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.style.cursor = 'pointer';
-            }, 1000);
-        }
+            const response = await fetch(url); const blob = await response.blob(); const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = filename;
+            document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(blobUrl); a.remove();
+        } catch (error) { console.error('Download failed:', error); button.textContent = 'Ошибка';
+        } finally { setTimeout(() => { button.textContent = originalText; button.style.cursor = 'pointer'; }, 1000); }
     }
 
     function addSongToList(songData, requestParams, shouldSave = true) {
         if (shouldSave) storage.saveSong(songData, requestParams);
         if (emptyListMessage) emptyListMessage.style.display = 'none';
-        const card = document.createElement('div');
-        card.className = 'song-card';
-        card.id = `song-${songData.id}`;
+        const card = document.createElement('div'); card.className = 'song-card'; card.id = `song-${songData.id}`;
         let friendlyModelName = 'v4';
         try { const params = JSON.parse(requestParams); friendlyModelName = modelMap[params.model] || params.model; } catch(e) {}
-        const downloadUrl = songData.audioUrl || songData.streamAudioUrl;
-        const filename = `${songData.title || 'track'}.mp3`;
+        const downloadUrl = songData.audioUrl || songData.streamAudioUrl; const filename = `${songData.title || 'track'}.mp3`;
         card.innerHTML = `<div class="song-cover" id="cover-${songData.id}"><img src="${songData.imageUrl}" alt="Обложка трека"><div class="song-duration" id="duration-${songData.id}">--:--</div><div class="play-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg></div></div><div class="song-info"><div><span class="song-title">${songData.title || 'Без названия'}</span><span class="song-model-tag">${friendlyModelName}</span></div><div class="song-style"><div class="song-style-content" id="style-${songData.id}">${songData.tags || '(no styles)'}</div></div></div><button class="download-button">Скачать</button>`;
         card.querySelector('.song-cover').onclick = () => playSong(songData);
         card.querySelector('.download-button').onclick = (e) => downloadSong(e, downloadUrl, filename);
         songListContainer.prepend(card);
         setTimeout(() => {
             const styleContent = card.querySelector(`#style-${songData.id}`);
-            if (styleContent.scrollHeight > styleContent.clientHeight) {
-                styleContent.classList.add('collapsed');
-                const toggleBtn = document.createElement('button');
-                toggleBtn.className = 'toggle-description-btn';
-                toggleBtn.textContent = '[ развернуть ]';
+            if (styleContent && styleContent.scrollHeight > styleContent.clientHeight) {
+                styleContent.classList.add('collapsed'); const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'toggle-description-btn'; toggleBtn.textContent = '[ развернуть ]';
                 toggleBtn.onclick = () => { const isCollapsed = styleContent.classList.toggle('collapsed'); toggleBtn.textContent = isCollapsed ? '[ развернуть ]' : '[ свернуть ]'; };
                 styleContent.parentElement.appendChild(toggleBtn);
             }
@@ -377,9 +397,7 @@
 
     function createPlaceholderCard(taskId) {
         if (emptyListMessage) emptyListMessage.style.display = 'none';
-        const card = document.createElement('div');
-        card.className = 'song-card placeholder';
-        card.id = `placeholder-${taskId}`;
+        const card = document.createElement('div'); card.className = 'song-card placeholder'; card.id = `placeholder-${taskId}`;
         card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner" id="progress-${taskId}"></div></div></div>`;
         songListContainer.prepend(card);
     }
@@ -387,40 +405,30 @@
     function handleTaskError(taskId, errorMessage) {
         if (pollingInterval) clearInterval(pollingInterval);
         updateStatus(`🚫 Ошибка: ${errorMessage || 'Неизвестная ошибка'}`, false, true);
-        logsNotificationDot.style.display = 'block';
-        const placeholder = document.getElementById(`placeholder-${taskId}`);
+        logsNotificationDot.style.display = 'block'; const placeholder = document.getElementById(`placeholder-${taskId}`);
         if (placeholder) {
             placeholder.classList.remove('placeholder');
             const progressBar = document.getElementById(`progress-${taskId}`);
             if (progressBar) { progressBar.style.width = '100%'; progressBar.style.backgroundColor = 'var(--accent-red)'; }
-            const titleEl = placeholder.querySelector('.song-title');
-            if (titleEl) titleEl.textContent = 'Ошибка генерации';
-            const styleEl = placeholder.querySelector('.song-style');
-            if (styleEl) styleEl.textContent = 'Подробности в логах';
+            const titleEl = placeholder.querySelector('.song-title'); if (titleEl) titleEl.textContent = 'Ошибка генерации';
+            const styleEl = placeholder.querySelector('.song-style'); if (styleEl) styleEl.textContent = 'Подробности в логах';
         }
     }
 
     function startPolling(taskId) {
-        if (pollingInterval) clearInterval(pollingInterval);
-        createPlaceholderCard(taskId);
-        updateStatus(`⏳ Задача ${taskId.slice(0,8)}... в очереди. Начинаем проверку...`);
-        let progress = 0;
-        
+        if (pollingInterval) clearInterval(pollingInterval); createPlaceholderCard(taskId);
+        updateStatus(`⏳ Задача ${taskId.slice(0,8)}... в очереди. Начинаем проверку...`); let progress = 0;
         pollingInterval = setInterval(async () => {
             const progressBar = document.getElementById(`progress-${taskId}`);
             if (progress < 95) { progress += 5; if(progressBar) progressBar.style.width = `${progress}%`; }
-            
             try {
-                const response = await fetch(`/api/task-status/${taskId}`);
-                const result = await response.json();
+                const response = await fetch(`/api/task-status/${taskId}`); const result = await response.json();
                 document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
                 if (!response.ok) { handleTaskError(taskId, result.message || `Ошибка сервера: ${response.status}`); return; }
                 if (!result.data) { handleTaskError(taskId, "Получен некорректный ответ от API (отсутствует поле 'data')."); return; }
-                const taskData = result.data;
-                const statusLowerCase = taskData.status.toLowerCase();
+                const taskData = result.data; const statusLowerCase = taskData.status.toLowerCase();
                 const successStates = ["success", "completed"];
                 const pendingStates = ["pending", "running", "submitted", "queued", "text_success", "first_success"];
-
                 if (successStates.includes(statusLowerCase)) {
                     clearInterval(pollingInterval);
                     if(progressBar) progressBar.style.width = `100%`;
@@ -428,16 +436,12 @@
                     const placeholder = document.getElementById(`placeholder-${taskId}`);
                     if(placeholder) placeholder.remove();
                     if (taskData.response && Array.isArray(taskData.response.sunoData)) {
-                        taskData.response.sunoData.forEach(song => {
-                            addSongToList(song, taskData.param);
-                        });
+                        taskData.response.sunoData.forEach(song => { addSongToList(song, taskData.param); });
                         handleApiCall("/api/chat/credit", { method: "GET" }, true);
                     }
                 } else if (pendingStates.includes(statusLowerCase)) {
                     updateStatus(`⏳ Статус: ${taskData.status}. Следующая проверка через 10 сек...`);
-                } else {
-                    handleTaskError(taskId, taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`);
-                }
+                } else { handleTaskError(taskId, taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); }
             } catch (error) { handleTaskError(taskId, "Сетевая ошибка или ошибка парсинга ответа."); }
         }, 10000);
     }
@@ -461,25 +465,17 @@
     });
     function updateCharCounter(e,t){const o=document.getElementById(t);o&&(o.textContent=`${e.value.length} / ${e.maxLength}`)}
     function openTab(event, tabName) {
-        if (currentTabName === tabName) return;
-        const currentActiveTab = document.getElementById(currentTabName);
+        if (currentTabName === tabName) return; const currentActiveTab = document.getElementById(currentTabName);
         const newTab = document.getElementById(tabName);
         document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
         event.currentTarget.classList.add("active");
         if (currentActiveTab) {
             currentActiveTab.classList.add('exiting');
-            const handleAnimationEnd = () => {
-                currentActiveTab.classList.remove('active', 'exiting');
-                currentActiveTab.style.display = 'none';
-                newTab.style.display = 'block';
-                newTab.classList.add('active');
+            currentActiveTab.addEventListener('animationend', () => {
+                currentActiveTab.classList.remove('active', 'exiting'); currentActiveTab.style.display = 'none';
+                newTab.style.display = 'block'; newTab.classList.add('active');
                 currentTabName = tabName;
-            };
-            currentActiveTab.addEventListener('animationend', handleAnimationEnd, { once: true });
-        } else {
-            newTab.style.display = 'block';
-            newTab.classList.add('active');
-            currentTabName = tabName;
+            }, { once: true });
         }
         if (tabName === 'logs') logsNotificationDot.style.display = 'none';
     }
@@ -488,8 +484,7 @@
         if(!isCreditCheck) { statusContainer.innerHTML = '<p class="status-message">Ожидание запуска задачи...</p>'; responseOutput.textContent = "Выполняется запрос..."; }
         if (pollingInterval && !isCreditCheck) clearInterval(pollingInterval);
         try {
-            const response = await fetch(endpoint, options);
-            const result = await response.json();
+            const response = await fetch(endpoint, options); const result = await response.json();
             if (response.ok) {
                 if(!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2);
                 if (isCreditCheck && result.data !== undefined) { document.getElementById("credits-value").textContent = result.data; document.getElementById("credits-container").style.display = "inline-flex"; }
@@ -517,11 +512,23 @@
         } else { if (!isInstrumental && descriptionInput.value.trim() === '') { descriptionInput.classList.add('input-error'); allValid = false; } }
         return allValid;
     }
-    document.addEventListener("DOMContentLoaded", () => {
+    
+    function initializeApp() {
         toggleGeneratorMode();
         updateCharacterLimits(modelValueInput.value);
         handleApiCall("/api/chat/credit", { method: "GET" }, true);
-        loadSongsFromLocalStorage();
+        storage.getSongs().forEach(songInfo => {
+            addSongToList(songInfo.songData, songInfo.requestParams, false);
+        });
+    }
+
+    // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+    document.addEventListener("DOMContentLoaded", () => {
+        if (sessionStorage.getItem('is-authenticated') === 'true') {
+            loginElements.overlay.style.display = 'none';
+            loginElements.container.style.display = 'block';
+            initializeApp();
+        }
     });
 </script>
 
