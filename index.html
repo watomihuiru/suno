@@ -35,10 +35,10 @@
 
             <div class="card main-card">
                 <div class="tabs">
-                    <button class="tab-button active" onclick="openTab(event, 'generate')">Создать</button>
-                    <button class="tab-button" onclick="openTab(event, 'extend')">Продлить</button>
-                    <button class="tab-button" onclick="openTab(event, 'upload')">Загрузить</button>
-                    <button class="tab-button" id="logs-tab-button" onclick="openTab(event, 'logs')">Логи<span id="logs-notification-dot" class="notification-dot"></span></button>
+                    <button class="tab-button active" data-tab="generate">Создать</button>
+                    <button class="tab-button" data-tab="extend">Продлить</button>
+                    <button class="tab-button" data-tab="upload">Загрузить</button>
+                    <button class="tab-button" id="logs-tab-button" data-tab="logs">Логи<span id="logs-notification-dot" class="notification-dot"></span></button>
                 </div>
 
                 <div id="generate" class="tab-content active">
@@ -73,8 +73,8 @@
 
             <div class="card library-card">
                 <div class="tabs" id="library-tabs">
-                     <button class="tab-button active" onclick="filterLibrary('all')">Все</button>
-                     <button class="tab-button" onclick="filterLibrary('favorites')">Избранное</button>
+                     <button class="tab-button active" data-filter="all">Все</button>
+                     <button class="tab-button" data-filter="favorites">Избранное</button>
                 </div>
                 <hr class="divider">
                 <div id="song-list-container">
