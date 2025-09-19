@@ -32,7 +32,13 @@ body {
     background-color: var(--accent-red); border-radius: 50%; border: 2px solid var(--bg-card);
 }
 .tab-content { display: none; }
-.tab-content.active { display: block; animation: fadeIn 0.3s ease-out forwards; }
+.tab-content.active {
+    display: block; animation: fadeIn 0.3s ease-out forwards;
+    flex-grow: 1; /* Makes content fill available space */
+    overflow-y: auto; /* Adds scroll if content overflows */
+    min-height: 0; /* Crucial for flexbox scrolling */
+    padding-right: 10px; /* Space for scrollbar */
+}
 .tab-content.exiting { animation: fadeOut 0.3s ease-in forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(5px); } }

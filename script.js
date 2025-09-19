@@ -254,8 +254,22 @@ function initializeApp() {
 
 // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('access-key-button').addEventListener('click', handleLogin);
-    document.getElementById('access-key-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+    const accessKeyInput = document.getElementById('access-key-input');
+    const accessKeyButton = document.getElementById('access-key-button');
+    let hideKeyTimeout;
+
+    accessKeyButton.addEventListener('click', handleLogin);
+    accessKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+    
+    // Logic for briefly showing typed characters in the access key field
+    accessKeyInput.addEventListener('input', () => {
+        if (hideKeyTimeout) clearTimeout(hideKeyTimeout);
+        accessKeyInput.type = 'text';
+        hideKeyTimeout = setTimeout(() => {
+            accessKeyInput.type = 'password';
+        }, 500);
+    });
+
     if (sessionStorage.getItem('is-authenticated') === 'true') {
         document.getElementById('login-overlay').style.display = 'none';
         const appTemplate = document.getElementById('app-template');
@@ -265,6 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initializeApp();
     }
 });
+
 
 // --- Глобальные функции, не зависящие от инициализации ---
 function createPlaceholderCard(taskId) {
@@ -312,15 +327,24 @@ async function handleApiCall(endpoint, options, isCreditCheck = false, isGenerat
         updateStatus(`💥 Критическая ошибка: ${error.message}`, false, true);
     }
 }
+
+// Helper function to mark an input field as invalid for a short duration
+function markInputAsError(element) {
+    element.classList.add('input-error');
+    setTimeout(() => {
+        element.classList.remove('input-error');
+    }, 1500); // The red border will disappear after 1.5 seconds
+}
+
 function validateGenerateForm() {
     const titleInput = document.getElementById('g-title'), styleInput = document.getElementById('g-style'), promptInput = document.getElementById('g-prompt'), descriptionInput = document.getElementById('g-song-description');
     [titleInput, styleInput, promptInput, descriptionInput].forEach(el => el.classList.remove('input-error'));
     const isCustom = document.getElementById("g-customMode").checked, isInstrumental = document.getElementById("g-instrumental").checked; let allValid = true;
     if (isCustom) {
-        if (titleInput.value.trim() === '') { titleInput.classList.add('input-error'); allValid = false; }
-        if (styleInput.value.trim() === '') { styleInput.classList.add('input-error'); allValid = false; }
-        if (!isInstrumental && promptInput.value.trim() === '') { promptInput.classList.add('input-error'); allValid = false; }
-    } else { if (!isInstrumental && descriptionInput.value.trim() === '') { descriptionInput.classList.add('input-error'); allValid = false; } }
+        if (titleInput.value.trim() === '') { markInputAsError(titleInput); allValid = false; }
+        if (styleInput.value.trim() === '') { markInputAsError(styleInput); allValid = false; }
+        if (!isInstrumental && promptInput.value.trim() === '') { markInputAsError(promptInput); allValid = false; }
+    } else { if (!isInstrumental && descriptionInput.value.trim() === '') { markInputAsError(descriptionInput); allValid = false; } }
     return allValid;
 }
 function toggleGeneratorMode(){ const isCustom = document.getElementById("g-customMode").checked; document.getElementById("simple-mode-fields").style.display = isCustom ? "none" : "flex"; document.getElementById("custom-mode-fields").style.display = isCustom ? "flex" : "none"; togglePromptVisibility(); }

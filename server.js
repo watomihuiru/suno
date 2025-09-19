@@ -94,7 +94,8 @@ app.post('/api/refresh-url', async (req, res) => {
         });
         const newAudioUrl = sunoResponse.data.data;
         if (newAudioUrl) {
-            const newStreamUrl = newAudioUrl.replace('.mp3', '');
+            // FIX: The stream URL should be the same as the audio URL. Do not remove .mp3
+            const newStreamUrl = newAudioUrl; 
             await pool.query(
                 `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', $1::jsonb), '{streamAudioUrl}', $2::jsonb) WHERE id = $3`,
                 [JSON.stringify(newAudioUrl), JSON.stringify(newStreamUrl), id]
