@@ -54,11 +54,11 @@
                             <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
                             <div class="form-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
                         </div>
-                        <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать музыку</button>
+                        <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать</button>
                     </form>
                 </div>
                 
-                <div id="extend" class="tab-content"><form id="extend-music-form" class="form-grid"><div class="form-group"><label for="e-audioId">Audio ID</label><input type="text" id="e-audioId" placeholder="ID трека для продления" required></div><div class="form-group"><label for="e-continueAt">Продлить с (секунды)</label><input type="number" id="e-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить трек</button></form></div>
+                <div id="extend" class="tab-content"><form id="extend-music-form" class="form-grid"><div class="form-group"><label for="e-audioId">Audio ID</label><input type="text" id="e-audioId" placeholder="ID трека для продления" required></div><div class="form-group"><label for="e-continueAt">Продлить с (секунды)</label><input type="number" id="e-continueAt" value="60"></div><div class="form-group"><label for="e-prompt">Новый текст (опционально)</label><textarea id="e-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Продлить трек</button></form></div>
                 <div id="upload" class="tab-content"><div class="form-grid"><form id="upload-cover-form" class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Создать кавер</button></form><hr class="divider"><form id="upload-extend-form" class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div></div>
                 
                 <div id="logs" class="tab-content">
@@ -72,7 +72,10 @@
             </div>
 
             <div class="card library-card">
-                <h4>Библиотека</h4>
+                <div class="tabs" id="library-tabs">
+                     <button class="tab-button active" onclick="filterLibrary('all')">Все</button>
+                     <button class="tab-button" onclick="filterLibrary('favorites')">Избранное</button>
+                </div>
                 <hr class="divider">
                 <div id="song-list-container">
                     <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
@@ -102,9 +105,7 @@
                 <span id="total-duration" class="time-display">0:00</span>
             </div>
         </div>
-        <div id="player-extra-controls">
-            <!-- Extra controls can go here in the future -->
-        </div>
+        <div id="player-extra-controls"></div>
     </div>
 
     <div id="lyrics-modal-overlay">
