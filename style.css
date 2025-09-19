@@ -13,9 +13,9 @@ body {
     padding: 30px;
 }
 .page-container {
-    width: 100%; max-width: 1400px; /* Increased max-width */
+    width: 100%; max-width: 1400px;
     display: grid; grid-template-columns: 1fr 1fr;
-    gap: 24px; height: calc(100vh - 150px); /* Full height minus padding and player space */
+    gap: 24px; height: calc(100vh - 150px);
 }
 .header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { font-size: 24px; font-weight: 600; }
@@ -42,13 +42,13 @@ body {
     flex-grow: 1; min-height: 0;
     animation: fadeIn 0.3s ease-out forwards;
 }
-#generate .form-grid, #extend .form-grid, #upload .form-grid {
+.form-grid {
+    display: flex; flex-direction: column; gap: 20px;
     overflow-y: auto; flex-grow: 1; padding-right: 10px;
 }
 .tab-content.exiting { animation: fadeOut 0.3s ease-in forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(5px); } }
-.form-grid { display: flex; flex-direction: column; gap: 20px; }
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group input, .form-group textarea, .form-group select {
     background-color: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
@@ -119,7 +119,12 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .menu-item:hover { background-color: var(--border); }
 .menu-item i { width: 16px; text-align: center; }
 .menu-item.delete { color: var(--accent-red); }
-#empty-list-message { color: var(--text-secondary); text-align: center; padding: 20px; }
+#empty-list-message {
+    margin: auto; /* *** ИСПРАВЛЕНИЕ ДЛЯ ЦЕНТРИРОВАНИЯ *** */
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px;
+}
 .progress-bar-container { width: 100%; background-color: var(--border); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 8px; }
 .progress-bar-inner { width: 0%; height: 100%; background-color: var(--accent-blue); transition: width 0.5s ease; }
 #global-player { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1c2128; border-top: 1px solid var(--border); padding: 10px 30px; display: none; align-items: center; gap: 20px; z-index: 100; }

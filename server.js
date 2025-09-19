@@ -123,6 +123,9 @@ app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/gener
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
 app.post('/api/lyrics', (req, res) => proxyRequest(res, 'POST', '/generate/get-timestamped-lyrics', req.body));
+// НОВЫЙ ЭНДПОИНТ
+app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/generate/boost-music-style', req.body));
+
 
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;
