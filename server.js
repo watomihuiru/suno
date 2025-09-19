@@ -31,7 +31,6 @@ async function setupDatabase() {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        // Проверяем и добавляем колонку is_favorite для обратной совместимости
         const res = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='songs' AND column_name='is_favorite'");
         if (res.rowCount === 0) {
             await client.query('ALTER TABLE songs ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE;');
@@ -45,6 +44,8 @@ async function setupDatabase() {
 }
 
 app.use(express.json());
+// ВОТ ЭТА ВАЖНАЯ СТРОКА:
+app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -107,7 +108,6 @@ app.post('/api/refresh-url', async (req, res) => {
         res.status(500).json({ message: 'Не удалось обновить URL' });
     }
 });
-
 
 // --- Прокси для Suno API ---
 async function proxyRequest(res, method, endpoint, data) {
