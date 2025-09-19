@@ -59,7 +59,6 @@ function setupPlayerListeners() {
     globalPlayer.audio.onpause = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; updateAllPlayIcons(); };
     globalPlayer.audio.onloadedmetadata = () => { globalPlayer.seekBar.max = globalPlayer.audio.duration; globalPlayer.totalDuration.textContent = formatTime(globalPlayer.audio.duration); };
     
-    // *** ИСПРАВЛЕНИЕ: Обновление стилей и времени при проигрывании ***
     globalPlayer.audio.ontimeupdate = () => {
         globalPlayer.seekBar.value = globalPlayer.audio.currentTime;
         globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
@@ -68,7 +67,6 @@ function setupPlayerListeners() {
         updateActiveLyric(globalPlayer.audio.currentTime);
     };
 
-    // *** ИСПРАВЛЕНИЕ: Перемотка плеера ***
     globalPlayer.seekBar.addEventListener('input', () => {
         globalPlayer.audio.currentTime = globalPlayer.seekBar.value;
         const progressPercent = (globalPlayer.audio.currentTime / globalPlayer.audio.duration) * 100;
@@ -104,7 +102,29 @@ function playSongByIndex(index) {
 function playNext() { if (playlist.length === 0) return; let nextIndex; if (isShuffled) { nextIndex = Math.floor(Math.random() * playlist.length); } else { nextIndex = (currentTrackIndex + 1) % playlist.length; } playSongByIndex(nextIndex); }
 function playPrevious() { if (playlist.length === 0) return; let prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length; playSongByIndex(prevIndex); }
 
-function updateAllPlayIcons() { document.querySelectorAll('.song-cover').forEach(el => { const id = el.id.replace('cover-', ''); el.classList.remove('playing', 'paused'); if (id === globalPlayer.currentSongId) { el.classList.add(globalPlayer.audio.paused ? 'paused' : 'playing'); } }); }
+// *** ИСПРАВЛЕНИЕ: Функция теперь меняет иконку Play/Pause ***
+function updateAllPlayIcons() {
+    document.querySelectorAll('.song-cover').forEach(el => {
+        const id = el.id.replace('cover-', '');
+        const playIconContainer = el.querySelector('.play-icon');
+        
+        el.classList.remove('playing', 'paused');
+        
+        // Проверяем, является ли эта карточка текущим треком
+        if (id === globalPlayer.currentSongId && globalPlayer.audio.src) {
+            if (globalPlayer.audio.paused) {
+                el.classList.add('paused');
+                playIconContainer.innerHTML = `<i class="fas fa-play"></i>`;
+            } else {
+                el.classList.add('playing');
+                playIconContainer.innerHTML = `<i class="fas fa-pause"></i>`;
+            }
+        } else {
+            // Если это не текущий трек, сбрасываем иконку на "Play"
+            playIconContainer.innerHTML = `<i class="fas fa-play"></i>`;
+        }
+    });
+}
 
 async function downloadSong(event, url, filename) { event.preventDefault(); const button = event.currentTarget; const originalHTML = button.innerHTML; button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Скачивание...'; button.style.cursor = 'wait'; try { const response = await fetch(url); const blob = await response.blob(); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = filename; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(blobUrl); a.remove(); } catch (error) { console.error('Download failed:', error); button.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ошибка'; } finally { setTimeout(() => { button.innerHTML = originalHTML; button.style.cursor = 'pointer'; }, 1500); } }
 
@@ -175,8 +195,6 @@ function addSongToList(songInfo) {
     const menuItems = [ { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, { icon: 'fas fa-file-alt', text: 'Текст', action: () => showTimestampedLyrics(songData.id) }, { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } ];
     menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
     
-    // *** ИСПРАВЛЕНИЕ: Новые треки появляются сверху ***
-    // Сервер уже сортирует треки, поэтому мы добавляем их в конец списка в том порядке, в котором они приходят.
     songListContainer.appendChild(card);
 }
 
