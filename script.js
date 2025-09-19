@@ -81,7 +81,10 @@ function playSongByIndex(index) {
     globalPlayer.currentSongId = songData.id;
     globalPlayer.cover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.title.textContent = songData.title || 'Без названия';
+    
+    // *** ГЛАВНОЕ ИЗМЕНЕНИЕ: Используем наш серверный прокси для воспроизведения ***
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
+    
     globalPlayer.audio.play().catch(e => { 
         if (e.name !== 'AbortError') { 
             console.error("Ошибка воспроизведения:", e); 
@@ -261,18 +264,13 @@ function setupEventListeners() {
     selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
     selectDropdown.addEventListener("click", e => { 
         if (e.target.classList.contains("select-option")) { 
-            // *** ИСПРАВЛЕНИЕ: Логика подсветки выбранной модели ***
-            // 1. Убираем подсветку с предыдущего элемента
             const currentSelected = selectDropdown.querySelector('.select-option.selected');
             if (currentSelected) {
                 currentSelected.classList.remove('selected');
             }
-            // 2. Добавляем подсветку новому элементу
             e.target.classList.add('selected');
-
             document.getElementById("g-model-value").value = e.target.dataset.value; 
             selectButton.textContent = e.target.textContent; 
-            // 3. Закрываем выпадающий список
             selectDropdown.classList.remove("open");
         } 
     });

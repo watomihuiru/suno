@@ -107,9 +107,6 @@ app.get('/api/stream/:id', async (req, res) => {
 
         // Передаем заголовки ответа от Suno (важно для типа контента)
         res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
-        res.setHeader('Content-Length', response.headers['content-length'] || '');
-        
-        // Перенаправляем поток аудио клиенту
         response.data.pipe(res);
 
     } catch (error) {
