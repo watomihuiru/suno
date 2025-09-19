@@ -50,9 +50,41 @@ function initializeApp() {
 }
 
 // --- ЛОГИКА ПЛЕЕРА И ПЕСЕН ---
+async function refreshAudioUrlAndPlay(songId) {
+    updateStatus(`⏳ Ссылка на аудио истекла, обновляю...`);
+    try {
+        const response = await fetch('/api/refresh-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: songId })
+        });
+        if (!response.ok) throw new Error('Не удалось обновить URL');
+        
+        const result = await response.json();
+        console.log('Получен новый URL:', result.newUrl);
+        
+        // Важно: мы все еще используем наш прокси, сервер сам разберется с новым URL
+        globalPlayer.audio.src = `/api/stream/${songId}`;
+        const playPromise = globalPlayer.audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => console.error("Ошибка авто-воспроизведения после обновления URL:", error));
+        }
+        updateStatus(`✅ Ссылка обновлена, воспроизведение...`, true);
+        setTimeout(() => updateStatus(''), 2000);
+
+    } catch (error) {
+        console.error('Ошибка при обновлении URL аудио:', error);
+        updateStatus(`🚫 Не удалось обновить ссылку на аудио.`, false, true);
+    }
+}
+
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { 
         console.error("Ошибка аудио:", e);
+        // *** НОВАЯ ФУНКЦИЯ: Пытаемся обновить URL, если он истек ***
+        if (globalPlayer.currentSongId) {
+            refreshAudioUrlAndPlay(globalPlayer.currentSongId);
+        }
     };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
@@ -102,15 +134,11 @@ function playSongByIndex(index) {
 function playNext() { if (playlist.length === 0) return; let nextIndex; if (isShuffled) { nextIndex = Math.floor(Math.random() * playlist.length); } else { nextIndex = (currentTrackIndex + 1) % playlist.length; } playSongByIndex(nextIndex); }
 function playPrevious() { if (playlist.length === 0) return; let prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length; playSongByIndex(prevIndex); }
 
-// *** ИСПРАВЛЕНИЕ: Функция теперь меняет иконку Play/Pause ***
 function updateAllPlayIcons() {
     document.querySelectorAll('.song-cover').forEach(el => {
         const id = el.id.replace('cover-', '');
         const playIconContainer = el.querySelector('.play-icon');
-        
         el.classList.remove('playing', 'paused');
-        
-        // Проверяем, является ли эта карточка текущим треком
         if (id === globalPlayer.currentSongId && globalPlayer.audio.src) {
             if (globalPlayer.audio.paused) {
                 el.classList.add('paused');
@@ -120,7 +148,6 @@ function updateAllPlayIcons() {
                 playIconContainer.innerHTML = `<i class="fas fa-pause"></i>`;
             }
         } else {
-            // Если это не текущий трек, сбрасываем иконку на "Play"
             playIconContainer.innerHTML = `<i class="fas fa-play"></i>`;
         }
     });
@@ -194,7 +221,6 @@ function addSongToList(songInfo) {
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
     const menuItems = [ { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, { icon: 'fas fa-file-alt', text: 'Текст', action: () => showTimestampedLyrics(songData.id) }, { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } ];
     menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
-    
     songListContainer.appendChild(card);
 }
 
@@ -256,7 +282,20 @@ function toggleCustomModeFields() {
     document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
 }
 
+// *** НОВАЯ ФУНКЦИЯ: Обновление значения рядом со слайдером ***
+function setupSliderListeners() {
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        const valueSpan = slider.nextElementSibling;
+        if (valueSpan && valueSpan.classList.contains('slider-value')) {
+            slider.addEventListener('input', () => {
+                valueSpan.textContent = slider.value;
+            });
+        }
+    });
+}
+
 function setupEventListeners() {
+    setupSliderListeners(); // Инициализируем слушатели для всех слайдеров
     document.querySelectorAll('.main-card .tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const tabName = button.dataset.tab; if (currentTabName === tabName) return; document.querySelectorAll('.main-card .tab-content').forEach(tab => tab.classList.remove('active')); document.querySelectorAll('.main-card .tabs .tab-button').forEach(btn => btn.classList.remove('active')); document.getElementById(tabName).classList.add('active'); event.currentTarget.classList.add('active'); currentTabName = tabName; }); });
     document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
     
@@ -280,7 +319,7 @@ function setupEventListeners() {
         if (!validateGenerateForm()) return;
         const isCustom = document.getElementById("g-customMode").checked;
         const isInstrumental = document.getElementById("g-instrumental").checked;
-        const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, };
+        const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, styleWeight: parseFloat(document.getElementById('g-styleWeight').value), weirdnessConstraint: parseFloat(document.getElementById('g-weirdnessConstraint').value) };
         if (isCustom) {
             payload.title = document.getElementById('g-title').value;
             payload.style = document.getElementById('g-style').value;
@@ -295,10 +334,48 @@ function setupEventListeners() {
         }
         handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); 
     });
-    document.getElementById("extend-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value, prompt: document.getElementById("e-prompt").value }; handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, prompt: document.getElementById("uc-prompt").value }; handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    
+    document.getElementById("extend-music-form").addEventListener("submit", (e) => { 
+        e.preventDefault(); 
+        const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value };
+        const fields = { title: 'e-title', style: 'e-style', prompt: 'e-prompt', negativeTags: 'e-negativeTags', styleWeight: 'e-styleWeight', weirdnessConstraint: 'e-weirdnessConstraint', audioWeight: 'e-audioWeight' };
+        for (const key in fields) {
+            const element = document.getElementById(fields[key]);
+            if (element.value) {
+                payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value;
+            }
+        }
+        handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); 
+    });
+
+    document.getElementById("upload-cover-form").addEventListener("submit", (e) => { 
+        e.preventDefault(); 
+        const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, instrumental: document.getElementById("uc-instrumental").checked };
+        const fields = { title: 'uc-title', style: 'uc-style', prompt: 'uc-prompt', negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' };
+        for (const key in fields) {
+            const element = document.getElementById(fields[key]);
+            if (element.value) {
+                payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value;
+            }
+        }
+        handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); 
+    });
+
+    document.getElementById("upload-extend-form").addEventListener("submit", (e) => { 
+        e.preventDefault(); 
+        const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value };
+        const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' };
+        for (const key in fields) {
+            const element = document.getElementById(fields[key]);
+            if (element.value) {
+                payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value;
+            }
+        }
+        handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); 
+    });
+
     document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { content: document.getElementById("b-style-content").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    
     const selectButton = document.getElementById("select-model-button"); 
     const selectDropdown = document.getElementById("select-model-dropdown"); 
     selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
