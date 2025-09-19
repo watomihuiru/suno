@@ -48,8 +48,8 @@
                         <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea></div></div>
                         <div id="custom-mode-fields" class="form-grid">
                             <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"></div>
-                            <div class="form-group"><label for="g-style">Стиль музыки</label><textarea id="g-style" oninput="updateCharCounter(this, 'g-style-counter')"></textarea><div id="g-style-counter" class="char-counter"></div></div>
-                            <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt" oninput="updateCharCounter(this, 'g-prompt-counter')"></textarea><div id="g-prompt-counter" class="char-counter"></div></div>
+                            <div class="form-group"><label for="g-style">Стиль музыки</label><textarea id="g-style" placeholder="Пример: Pop, Mysterious, Upbeat"></textarea></div>
+                            <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt"></textarea></div>
                             <hr class="divider">
                             <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                             <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
@@ -62,7 +62,16 @@
                 <div id="extend" class="tab-content"><form id="extend-music-form" class="form-grid"><div class="form-group"><label for="e-audioId">Audio ID</label><input type="text" id="e-audioId" placeholder="ID трека для продления" required></div><div class="form-group"><label for="e-continueAt">Продлить с (секунды)</label><input type="number" id="e-continueAt" value="60"></div><div class="form-group"><label for="e-prompt">Новый текст (опционально)</label><textarea id="e-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Продлить трек</button></form></div>
                 <div id="upload" class="tab-content"><div class="form-grid"><form id="upload-cover-form" class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><button type="submit" class="submit-button">Создать кавер</button></form><hr class="divider"><form id="upload-extend-form" class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div></div>
                 
-                <div id="boost" class="tab-content"><form id="boost-style-form" class="form-grid"><div class="form-group"><label for="b-audioId">Audio ID</label><input type="text" id="b-audioId" placeholder="ID трека для улучшения стиля" required></div><button type="submit" class="submit-button">Улучшить стиль</button></form></div>
+                <!-- *** ИСПРАВЛЕНИЕ: Форма Boost Style теперь принимает описание стиля *** -->
+                <div id="boost" class="tab-content">
+                    <form id="boost-style-form" class="form-grid">
+                        <div class="form-group">
+                            <label for="b-style-content">Описание стиля для улучшения</label>
+                            <input type="text" id="b-style-content" placeholder="Пример: Pop, Mysterious" required>
+                        </div>
+                        <button type="submit" class="submit-button">Улучшить стиль</button>
+                    </form>
+                </div>
 
                 <div id="logs" class="tab-content">
                     <div id="logs-content">

@@ -89,8 +89,9 @@ app.get('/api/stream/:id', async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).send('Song not found');
         }
-
-        const audioUrl = result.rows[0].song_data.audioUrl;
+        
+        // Use streamAudioUrl first, fallback to audioUrl
+        const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) {
             return res.status(404).send('Audio URL not found for this song');
         }
@@ -98,7 +99,8 @@ app.get('/api/stream/:id', async (req, res) => {
         const response = await axios({
             method: 'get',
             url: audioUrl,
-            responseType: 'stream'
+            responseType: 'stream',
+            headers: { 'User-Agent': 'Mozilla/5.0' } // Add user-agent to prevent potential 403 errors
         });
 
         res.setHeader('Content-Type', 'audio/mpeg');
@@ -149,7 +151,8 @@ app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/gener
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
 app.post('/api/lyrics', (req, res) => proxyRequest(res, 'POST', '/generate/get-timestamped-lyrics', req.body));
-app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/generate/boost-music-style', req.body));
+// Исправлен эндпоинт и payload для boost-style
+app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
 
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;
@@ -157,11 +160,22 @@ app.get('/api/task-status/:taskId', async (req, res) => {
     try {
         const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` } });
         const taskData = response.data.data;
-        if (taskData && (taskData.status.toLowerCase() === 'success' || taskData.status.toLowerCase() === 'completed')) {
+        // Расширенный список успешных статусов
+        const successStatuses = ['success', 'completed', 'text_success', 'first_success'];
+        
+        if (taskData && successStatuses.includes(taskData.status.toLowerCase())) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                 for (const song of taskData.response.sunoData) {
                     if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
-                    await pool.query('INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING', [song.id, song, taskData.param]);
+                    // Используем ON CONFLICT, чтобы избежать ошибок с дубликатами и обновить данные, если нужно
+                    await pool.query(
+                        `INSERT INTO songs (id, song_data, request_params) 
+                         VALUES ($1, $2, $3) 
+                         ON CONFLICT (id) DO UPDATE SET 
+                            song_data = EXCLUDED.song_data, 
+                            request_params = EXCLUDED.request_params`,
+                        [song.id, song, taskData.param]
+                    );
                 }
             }
         }

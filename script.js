@@ -9,7 +9,7 @@ let currentLyrics = [];
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
 
-function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'--:--';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
+function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'0:00';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
 
 // --- ЛОГИКА АВТОРИЗАЦИИ ---
 function handleLogin() {
@@ -18,6 +18,8 @@ function handleLogin() {
         sessionStorage.setItem('is-authenticated', 'true');
         loginElements.overlay.style.display = 'none';
         const appTemplate = document.getElementById('app-template');
+        // Очищаем контейнер перед добавлением нового шаблона, чтобы избежать дублирования
+        loginElements.container.innerHTML = ''; 
         loginElements.container.appendChild(appTemplate.content.cloneNode(true));
         loginElements.container.style.display = 'block';
         initializeApp();
@@ -43,11 +45,7 @@ function initializeApp() {
 
 // --- ЛОГИКА ПЛЕЕРА И ПЕСЕН ---
 function setupPlayerListeners() {
-    globalPlayer.audio.onerror = (e) => { 
-        console.error("Ошибка аудио:", e);
-        // Не вызываем refresh-url, т.к. проксирование должно решать проблему
-        // Можно добавить здесь логику показа сообщения пользователю
-    };
+    globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
     globalPlayer.audio.onpause = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; updateAllPlayIcons(); };
@@ -57,7 +55,8 @@ function setupPlayerListeners() {
         globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
         updateActiveLyric(globalPlayer.audio.currentTime);
     };
-    globalPlayer.seekBar.oninput = () => (globalPlayer.audio.currentTime = globalPlayer.seekBar.value);
+    // *** ИСПРАВЛЕНИЕ: Используем 'input' вместо 'oninput' для перемотки в реальном времени ***
+    globalPlayer.seekBar.addEventListener('input', () => (globalPlayer.audio.currentTime = globalPlayer.seekBar.value));
     globalPlayer.audio.onended = () => { if (isRepeatOne) { globalPlayer.audio.currentTime = 0; globalPlayer.audio.play(); } else { playNext(); } };
     globalPlayer.nextBtn.onclick = playNext;
     globalPlayer.prevBtn.onclick = playPrevious;
@@ -68,25 +67,17 @@ function setupPlayerListeners() {
 }
 
 function playSongByIndex(index) {
+    if (index < 0 || index >= playlist.length) return;
     currentTrackIndex = index;
     const songData = playlist[currentTrackIndex].songData;
     globalPlayer.currentSongId = songData.id;
-    globalPlayer.cover.src = songData.imageUrl;
+    globalPlayer.cover.src = songData.imageUrl || 'placeholder.png'; // Fallback image
     globalPlayer.title.textContent = songData.title || 'Без названия';
-    
-    // *** ГЛАВНОЕ ИЗМЕНЕНИЕ: Используем наш прокси-сервер ***
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
-    
-    globalPlayer.audio.play().catch(e => {
-        if (e.name !== 'AbortError') {
-            console.error("Ошибка воспроизведения:", e);
-        }
-    });
-    
+    globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
     globalPlayer.container.style.display = 'flex';
     updateAllPlayIcons();
 }
-
 
 function playNext() { if (playlist.length === 0) return; let nextIndex; if (isShuffled) { nextIndex = Math.floor(Math.random() * playlist.length); } else { nextIndex = (currentTrackIndex + 1) % playlist.length; } playSongByIndex(nextIndex); }
 function playPrevious() { if (playlist.length === 0) return; let prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length; playSongByIndex(prevIndex); }
@@ -115,14 +106,25 @@ async function showTimestampedLyrics(songId) {
     lyricsModal.content.innerHTML = '<p>Загрузка текста...</p>';
     lyricsModal.overlay.style.display = 'flex';
     try {
-        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audioId: songId }) });
+        const songInfo = playlist.find(p => p.songData.id === songId);
+        // Добавляем taskId в запрос, если он есть
+        const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId };
+        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const result = await response.json();
-        if (!response.ok || !result.data || result.data.length === 0) {
-            const song = playlist.find(p => p.songData.id === songId);
-            lyricsModal.content.textContent = song ? song.songData.prompt : "Текст недоступен.";
+        
+        // В API текст возвращается в data.alignedWords, а не в data
+        if (!response.ok || !result.data || !result.data.alignedWords || result.data.alignedWords.length === 0) {
+            lyricsModal.content.textContent = songInfo ? (songInfo.songData.prompt || "Текст недоступен.") : "Текст недоступен.";
+            currentLyrics = [];
             return;
         }
-        currentLyrics = result.data;
+
+        // Трансформируем ответ API в нужный формат
+        currentLyrics = result.data.alignedWords.map(line => ({
+            text: line.word,
+            startTime: line.startS
+        }));
+
         lyricsModal.content.innerHTML = '';
         currentLyrics.forEach((line, index) => {
             const p = document.createElement('p'); p.textContent = line.text; p.className = 'lyric-line'; p.dataset.index = index; lyricsModal.content.appendChild(p);
@@ -142,6 +144,7 @@ function updateActiveLyric(currentTime) {
 }
 
 function addSongToList(songInfo) {
+    if (document.getElementById(`song-${songInfo.songData.id}`)) return; // Не добавлять, если уже есть
     emptyListMessage.style.display = 'none';
     const { songData, requestParams } = songInfo;
     const card = document.createElement('div');
@@ -150,7 +153,13 @@ function addSongToList(songInfo) {
     const downloadUrl = songData.audioUrl || songData.streamAudioUrl;
     const filename = `${songData.title || 'track'}.mp3`;
     card.innerHTML = `<div class="song-cover" id="cover-${songData.id}"><img src="${songData.imageUrl}" alt="Обложка трека"><div class="song-duration">${formatTime(songData.duration)}</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><div><span class="song-title">${songData.title || 'Без названия'}</span><span class="song-model-tag">${friendlyModelName}</span></div><div class="song-style"><div class="song-style-content">${songData.tags || '(no styles)'}</div></div></div><div class="song-actions"><button class="menu-trigger"><i class="fas fa-ellipsis-v"></i></button><ul class="song-menu"></ul></div>`;
+    
+    // Добавляем песню в плейлист, только если её там ещё нет
+    if (!playlist.some(p => p.songData.id === songData.id)) {
+        playlist.unshift(songInfo); // Добавляем в начало
+    }
     const songIndex = playlist.findIndex(p => p.songData.id === songData.id);
+
     card.querySelector('.song-cover').onclick = () => playSongByIndex(songIndex);
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
@@ -162,11 +171,11 @@ function addSongToList(songInfo) {
         { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' }
     ];
     menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
-    songListContainer.appendChild(card);
+    songListContainer.prepend(card); // Используем prepend, чтобы новые песни были сверху
 }
 
 function renderLibrary() {
-    songListContainer.innerHTML = '';
+    songListContainer.innerHTML = ''; // Очищаем список
     const filteredPlaylist = (currentLibraryTab === 'favorites') ? playlist.filter(p => p.songData.is_favorite) : playlist;
     if (filteredPlaylist.length > 0) {
         emptyListMessage.style.display = 'none';
@@ -193,28 +202,119 @@ async function startPolling(taskId) {
             const response = await fetch(`/api/task-status/${taskId}`); const result = await response.json();
             document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
             if (!response.ok || !result.data) { throw new Error(result.message || "Некорректный ответ от API"); }
+            
             const taskData = result.data; const statusLowerCase = taskData.status.toLowerCase();
-            if (["success", "completed"].includes(statusLowerCase)) {
-                clearInterval(pollingInterval); updateStatus("✅ Задача выполнена!", true); document.getElementById(`placeholder-${taskId}`)?.remove(); await loadSongsFromServer(); await handleApiCall("/api/chat/credit", { method: "GET" }, true);
-            } else if (["pending", "running", "submitted", "queued"].includes(statusLowerCase)) {
+            // *** ИСПРАВЛЕНИЕ: Добавлены все успешные и промежуточные статусы ***
+            const successStatuses = ["success", "completed", "text_success", "first_success"];
+            const pendingStatuses = ["pending", "running", "submitted", "queued"];
+
+            if (successStatuses.includes(statusLowerCase)) {
+                if (statusLowerCase === 'success' || statusLowerCase === 'completed') {
+                    clearInterval(pollingInterval);
+                    updateStatus("✅ Задача выполнена!", true);
+                    document.getElementById(`placeholder-${taskId}`)?.remove();
+                    await loadSongsFromServer(); // Перезагружаем все песни для обновления
+                    await handleApiCall("/api/chat/credit", { method: "GET" }, true);
+                } else {
+                    // Это промежуточный успех, продолжаем опрос
+                    updateStatus(`⏳ Статус: ${taskData.status}...`);
+                }
+            } else if (pendingStatuses.includes(statusLowerCase)) {
                 updateStatus(`⏳ Статус: ${taskData.status}...`);
-            } else { throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); }
+            } else { 
+                throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); 
+            }
         } catch (error) {
             clearInterval(pollingInterval); updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true); document.getElementById(`placeholder-${taskId}`)?.remove();
         }
     }, 10000);
 }
 
+
 function setupEventListeners() {
+    // Переключение табов
     document.querySelectorAll('.main-card .tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const tabName = button.dataset.tab; if (currentTabName === tabName) return; document.querySelectorAll('.main-card .tab-content').forEach(tab => tab.classList.remove('active')); document.querySelectorAll('.main-card .tabs .tab-button').forEach(btn => btn.classList.remove('active')); document.getElementById(tabName).classList.add('active'); event.currentTarget.classList.add('active'); currentTabName = tabName; }); });
     document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
-    document.getElementById("generate-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { model: document.getElementById("g-model-value").value, instrumental: document.getElementById("g-instrumental").checked, customMode: document.getElementById("g-customMode").checked }; if (payload.customMode) { payload.title = document.getElementById('g-title').value; payload.style = document.getElementById('g-style').value; if (!payload.instrumental) payload.prompt = document.getElementById('g-prompt').value; } else { if (!payload.instrumental) payload.prompt = document.getElementById('g-song-description').value; } handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+
+    // *** НОВОЕ: Логика для тумблера "Инструментал" ***
+    const instrumentalToggle = document.getElementById("g-instrumental");
+    const promptGroup = document.getElementById("g-prompt-group");
+    const vocalGenderGroup = document.querySelector("#g-vocalGender").parentElement;
+    
+    function toggleInstrumentalFields() {
+        const isInstrumental = instrumentalToggle.checked;
+        promptGroup.style.display = isInstrumental ? 'none' : 'flex';
+        vocalGenderGroup.style.display = isInstrumental ? 'none' : 'flex';
+    }
+    instrumentalToggle.addEventListener('change', toggleInstrumentalFields);
+    // Вызываем при инициализации
+    toggleInstrumentalFields();
+
+    // Формы
+    document.getElementById("generate-music-form").addEventListener("submit", (e) => { 
+        e.preventDefault(); 
+        if (!validateGenerateForm()) return; // *** НОВОЕ: Валидация ***
+        const isCustom = document.getElementById("g-customMode").checked;
+        const isInstrumental = document.getElementById("g-instrumental").checked;
+        const payload = { 
+            model: document.getElementById("g-model-value").value, 
+            instrumental: isInstrumental, 
+            customMode: isCustom,
+        };
+        
+        if (isCustom) {
+            payload.title = document.getElementById('g-title').value;
+            payload.style = document.getElementById('g-style').value;
+            payload.negativeTags = document.getElementById('g-negativeTags').value;
+            if (!isInstrumental) {
+                payload.prompt = document.getElementById('g-prompt').value;
+                const vocalGender = document.getElementById('g-vocalGender').value;
+                if(vocalGender) payload.vocalGender = vocalGender;
+            }
+        } else {
+            payload.prompt = document.getElementById('g-song-description').value;
+        }
+        
+        handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); 
+    });
+    
     document.getElementById("extend-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value, prompt: document.getElementById("e-prompt").value }; handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, prompt: document.getElementById("uc-prompt").value }; handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("b-audioId").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    // *** ИСПРАВЛЕНИЕ: Boost style использует 'content', а не 'audioId'
+    document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { content: document.getElementById("b-audioId").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    
+    // Селект модели
     const selectButton = document.getElementById("select-model-button"); const selectDropdown = document.getElementById("select-model-dropdown"); selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); selectDropdown.addEventListener("click", e => { if (e.target.classList.contains("select-option")) { document.getElementById("g-model-value").value = e.target.dataset.value; selectButton.textContent = e.target.textContent; } });
     window.addEventListener("click", () => { selectDropdown.classList.remove("open"); document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); });
+}
+
+// *** НОВАЯ ФУНКЦИЯ: Валидация формы генерации ***
+function validateGenerateForm() {
+    let isValid = true;
+    const isCustom = document.getElementById("g-customMode").checked;
+    const isInstrumental = document.getElementById("g-instrumental").checked;
+    
+    const fieldsToValidate = [];
+    if (isCustom) {
+        fieldsToValidate.push(document.getElementById('g-title'));
+        fieldsToValidate.push(document.getElementById('g-style'));
+        if (!isInstrumental) {
+            fieldsToValidate.push(document.getElementById('g-prompt'));
+        }
+    } else {
+        fieldsToValidate.push(document.getElementById('g-song-description'));
+    }
+
+    fieldsToValidate.forEach(field => {
+        if (!field.value.trim()) {
+            isValid = false;
+            field.classList.add('input-error');
+            setTimeout(() => field.classList.remove('input-error'), 1000);
+        }
+    });
+
+    return isValid;
 }
 
 function createPlaceholderCard(taskId) { const card = document.createElement('div'); card.className = 'song-card placeholder'; card.id = `placeholder-${taskId}`; card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`; songListContainer.prepend(card); }
@@ -244,17 +344,26 @@ async function handleApiCall(endpoint, options, isCreditCheck = false, isGenerat
     }
 }
 
+// *** ИСПРАВЛЕНИЕ: Логика загрузки приложения при обновлении страницы ***
 document.addEventListener("DOMContentLoaded", () => {
     const accessKeyInput = document.getElementById('access-key-input');
-    let hideKeyTimeout;
+    
     document.getElementById('access-key-button').addEventListener('click', handleLogin);
     accessKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
-    accessKeyInput.addEventListener('input', () => { clearTimeout(hideKeyTimeout); accessKeyInput.type = 'text'; hideKeyTimeout = setTimeout(() => { accessKeyInput.type = 'password'; }, 500); });
+    
     if (sessionStorage.getItem('is-authenticated') === 'true') {
+        // Если уже авторизован, сразу показываем приложение
         document.getElementById('login-overlay').style.display = 'none';
         const appTemplate = document.getElementById('app-template');
         const appContainer = document.getElementById('app-container');
-        appContainer.appendChild(appTemplate.content.cloneNode(true));
+        if (appContainer.children.length === 0) { // Проверяем, не был ли шаблон уже добавлен
+             appContainer.appendChild(appTemplate.content.cloneNode(true));
+        }
+        appContainer.style.display = 'block';
         initializeApp();
+    } else {
+        // Показываем окно логина, если не авторизован
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
     }
 });
