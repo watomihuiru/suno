@@ -9,22 +9,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// ИЗМЕНЕНО: Сервер теперь берет порт из окружения Render
 const port = process.env.PORT || 3000;
 
-// ИЗМЕНЕНО: Токен и URL теперь берутся из переменных окружения
 const SUNO_API_TOKEN = process.env.SUNO_API_TOKEN;
 const SUNO_API_BASE_URL = 'https://api.kie.ai/api/v1';
 
-// ИЗМЕНЕНО: Подключение к базе данных PostgreSQL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
 });
 
-// Функция для создания таблицы, если она не существует
 async function setupDatabase() {
     const client = await pool.connect();
     try {
@@ -33,77 +27,118 @@ async function setupDatabase() {
                 id VARCHAR(255) PRIMARY KEY,
                 song_data JSONB NOT NULL,
                 request_params JSONB NOT NULL,
+                is_favorite BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
+        // Проверяем и добавляем колонку is_favorite для обратной совместимости
+        const res = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='songs' AND column_name='is_favorite'");
+        if (res.rowCount === 0) {
+            await client.query('ALTER TABLE songs ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE;');
+        }
         console.log('Таблица "songs" готова.');
     } catch (err) {
-        console.error('Ошибка при создании таблицы:', err);
+        console.error('Ошибка при настройке таблицы:', err);
     } finally {
         client.release();
     }
 }
 
-
 app.use(express.json());
 
-// Отдаем наш HTML-файл как главную страницу
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- НОВЫЕ РОУТЫ ДЛЯ РАБОТЫ С БД ---
-
-// Получить все песни из БД
+// --- API для Песен ---
 app.get('/api/songs', async (req, res) => {
     try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT song_data, request_params FROM songs ORDER BY created_at DESC');
-        res.json(result.rows.map(row => ({ songData: row.song_data, requestParams: row.request_params })));
-        client.release();
+        const result = await pool.query('SELECT song_data, request_params, is_favorite FROM songs ORDER BY created_at DESC');
+        res.json(result.rows.map(row => ({ 
+            songData: { ...row.song_data, is_favorite: row.is_favorite }, 
+            requestParams: row.request_params 
+        })));
     } catch (err) {
-        console.error('Ошибка при получении песен из БД:', err);
+        console.error('Ошибка при получении песен:', err);
         res.status(500).json({ message: 'Не удалось загрузить песни' });
     }
 });
 
+app.delete('/api/songs/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM songs WHERE id = $1', [req.params.id]);
+        res.status(200).json({ message: 'Песня удалена' });
+    } catch (err) {
+        console.error('Ошибка при удалении песни:', err);
+        res.status(500).json({ message: 'Не удалось удалить песню' });
+    }
+});
 
-// --- СТАРЫЕ РОУТЫ (немного изменены) ---
+app.put('/api/songs/:id/favorite', async (req, res) => {
+    try {
+        await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2', [req.body.is_favorite, req.params.id]);
+        res.status(200).json({ message: 'Статус избранного обновлен' });
+    } catch (err) {
+        console.error('Ошибка при обновлении избранного:', err);
+        res.status(500).json({ message: 'Не удалось обновить' });
+    }
+});
 
-// Генерация
+app.post('/api/refresh-url', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ message: 'ID песни не предоставлен' });
+    try {
+        const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { musicId: id }, {
+            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+        });
+        const newAudioUrl = sunoResponse.data.data;
+        if (newAudioUrl) {
+            const newStreamUrl = newAudioUrl.replace('.mp3', '');
+            await pool.query(
+                `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', $1::jsonb), '{streamAudioUrl}', $2::jsonb) WHERE id = $3`,
+                [JSON.stringify(newAudioUrl), JSON.stringify(newStreamUrl), id]
+            );
+            res.json({ newUrl: newStreamUrl });
+        } else {
+            throw new Error('Не удалось получить новый URL');
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении URL:', error.response ? error.response.data : error.message);
+        res.status(500).json({ message: 'Не удалось обновить URL' });
+    }
+});
+
+
+// --- Прокси для Suno API ---
+async function proxyRequest(res, method, endpoint, data) {
+    try {
+        const response = await axios({ method, url: `${SUNO_API_BASE_URL}${endpoint}`, headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}`, 'Content-Type': 'application/json' }, data });
+        res.json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
+        res.status(status).json({ message: `Ошибка при запросе к ${endpoint}`, details });
+    }
+}
+
 app.post('/api/generate', (req, res) => {
     const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' };
     proxyRequest(res, 'POST', '/generate', payload);
 });
 
-// Проверка статуса задачи
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;
     const endpoint = `/generate/record-info?taskId=${taskId}`;
-    
     try {
-        const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, {
-            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
-        });
-
-        // ИЗМЕНЕНО: Если задача выполнена, сохраняем песни в БД
+        const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` } });
         const taskData = response.data.data;
         if (taskData && (taskData.status.toLowerCase() === 'success' || taskData.status.toLowerCase() === 'completed')) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
-                const client = await pool.connect();
-                try {
-                    for (const song of taskData.response.sunoData) {
-                        await client.query(
-                            'INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
-                            [song.id, song, taskData.param]
-                        );
-                    }
-                } finally {
-                    client.release();
+                for (const song of taskData.response.sunoData) {
+                    await pool.query('INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING', [song.id, song, taskData.param]);
                 }
             }
         }
-
         res.json(response.data);
     } catch (error) {
         const status = error.response ? error.response.status : 500;
@@ -112,38 +147,9 @@ app.get('/api/task-status/:taskId', async (req, res) => {
     }
 });
 
-// Универсальная функция для прокси-запросов (без изменений)
-async function proxyRequest(res, method, endpoint, data) {
-    try {
-        const response = await axios({ method, url: `${SUNO_API_BASE_URL}${endpoint}`, headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}`, 'Content-Type': 'application/json' }, data });
-        res.json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
-        res.status(status).json({ message: `Ошибка при запросе к эндпоинту: ${endpoint}`, details });
-    }
-}
-
-// Остальные роуты
-app.post('/api/generate/extend', (req, res) => {
-    const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' };
-    proxyRequest(res, 'POST', '/generate/extend', payload);
-});
-app.post('/api/generate/upload-cover', (req, res) => {
-    const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' };
-    proxyRequest(res, 'POST', '/generate/upload-cover', payload);
-});
-app.post('/api/generate/upload-extend', (req, res) => {
-    const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' };
-    proxyRequest(res, 'POST', '/generate/upload-extend', payload);
-});
-app.post('/api/style/generate', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
-app.get('/api/generate/record-info', (req, res) => proxyRequest(res, 'GET', '/generate/record-info', null));
-app.post('/api/common/download-url', (req, res) => proxyRequest(res, 'POST', '/common/download-url', req.body));
 app.get('/api/chat/credit', (req, res) => proxyRequest(res, 'GET', '/chat/credit', null));
 
-// Запускаем сервер
 app.listen(port, async () => {
-    await setupDatabase(); // Сначала настраиваем БД
+    await setupDatabase();
     console.log(`Сервер запущен! Откройте в браузере http://localhost:${port}`);
 });
