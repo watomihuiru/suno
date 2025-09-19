@@ -77,7 +77,27 @@ body {
 .toggle-switch input:checked + .slider { background-color: var(--accent-blue); }
 .toggle-switch input:checked + .slider::before { transform: translateX(16px); }
 .card h4 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-#logs-content pre { background-color: var(--bg-input); padding: 16px; border: 1px solid var(--border); border-radius: 6px; white-space: pre-wrap; word-wrap: break-word; font-size: 13px; max-height: 80vh; overflow-y: auto; line-height: 1.6; }
+
+/* *** ИСПРАВЛЕНИЕ: Стили для контейнера логов *** */
+#logs-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Занимает все доступное место */
+    min-height: 0; /* Обязательно для работы overflow в flex-контейнере */
+}
+#logs-content pre { 
+    background-color: var(--bg-input); 
+    padding: 16px; 
+    border: 1px solid var(--border); 
+    border-radius: 6px; 
+    white-space: pre-wrap; 
+    word-wrap: break-word; 
+    font-size: 13px; 
+    line-height: 1.6;
+    overflow-y: auto; /* Включаем скролл для самого блока pre */
+    flex-grow: 1; /* Позволяем ему расти */
+}
+
 .credits-display { background-color: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
 .credits-display .credits-value { color: var(--text-primary); font-weight: 700; margin-right: 4px; }
 .credits-display .credits-icon svg { display: block; width: 16px; height: 16px; }
@@ -120,7 +140,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .menu-item i { width: 16px; text-align: center; }
 .menu-item.delete { color: var(--accent-red); }
 #empty-list-message {
-    margin: auto; /* *** ИСПРАВЛЕНИЕ ДЛЯ ЦЕНТРИРОВАНИЯ *** */
+    margin: auto;
     color: var(--text-secondary);
     text-align: center;
     padding: 20px;

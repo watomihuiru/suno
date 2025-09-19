@@ -53,7 +53,6 @@ function initializeApp() {
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { 
         console.error("Ошибка аудио:", e);
-        // Можно добавить здесь логику показа сообщения пользователю
     };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
@@ -64,7 +63,8 @@ function setupPlayerListeners() {
         globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
         updateActiveLyric(globalPlayer.audio.currentTime);
     };
-    globalPlayer.seekBar.addEventListener('input', () => (globalPlayer.audio.currentTime = globalPlayer.seekBar.value));
+    // *** ИСПРАВЛЕНИЕ: Перемотка плеера ***
+    globalPlayer.seekBar.oninput = () => (globalPlayer.audio.currentTime = globalPlayer.seekBar.value);
     globalPlayer.audio.onended = () => { if (isRepeatOne) { globalPlayer.audio.currentTime = 0; globalPlayer.audio.play(); } else { playNext(); } };
     globalPlayer.nextBtn.onclick = playNext;
     globalPlayer.prevBtn.onclick = playPrevious;
@@ -81,10 +81,7 @@ function playSongByIndex(index) {
     globalPlayer.currentSongId = songData.id;
     globalPlayer.cover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.title.textContent = songData.title || 'Без названия';
-    
-    // *** ГЛАВНОЕ ИЗМЕНЕНИЕ: Используем наш серверный прокси для воспроизведения ***
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
-    
     globalPlayer.audio.play().catch(e => { 
         if (e.name !== 'AbortError') { 
             console.error("Ошибка воспроизведения:", e); 
@@ -222,9 +219,22 @@ async function startPolling(taskId) {
     }, 10000);
 }
 
+// *** ИСПРАВЛЕНИЕ: Новая функция для управления видимостью полей ***
+function toggleCustomModeFields() {
+    const isCustom = document.getElementById('g-customMode').checked;
+    document.getElementById('simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
+    document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
+}
+
 function setupEventListeners() {
     document.querySelectorAll('.main-card .tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const tabName = button.dataset.tab; if (currentTabName === tabName) return; document.querySelectorAll('.main-card .tab-content').forEach(tab => tab.classList.remove('active')); document.querySelectorAll('.main-card .tabs .tab-button').forEach(btn => btn.classList.remove('active')); document.getElementById(tabName).classList.add('active'); event.currentTarget.classList.add('active'); currentTabName = tabName; }); });
     document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
+    
+    // *** ИСПРАВЛЕНИЕ: Логика переключателей ***
+    const customModeToggle = document.getElementById("g-customMode");
+    customModeToggle.addEventListener('change', toggleCustomModeFields);
+    toggleCustomModeFields(); // Вызываем при инициализации, чтобы установить правильное состояние
+
     const instrumentalToggle = document.getElementById("g-instrumental");
     const promptGroup = document.getElementById("g-prompt-group");
     const vocalGenderGroup = document.querySelector("#g-vocalGender").parentElement;
@@ -235,6 +245,7 @@ function setupEventListeners() {
     }
     instrumentalToggle.addEventListener('change', toggleInstrumentalFields);
     toggleInstrumentalFields();
+
     document.getElementById("generate-music-form").addEventListener("submit", (e) => { 
         e.preventDefault(); 
         if (!validateGenerateForm()) return;
