@@ -330,6 +330,3 @@ function updateStatus(message, isSuccess = false, isError = false) {
     const statusContainer = document.getElementById("status-container");
     if(statusContainer) statusContainer.innerHTML = `<div class="status-message ${isSuccess ? 'success' : ''} ${isError ? 'error' : ''}">${message}</div>`;
 }
-</script>
-</body>
-</html>
