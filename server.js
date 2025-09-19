@@ -80,17 +80,16 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
-// *** НОВЫЙ МАРШРУТ-ПРОКСИ ДЛЯ АУДИО ***
+// *** ИСПРАВЛЕНИЕ: Улучшенная обработка ошибок для аудио прокси ***
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query('SELECT song_data FROM songs WHERE id = $1', [id]);
 
         if (result.rows.length === 0) {
-            return res.status(404).send('Song not found');
+            return res.status(404).send('Song not found in database');
         }
-        
-        // Use streamAudioUrl first, fallback to audioUrl
+
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) {
             return res.status(404).send('Audio URL not found for this song');
@@ -100,17 +99,31 @@ app.get('/api/stream/:id', async (req, res) => {
             method: 'get',
             url: audioUrl,
             responseType: 'stream',
-            headers: { 'User-Agent': 'Mozilla/5.0' } // Add user-agent to prevent potential 403 errors
+            headers: { 'User-Agent': 'Mozilla/5.0' } 
         });
 
-        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
         response.data.pipe(res);
 
     } catch (error) {
-        console.error('Ошибка проксирования аудио:', error.message);
-        res.status(500).send('Error streaming audio');
+        // Улучшенное логирование для диагностики
+        if (error.response) {
+            // Ошибка пришла от сервера Suno (например, 403, 404)
+            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): Статус ${error.response.status}`);
+            // Отправляем тот же статус ошибки клиенту
+            res.status(error.response.status).send(`Failed to fetch audio from source: Status ${error.response.status}`);
+        } else if (error.request) {
+            // Запрос был сделан, но ответа не было
+            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): Нет ответа от сервера Suno.`);
+            res.status(504).send('Gateway Timeout: No response from audio source');
+        } else {
+            // Произошла ошибка при настройке запроса
+            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): ${error.message}`);
+            res.status(500).send('Internal Server Error while streaming audio');
+        }
     }
 });
+
 
 app.post('/api/refresh-url', async (req, res) => {
     const { id } = req.body;
@@ -151,7 +164,6 @@ app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/gener
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
 app.post('/api/lyrics', (req, res) => proxyRequest(res, 'POST', '/generate/get-timestamped-lyrics', req.body));
-// Исправлен эндпоинт и payload для boost-style
 app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
 
 app.get('/api/task-status/:taskId', async (req, res) => {
@@ -160,14 +172,11 @@ app.get('/api/task-status/:taskId', async (req, res) => {
     try {
         const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` } });
         const taskData = response.data.data;
-        // Расширенный список успешных статусов
         const successStatuses = ['success', 'completed', 'text_success', 'first_success'];
-        
         if (taskData && successStatuses.includes(taskData.status.toLowerCase())) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                 for (const song of taskData.response.sunoData) {
                     if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
-                    // Используем ON CONFLICT, чтобы избежать ошибок с дубликатами и обновить данные, если нужно
                     await pool.query(
                         `INSERT INTO songs (id, song_data, request_params) 
                          VALUES ($1, $2, $3) 

@@ -51,7 +51,10 @@ function initializeApp() {
 
 // --- ЛОГИКА ПЛЕЕРА И ПЕСЕН ---
 function setupPlayerListeners() {
-    globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); };
+    globalPlayer.audio.onerror = (e) => { 
+        console.error("Ошибка аудио:", e);
+        // Можно добавить здесь логику показа сообщения пользователю
+    };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
     globalPlayer.audio.onpause = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; updateAllPlayIcons(); };
@@ -79,7 +82,11 @@ function playSongByIndex(index) {
     globalPlayer.cover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.title.textContent = songData.title || 'Без названия';
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
-    globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
+    globalPlayer.audio.play().catch(e => { 
+        if (e.name !== 'AbortError') { 
+            console.error("Ошибка воспроизведения:", e); 
+        } 
+    });
     globalPlayer.container.style.display = 'flex';
     updateAllPlayIcons();
 }
@@ -249,7 +256,26 @@ function setupEventListeners() {
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, prompt: document.getElementById("uc-prompt").value }; handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { content: document.getElementById("b-style-content").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    const selectButton = document.getElementById("select-model-button"); const selectDropdown = document.getElementById("select-model-dropdown"); selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); selectDropdown.addEventListener("click", e => { if (e.target.classList.contains("select-option")) { document.getElementById("g-model-value").value = e.target.dataset.value; selectButton.textContent = e.target.textContent; } });
+    const selectButton = document.getElementById("select-model-button"); 
+    const selectDropdown = document.getElementById("select-model-dropdown"); 
+    selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
+    selectDropdown.addEventListener("click", e => { 
+        if (e.target.classList.contains("select-option")) { 
+            // *** ИСПРАВЛЕНИЕ: Логика подсветки выбранной модели ***
+            // 1. Убираем подсветку с предыдущего элемента
+            const currentSelected = selectDropdown.querySelector('.select-option.selected');
+            if (currentSelected) {
+                currentSelected.classList.remove('selected');
+            }
+            // 2. Добавляем подсветку новому элементу
+            e.target.classList.add('selected');
+
+            document.getElementById("g-model-value").value = e.target.dataset.value; 
+            selectButton.textContent = e.target.textContent; 
+            // 3. Закрываем выпадающий список
+            selectDropdown.classList.remove("open");
+        } 
+    });
     window.addEventListener("click", () => { selectDropdown.classList.remove("open"); document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); });
 }
 
@@ -304,31 +330,23 @@ async function handleApiCall(endpoint, options, isCreditCheck = false, isGenerat
     }
 }
 
-// *** ИСПРАВЛЕНИЕ: Переписана логика инициализации для надежности ***
 document.addEventListener("DOMContentLoaded", () => {
-    // Шаг 1: Всегда привязываем обработчики к форме входа, так как она всегда есть в HTML.
     document.getElementById('access-key-button').addEventListener('click', handleLogin);
     document.getElementById('access-key-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             handleLogin();
         }
     });
-
-    // Шаг 2: Проверяем, авторизован ли пользователь.
     if (sessionStorage.getItem('is-authenticated') === 'true') {
-        // Если да, скрываем оверлей и инициализируем основное приложение.
         document.getElementById('login-overlay').style.display = 'none';
-        
         const appTemplate = document.getElementById('app-template');
         const appContainer = document.getElementById('app-container');
-        
         if (appContainer.children.length === 0) {
             appContainer.appendChild(appTemplate.content.cloneNode(true));
         }
         appContainer.style.display = 'block';
         initializeApp();
     } else {
-        // Если нет, просто убеждаемся, что форма входа видна.
         document.getElementById('login-overlay').style.display = 'flex';
         document.getElementById('app-container').style.display = 'none';
     }
