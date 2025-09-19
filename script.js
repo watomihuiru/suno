@@ -43,7 +43,11 @@ function initializeApp() {
 
 // --- ЛОГИКА ПЛЕЕРА И ПЕСЕН ---
 function setupPlayerListeners() {
-    globalPlayer.audio.onerror = () => { if (globalPlayer.currentSongId) { console.error("Ошибка аудио, пытаюсь обновить URL..."); refreshSongUrl(globalPlayer.currentSongId); } };
+    globalPlayer.audio.onerror = (e) => { 
+        console.error("Ошибка аудио:", e);
+        // Не вызываем refresh-url, т.к. проксирование должно решать проблему
+        // Можно добавить здесь логику показа сообщения пользователю
+    };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
     globalPlayer.audio.onpause = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; updateAllPlayIcons(); };
@@ -69,27 +73,23 @@ function playSongByIndex(index) {
     globalPlayer.currentSongId = songData.id;
     globalPlayer.cover.src = songData.imageUrl;
     globalPlayer.title.textContent = songData.title || 'Без названия';
-    globalPlayer.audio.src = songData.streamAudioUrl;
-    globalPlayer.audio.play().catch(e => console.error("Ошибка воспроизведения:", e));
+    
+    // *** ГЛАВНОЕ ИЗМЕНЕНИЕ: Используем наш прокси-сервер ***
+    globalPlayer.audio.src = `/api/stream/${songData.id}`;
+    
+    globalPlayer.audio.play().catch(e => {
+        if (e.name !== 'AbortError') {
+            console.error("Ошибка воспроизведения:", e);
+        }
+    });
+    
     globalPlayer.container.style.display = 'flex';
     updateAllPlayIcons();
 }
 
+
 function playNext() { if (playlist.length === 0) return; let nextIndex; if (isShuffled) { nextIndex = Math.floor(Math.random() * playlist.length); } else { nextIndex = (currentTrackIndex + 1) % playlist.length; } playSongByIndex(nextIndex); }
 function playPrevious() { if (playlist.length === 0) return; let prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length; playSongByIndex(prevIndex); }
-
-async function refreshSongUrl(songId) {
-    try {
-        const response = await fetch('/api/refresh-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: songId }) });
-        if (!response.ok) throw new Error('Failed to refresh URL');
-        const data = await response.json();
-        const songIndex = playlist.findIndex(p => p.songData.id === songId);
-        if (songIndex > -1) {
-            playlist[songIndex].songData.streamAudioUrl = data.newUrl;
-            if (globalPlayer.currentSongId === songId) { globalPlayer.audio.src = data.newUrl; globalPlayer.audio.play(); }
-        }
-    } catch (error) { console.error("Couldn't refresh URL:", error); }
-}
 
 function updateAllPlayIcons() { document.querySelectorAll('.song-cover').forEach(el => { const id = el.id.replace('cover-', ''); el.classList.remove('playing', 'paused'); if (id === globalPlayer.currentSongId) { el.classList.add(globalPlayer.audio.paused ? 'paused' : 'playing'); } }); }
 
@@ -97,7 +97,7 @@ async function downloadSong(event, url, filename) { event.preventDefault(); cons
 
 function copyToClipboard(text, element) { navigator.clipboard.writeText(text).then(() => { const originalText = element.textContent; element.textContent = 'Скопировано!'; element.style.color = 'var(--accent-green)'; setTimeout(() => { element.textContent = originalText; element.style.color = ''; }, 1500); }); }
 
-async function deleteSong(songId, cardElement) { try { await fetch(`/api/songs/${songId}`, { method: 'DELETE' }); cardElement.style.transition = 'opacity 0.3s, transform 0.3s'; cardElement.style.opacity = '0'; cardElement.style.transform = 'translateX(-20px)'; setTimeout(() => { cardElement.remove(); playlist = playlist.filter(p => p.songData.id !== songId); if (songListContainer.children.length === 0) emptyListMessage.style.display = 'block'; }, 300); } catch (e) { console.error("Could not delete song", e); } }
+async function deleteSong(songId, cardElement) { try { await fetch(`/api/songs/${songId}`, { method: 'DELETE' }); cardElement.style.transition = 'opacity 0.3s, transform 0.3s'; cardElement.style.opacity = '0'; cardElement.style.transform = 'translateX(-20px)'; setTimeout(() => { cardElement.remove(); playlist = playlist.filter(p => p.songData.id !== songId); if (songListContainer.children.length === 1 && songListContainer.querySelector('#empty-list-message')) { emptyListMessage.style.display = 'block'; } else if (songListContainer.children.length === 0) {emptyListMessage.style.display = 'block';} }, 300); } catch (e) { console.error("Could not delete song", e); } }
 
 async function toggleFavorite(songId, cardElement) {
     const songInfo = playlist.find(p => p.songData.id === songId); if (!songInfo) return;
@@ -155,22 +155,13 @@ function addSongToList(songInfo) {
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
-    
-    // *** ИСПРАВЛЕНИЕ ИКОНОК ***
     const menuItems = [
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) },
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showTimestampedLyrics(songData.id) },
         { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' },
         { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' }
     ];
-    menuItems.forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'menu-item ' + (item.className || '');
-        li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`;
-        li.onclick = item.action;
-        menu.appendChild(li);
-    });
-    
+    menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
     songListContainer.appendChild(card);
 }
 
@@ -188,14 +179,9 @@ function renderLibrary() {
 
 async function loadSongsFromServer() {
     try {
-        const response = await fetch('/api/songs');
-        if (!response.ok) throw new Error('Network response was not ok');
-        playlist = await response.json();
-        renderLibrary();
-    } catch (e) {
-        console.error("Не удалось загрузить песни с сервера", e);
-        songListContainer.innerHTML = '<p id="empty-list-message" style="color: var(--accent-red);">Ошибка загрузки песен. Проверьте консоль.</p>';
-    }
+        const response = await fetch('/api/songs'); if (!response.ok) throw new Error('Network response was not ok');
+        playlist = await response.json(); renderLibrary();
+    } catch (e) { console.error("Не удалось загрузить песни с сервера", e); songListContainer.innerHTML = '<p id="empty-list-message" style="color: var(--accent-red);">Ошибка загрузки песен. Проверьте консоль.</p>'; }
 }
 
 async function startPolling(taskId) {
@@ -207,21 +193,14 @@ async function startPolling(taskId) {
             const response = await fetch(`/api/task-status/${taskId}`); const result = await response.json();
             document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
             if (!response.ok || !result.data) { throw new Error(result.message || "Некорректный ответ от API"); }
-            const taskData = result.data;
-            const statusLowerCase = taskData.status.toLowerCase();
+            const taskData = result.data; const statusLowerCase = taskData.status.toLowerCase();
             if (["success", "completed"].includes(statusLowerCase)) {
-                clearInterval(pollingInterval);
-                updateStatus("✅ Задача выполнена!", true);
-                document.getElementById(`placeholder-${taskId}`)?.remove();
-                await loadSongsFromServer();
-                await handleApiCall("/api/chat/credit", { method: "GET" }, true);
+                clearInterval(pollingInterval); updateStatus("✅ Задача выполнена!", true); document.getElementById(`placeholder-${taskId}`)?.remove(); await loadSongsFromServer(); await handleApiCall("/api/chat/credit", { method: "GET" }, true);
             } else if (["pending", "running", "submitted", "queued"].includes(statusLowerCase)) {
                 updateStatus(`⏳ Статус: ${taskData.status}...`);
             } else { throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); }
         } catch (error) {
-            clearInterval(pollingInterval);
-            updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true);
-            document.getElementById(`placeholder-${taskId}`)?.remove();
+            clearInterval(pollingInterval); updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true); document.getElementById(`placeholder-${taskId}`)?.remove();
         }
     }, 10000);
 }
@@ -251,7 +230,7 @@ async function handleApiCall(endpoint, options, isCreditCheck = false, isGenerat
             if(!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2);
             if (isCreditCheck && result.data !== undefined) {
                 document.getElementById("credits-value").textContent = result.data;
-                document.getElementById("credits-container").style.display = 'inline-flex'; // *** ИСПРАВЛЕНИЕ КРЕДИТОВ ***
+                document.getElementById("credits-container").style.display = 'inline-flex';
             }
             if (isGeneration && result.data && result.data.taskId) { startPolling(result.data.taskId); } 
             else if (isGeneration) { updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true); }

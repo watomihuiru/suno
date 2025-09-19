@@ -80,6 +80,36 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
+// *** НОВЫЙ МАРШРУТ-ПРОКСИ ДЛЯ АУДИО ***
+app.get('/api/stream/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('SELECT song_data FROM songs WHERE id = $1', [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).send('Song not found');
+        }
+
+        const audioUrl = result.rows[0].song_data.audioUrl;
+        if (!audioUrl) {
+            return res.status(404).send('Audio URL not found for this song');
+        }
+
+        const response = await axios({
+            method: 'get',
+            url: audioUrl,
+            responseType: 'stream'
+        });
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        response.data.pipe(res);
+
+    } catch (error) {
+        console.error('Ошибка проксирования аудио:', error.message);
+        res.status(500).send('Error streaming audio');
+    }
+});
+
 app.post('/api/refresh-url', async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ message: 'ID песни не предоставлен' });
@@ -114,18 +144,12 @@ async function proxyRequest(res, method, endpoint, data) {
     }
 }
 
-app.post('/api/generate', (req, res) => {
-    const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' };
-    proxyRequest(res, 'POST', '/generate', payload);
-});
-
+app.post('/api/generate', (req, res) => { const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' }; proxyRequest(res, 'POST', '/generate', payload); });
 app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/generate/extend', req.body));
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
 app.post('/api/lyrics', (req, res) => proxyRequest(res, 'POST', '/generate/get-timestamped-lyrics', req.body));
-// НОВЫЙ ЭНДПОИНТ
 app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/generate/boost-music-style', req.body));
-
 
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;
@@ -136,9 +160,7 @@ app.get('/api/task-status/:taskId', async (req, res) => {
         if (taskData && (taskData.status.toLowerCase() === 'success' || taskData.status.toLowerCase() === 'completed')) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                 for (const song of taskData.response.sunoData) {
-                    if (song.audioUrl) {
-                        song.streamAudioUrl = song.audioUrl;
-                    }
+                    if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
                     await pool.query('INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING', [song.id, song, taskData.param]);
                 }
             }
