@@ -80,46 +80,53 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
-// *** ИСПРАВЛЕНИЕ: Улучшенная обработка ошибок для аудио прокси ***
+// *** ИСПРАВЛЕНИЕ: Улучшенная обработка ошибок и проксирование для аудио потока ***
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query('SELECT song_data FROM songs WHERE id = $1', [id]);
 
         if (result.rows.length === 0) {
-            return res.status(404).send('Song not found in database');
+            return res.status(404).send('Песня не найдена в базе данных');
         }
 
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) {
-            return res.status(404).send('Audio URL not found for this song');
+            return res.status(404).send('URL аудио для этой песни не найден');
         }
 
+        // Делаем запрос к Suno, маскируясь под обычный браузер
         const response = await axios({
             method: 'get',
             url: audioUrl,
             responseType: 'stream',
-            headers: { 'User-Agent': 'Mozilla/5.0' } 
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            } 
         });
 
+        // Передаем заголовки ответа от Suno (важно для типа контента)
         res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
+        res.setHeader('Content-Length', response.headers['content-length'] || '');
+        
+        // Перенаправляем поток аудио клиенту
         response.data.pipe(res);
 
     } catch (error) {
-        // Улучшенное логирование для диагностики
+        // Улучшенное логирование для точной диагностики проблемы
+        const songId = req.params.id;
         if (error.response) {
-            // Ошибка пришла от сервера Suno (например, 403, 404)
-            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): Статус ${error.response.status}`);
-            // Отправляем тот же статус ошибки клиенту
-            res.status(error.response.status).send(`Failed to fetch audio from source: Status ${error.response.status}`);
+            // Ошибка пришла от сервера Suno (например, 403 Forbidden, 404 Not Found)
+            console.error(`Ошибка проксирования аудио (ID: ${songId}): Сервер Suno ответил со статусом ${error.response.status}`);
+            res.status(error.response.status).send(`Не удалось получить аудио от источника: Статус ${error.response.status}`);
         } else if (error.request) {
-            // Запрос был сделан, но ответа не было
-            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): Нет ответа от сервера Suno.`);
-            res.status(504).send('Gateway Timeout: No response from audio source');
+            // Запрос был сделан, но ответа не было (например, таймаут)
+            console.error(`Ошибка проксирования аудио (ID: ${songId}): Нет ответа от сервера Suno.`);
+            res.status(504).send('Таймаут шлюза: Нет ответа от источника аудио');
         } else {
-            // Произошла ошибка при настройке запроса
-            console.error(`Ошибка проксирования аудио (ID: ${req.params.id}): ${error.message}`);
-            res.status(500).send('Internal Server Error while streaming audio');
+            // Произошла ошибка при настройке запроса или другая внутренняя ошибка
+            console.error(`Внутренняя ошибка проксирования аудио (ID: ${songId}): ${error.message}`);
+            res.status(500).send('Внутренняя ошибка сервера при обработке аудиопотока');
         }
     }
 });
