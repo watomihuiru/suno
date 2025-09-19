@@ -44,7 +44,6 @@ async function setupDatabase() {
 }
 
 app.use(express.json());
-// ВОТ ЭТА ВАЖНАЯ СТРОКА:
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
@@ -54,9 +53,9 @@ app.get('/', (req, res) => {
 // --- API для Песен ---
 app.get('/api/songs', async (req, res) => {
     try {
-        const result = await pool.query('SELECT song_data, request_params, is_favorite FROM songs ORDER BY created_at DESC');
+        const result = await pool.query('SELECT id, song_data, request_params, is_favorite FROM songs ORDER BY created_at DESC');
         res.json(result.rows.map(row => ({ 
-            songData: { ...row.song_data, is_favorite: row.is_favorite }, 
+            songData: { ...row.song_data, id: row.id, is_favorite: row.is_favorite }, 
             requestParams: row.request_params 
         })));
     } catch (err) {
@@ -76,8 +75,10 @@ app.delete('/api/songs/:id', async (req, res) => {
 });
 
 app.put('/api/songs/:id/favorite', async (req, res) => {
+    const { is_favorite } = req.body;
+    const { id } = req.params;
     try {
-        await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2', [req.body.is_favorite, req.params.id]);
+        await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2', [is_favorite, id]);
         res.status(200).json({ message: 'Статус избранного обновлен' });
     } catch (err) {
         console.error('Ошибка при обновлении избранного:', err);
@@ -94,8 +95,7 @@ app.post('/api/refresh-url', async (req, res) => {
         });
         const newAudioUrl = sunoResponse.data.data;
         if (newAudioUrl) {
-            // FIX: The stream URL should be the same as the audio URL. Do not remove .mp3
-            const newStreamUrl = newAudioUrl; 
+            const newStreamUrl = newAudioUrl; // Use the full URL
             await pool.query(
                 `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', $1::jsonb), '{streamAudioUrl}', $2::jsonb) WHERE id = $3`,
                 [JSON.stringify(newAudioUrl), JSON.stringify(newStreamUrl), id]
@@ -136,7 +136,12 @@ app.get('/api/task-status/:taskId', async (req, res) => {
         if (taskData && (taskData.status.toLowerCase() === 'success' || taskData.status.toLowerCase() === 'completed')) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                 for (const song of taskData.response.sunoData) {
-                    await pool.query('INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING', [song.id, song, taskData.param]);
+                    const songDataForDb = { ...song };
+                    // FIX: Ensure streamAudioUrl is reliable by copying audioUrl if it exists.
+                    if (songDataForDb.audioUrl) {
+                        songDataForDb.streamAudioUrl = songDataForDb.audioUrl;
+                    }
+                    await pool.query('INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING', [song.id, songDataForDb, taskData.param]);
                 }
             }
         }
