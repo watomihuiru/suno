@@ -1,5 +1,5 @@
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-const SECRET_KEY = 'messisipi'; // <<< ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
+// *** ИЗМЕНЕНИЕ: УДАЛЯЕМ СЕКРЕТНЫЙ КЛЮЧ ИЗ КЛИЕНТСКОГО КОДА ***
 let currentViewName = 'generate', currentLibraryTab = 'all';
 const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
 const modelLimits = {
@@ -20,7 +20,8 @@ let mobileLibraryToggle, libraryCard, libraryOverlay;
 function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'0:00';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
 
 // --- ЛОГИКА АВТОРИЗАЦИИ ---
-function handleLogin() {
+// *** ИЗМЕНЕНИЕ: Функция теперь отправляет пароль на сервер для проверки ***
+async function handleLogin() {
     const loginElements = { 
         overlay: document.getElementById('login-overlay'), 
         container: document.getElementById('app-container'), 
@@ -28,17 +29,32 @@ function handleLogin() {
         button: document.getElementById('access-key-button'), 
         error: document.getElementById('login-error-message') 
     };
-    if (loginElements.input.value === SECRET_KEY) {
-        sessionStorage.setItem('is-authenticated', 'true');
-        loginElements.overlay.style.display = 'none';
-        const appTemplate = document.getElementById('app-template');
-        loginElements.container.innerHTML = ''; 
-        loginElements.container.appendChild(appTemplate.content.cloneNode(true));
-        loginElements.container.style.display = 'block';
-        initializeApp();
-    } else {
-        loginElements.error.textContent = 'Неверный ключ'; 
-        loginElements.input.value = '';
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ password: loginElements.input.value })
+        });
+
+        if (response.ok) {
+            sessionStorage.setItem('is-authenticated', 'true');
+            loginElements.overlay.style.display = 'none';
+            const appTemplate = document.getElementById('app-template');
+            loginElements.container.innerHTML = ''; 
+            loginElements.container.appendChild(appTemplate.content.cloneNode(true));
+            loginElements.container.style.display = 'block';
+            initializeApp();
+        } else {
+            const result = await response.json();
+            loginElements.error.textContent = result.message || 'Неверный ключ'; 
+            loginElements.input.value = '';
+        }
+    } catch (error) {
+        console.error('Ошибка при входе:', error);
+        loginElements.error.textContent = 'Ошибка сети. Попробуйте снова.';
     }
 }
 

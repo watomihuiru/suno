@@ -46,6 +46,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// *** НОВЫЙ МАРШРУТ ДЛЯ ПРОВЕРКИ ПАРОЛЯ ***
+app.post('/api/login', (req, res) => {
+    const { password } = req.body;
+    const correctPassword = process.env.SITE_ACCESS_KEY;
+
+    if (password && password === correctPassword) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Неверный ключ' });
+    }
+});
+
+
 // --- API для Песен ---
 app.get('/api/songs', async (req, res) => {
     try {
@@ -80,7 +93,6 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
-// *** ИСПРАВЛЕНИЕ: Улучшенная обработка ошибок и проксирование для аудио потока ***
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -95,7 +107,6 @@ app.get('/api/stream/:id', async (req, res) => {
             return res.status(404).send('URL аудио для этой песни не найден');
         }
 
-        // Делаем запрос к Suno, маскируясь под обычный браузер
         const response = await axios({
             method: 'get',
             url: audioUrl,
@@ -105,23 +116,18 @@ app.get('/api/stream/:id', async (req, res) => {
             } 
         });
 
-        // Передаем заголовки ответа от Suno (важно для типа контента)
         res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
         response.data.pipe(res);
 
     } catch (error) {
-        // Улучшенное логирование для точной диагностики проблемы
         const songId = req.params.id;
         if (error.response) {
-            // Ошибка пришла от сервера Suno (например, 403 Forbidden, 404 Not Found)
             console.error(`Ошибка проксирования аудио (ID: ${songId}): Сервер Suno ответил со статусом ${error.response.status}`);
             res.status(error.response.status).send(`Не удалось получить аудио от источника: Статус ${error.response.status}`);
         } else if (error.request) {
-            // Запрос был сделан, но ответа не было (например, таймаут)
             console.error(`Ошибка проксирования аудио (ID: ${songId}): Нет ответа от сервера Suno.`);
             res.status(504).send('Таймаут шлюза: Нет ответа от источника аудио');
         } else {
-            // Произошла ошибка при настройке запроса или другая внутренняя ошибка
             console.error(`Внутренняя ошибка проксирования аудио (ID: ${songId}): ${error.message}`);
             res.status(500).send('Внутренняя ошибка сервера при обработке аудиопотока');
         }
