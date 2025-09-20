@@ -16,8 +16,7 @@ body {
 .page-container {
     width: 100%; height: 100%;
     display: grid;
-    /* *** ИСПРАВЛЕНИЕ: Задаем фиксированную ширину для библиотеки *** */
-    grid-template-columns: var(--sidebar-width) 1fr 450px;
+    grid-template-columns: var(--sidebar-width) 1fr minmax(350px, 1fr);
     gap: 24px;
     padding: 30px;
     padding-bottom: 100px;
@@ -31,50 +30,21 @@ body {
     flex-direction: column;
     padding: 24px;
     grid-row: 1 / -1;
-    /* *** ИСПРАВЛЕНИЕ: Панель во всю высоту *** */
     margin: -30px 0 -30px -30px;
     padding-left: 30px;
+    /* *** ИСПРАВЛЕНИЕ: Скорректирован отступ для корректного отображения футера *** */
+    padding-bottom: 24px;
     transition: transform 0.3s ease-in-out;
 }
-.sidebar-header {
-    margin-bottom: 24px;
-}
-.sidebar-header h1 { font-size: 20px; font-weight: 600; }
-.sidebar-nav {
-    /* *** ИСПРАВЛЕНИЕ: Стилизуем блок навигации как карточку *** */
-    background-color: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px;
-}
-.sidebar-nav ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 32px; }
+.sidebar-nav { flex-grow: 1; }
+.sidebar-nav ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .nav-button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 6px; background: none; border: none; color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; text-align: left; transition: background-color 0.2s, color 0.2s; position: relative; }
 .nav-button i { width: 18px; text-align: center; font-size: 16px; }
 .nav-button:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
 .nav-button.active { background-color: var(--accent-blue); color: white; font-weight: 600; }
 .notification-dot { display: none; position: absolute; top: 4px; right: 8px; width: 8px; height: 8px; background-color: var(--accent-red); border-radius: 50%; border: 2px solid var(--bg-card); }
-.sidebar-footer {
-    /* *** ИСПРАВЛЕНИЕ: Прижимаем кредиты к низу *** */
-    margin-top: auto;
-    padding-top: 24px;
-}
-/* *** ИСПРАВЛЕНИЕ: Стили для круглых кредитов *** */
-.credits-display {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    padding: 8px;
-    margin: 0 auto;
-    border: 1px solid var(--border);
-    background-color: var(--bg-input);
-}
-.credits-display .credits-value {
-    margin-right: 0;
-    font-size: 16px;
-}
+.sidebar-footer .credits-display { width: 100%; justify-content: center; }
 
 /* --- СТИЛИ ОСНОВНОГО КОНТЕНТА --- */
 .main-content { grid-column: 2 / 3; }
@@ -155,8 +125,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .progress-bar-inner { width: 0%; height: 100%; background-color: var(--accent-blue); }
 @keyframes fake-progress { from { width: 0%; } to { width: 95%; } }
 .song-card.placeholder .progress-bar-inner { animation: fake-progress 120s linear forwards; animation-delay: 0.5s; }
-/* *** ИСПРАВЛЕНИЕ: Позиционирование плеера *** */
-#global-player { position: fixed; bottom: 0; right: 0; left: var(--sidebar-width); background-color: #1c2128; border-top: 1px solid var(--border); padding: 10px 30px; display: none; align-items: center; gap: 20px; z-index: 100; }
+#global-player { position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; background-color: #1c2128; border-top: 1px solid var(--border); padding: 10px 30px; display: none; align-items: center; gap: 20px; z-index: 100; }
 #player-song-info { display: flex; align-items: center; gap: 15px; min-width: 200px; }
 #player-cover { width: 56px; height: 56px; border-radius: 4px; }
 #player-title { font-weight: 600; }
@@ -198,10 +167,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .mobile-header { display: none; }
 #sidebar-overlay, #library-overlay { display: none; }
 
-@media (max-width: 1200px) {
-    .page-container { grid-template-columns: var(--sidebar-width) 1fr; }
-    .library-card { display: none; }
-}
 @media (max-width: 768px) {
     body { overflow: auto; }
     .page-container { grid-template-columns: 1fr; height: auto; padding: 15px; padding-top: 70px; padding-bottom: 100px; }
@@ -213,7 +178,10 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     .mobile-header h2 { font-size: 18px; }
     #sidebar-overlay, #library-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1099; }
     #sidebar-overlay.is-visible, #library-overlay.is-visible { display: block; }
+    /* *** ИСПРАВЛЕНИЕ: Показываем мобильную библиотеку *** */
     .library-card { display: flex; position: fixed; top: 0; right: 0; height: 100%; width: 85%; max-width: 320px; z-index: 1100; transform: translateX(100%); transition: transform 0.3s ease-in-out; grid-column: auto; margin: 0; border-radius: 8px 0 0 8px; }
     .library-card.is-open { transform: translateX(0); }
-    #global-player { left: 0; }
+    #global-player {
+        left: 0;
+    }
 }
