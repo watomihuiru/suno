@@ -16,7 +16,8 @@ body {
 .page-container {
     width: 100%; height: 100%;
     display: grid;
-    grid-template-columns: var(--sidebar-width) 1fr minmax(350px, 1fr);
+    /* *** ИСПРАВЛЕНИЕ: Задаем фиксированную ширину для библиотеки, чтобы она не схлапывалась *** */
+    grid-template-columns: var(--sidebar-width) 1fr 450px;
     gap: 24px;
     padding: 30px;
     padding-bottom: 100px;
@@ -36,14 +37,26 @@ body {
     padding-bottom: 100px;
     transition: transform 0.3s ease-in-out;
 }
-.sidebar-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 32px; }
-.sidebar-nav { flex-grow: 1; }
-.sidebar-nav ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.sidebar-header {
+    /* *** ИСПРАВЛЕНИЕ: Отделяем заголовок от навигации *** */
+    margin-bottom: 24px;
+}
+.sidebar-header h1 { font-size: 20px; font-weight: 600; }
+.sidebar-nav {
+    flex-grow: 1;
+    /* *** ИСПРАВЛЕНИЕ: Стилизуем блок навигации как карточку *** */
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+}
+.sidebar-nav ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .nav-button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 6px; background: none; border: none; color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; text-align: left; transition: background-color 0.2s, color 0.2s; position: relative; }
 .nav-button i { width: 18px; text-align: center; font-size: 16px; }
 .nav-button:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
 .nav-button.active { background-color: var(--accent-blue); color: white; font-weight: 600; }
 .notification-dot { display: none; position: absolute; top: 4px; right: 8px; width: 8px; height: 8px; background-color: var(--accent-red); border-radius: 50%; border: 2px solid var(--bg-card); }
+.sidebar-footer { margin-top: auto; padding-top: 24px; }
 .sidebar-footer .credits-display { width: 100%; justify-content: center; }
 
 /* --- СТИЛИ ОСНОВНОГО КОНТЕНТА --- */
@@ -169,7 +182,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 
 @media (max-width: 1200px) {
     .page-container { grid-template-columns: var(--sidebar-width) 1fr; }
-    /* *** ИСПРАВЛЕНИЕ: Убираем display:none *** */
     .library-card { display: none; }
 }
 @media (max-width: 768px) {
@@ -183,7 +195,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     .mobile-header h2 { font-size: 18px; }
     #sidebar-overlay, #library-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1099; }
     #sidebar-overlay.is-visible, #library-overlay.is-visible { display: block; }
-    /* *** ИСПРАВЛЕНИЕ: Показываем мобильную библиотеку *** */
     .library-card { display: flex; position: fixed; top: 0; right: 0; height: 100%; width: 85%; max-width: 320px; z-index: 1100; transform: translateX(100%); transition: transform 0.3s ease-in-out; grid-column: auto; margin: 0; border-radius: 8px 0 0 8px; }
     .library-card.is-open { transform: translateX(0); }
 }
