@@ -1,6 +1,6 @@
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 const SECRET_KEY = 'messisipi'; // <<< ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
-let pollingInterval, currentTabName = 'generate', currentLibraryTab = 'all';
+let pollingInterval, currentViewName = 'generate', currentLibraryTab = 'all';
 const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
 
 let playlist = []; let currentTrackIndex = -1; let isShuffled = false; let isRepeatOne = false;
@@ -63,7 +63,6 @@ async function refreshAudioUrlAndPlay(songId) {
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
         
-        // Важно: мы все еще используем наш прокси, сервер сам разберется с новым URL
         globalPlayer.audio.src = `/api/stream/${songId}`;
         const playPromise = globalPlayer.audio.play();
         if (playPromise !== undefined) {
@@ -81,7 +80,6 @@ async function refreshAudioUrlAndPlay(songId) {
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { 
         console.error("Ошибка аудио:", e);
-        // *** НОВАЯ ФУНКЦИЯ: Пытаемся обновить URL, если он истек ***
         if (globalPlayer.currentSongId) {
             refreshAudioUrlAndPlay(globalPlayer.currentSongId);
         }
@@ -282,7 +280,6 @@ function toggleCustomModeFields() {
     document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
 }
 
-// *** НОВАЯ ФУНКЦИЯ: Обновление значения рядом со слайдером ***
 function setupSliderListeners() {
     document.querySelectorAll('input[type="range"]').forEach(slider => {
         const valueSpan = slider.nextElementSibling;
@@ -295,8 +292,22 @@ function setupSliderListeners() {
 }
 
 function setupEventListeners() {
-    setupSliderListeners(); // Инициализируем слушатели для всех слайдеров
-    document.querySelectorAll('.main-card .tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const tabName = button.dataset.tab; if (currentTabName === tabName) return; document.querySelectorAll('.main-card .tab-content').forEach(tab => tab.classList.remove('active')); document.querySelectorAll('.main-card .tabs .tab-button').forEach(btn => btn.classList.remove('active')); document.getElementById(tabName).classList.add('active'); event.currentTarget.classList.add('active'); currentTabName = tabName; }); });
+    // *** НОВАЯ ЛОГИКА: Переключение "видов" через боковую панель ***
+    document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const viewName = button.dataset.view;
+            if (currentViewName === viewName) return;
+
+            document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
+            document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(viewName).classList.add('active');
+            event.currentTarget.classList.add('active');
+            currentViewName = viewName;
+        });
+    });
+
+    setupSliderListeners();
     document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
     
     const customModeToggle = document.getElementById("g-customMode");
