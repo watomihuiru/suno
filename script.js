@@ -2,11 +2,21 @@
 const SECRET_KEY = 'messisipi'; // <<< ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
 let currentViewName = 'generate', currentLibraryTab = 'all';
 const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
+// *** НОВЫЙ ОБЪЕКТ ДЛЯ ХРАНЕНИЯ ЛИМИТОВ ***
+const modelLimits = {
+    'V3_5': { prompt: 3000, style: 200 },
+    'V4': { prompt: 3000, style: 200 },
+    'V4_5': { prompt: 5000, style: 1000 },
+    'V4_5PLUS': { prompt: 5000, style: 1000 },
+    'title': 80, // Общий лимит для всех моделей
+    'songDescription': 200 // Общий лимит для простого режима
+};
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [];
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
-let mobileMenuToggle, sidebar, sidebarOverlay; // Для мобильной навигации
+let mobileMenuToggle, sidebar, sidebarOverlay;
+let mobileLibraryToggle, libraryCard, libraryOverlay;
 
 function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'0:00';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
 
@@ -41,10 +51,12 @@ function initializeApp() {
     globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), currentSongId: null };
     lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close') };
     
-    // *** Инициализация элементов мобильной навигации ***
     mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     sidebar = document.querySelector('.sidebar');
     sidebarOverlay = document.getElementById('sidebar-overlay');
+    mobileLibraryToggle = document.getElementById('mobile-library-toggle');
+    libraryCard = document.querySelector('.library-card');
+    libraryOverlay = document.getElementById('library-overlay');
 
     setupPlayerListeners();
     setupEventListeners();
@@ -135,21 +147,59 @@ async function deleteSong(songId, cardElement) { try { await fetch(`/api/songs/$
 async function toggleFavorite(songId, cardElement) { const songInfo = playlist.find(p => p.songData.id === songId); if (!songInfo) return; const newStatus = !songInfo.songData.is_favorite; try { await fetch(`/api/songs/${songId}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_favorite: newStatus }) }); songInfo.songData.is_favorite = newStatus; cardElement.classList.toggle('is-favorite', newStatus); const favButton = cardElement.querySelector('.favorite-action'); if (favButton) { favButton.innerHTML = `<i class="${newStatus ? 'fas fa-heart' : 'far fa-heart'}"></i> ${newStatus ? 'Убрать из избранного' : 'В избранное'}`; } } catch(e) { console.error("Could not update favorite status", e); } }
 async function showTimestampedLyrics(songId) { lyricsModal.content.innerHTML = '<p>Загрузка текста...</p>'; lyricsModal.overlay.style.display = 'flex'; try { const songInfo = playlist.find(p => p.songData.id === songId); const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId }; const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok || !result.data || !result.data.alignedWords || result.data.alignedWords.length === 0) { lyricsModal.content.textContent = songInfo ? (songInfo.songData.prompt || "Текст недоступен.") : "Текст недоступен."; currentLyrics = []; return; } currentLyrics = result.data.alignedWords.map(line => ({ text: line.word, startTime: line.startS })); lyricsModal.content.innerHTML = ''; currentLyrics.forEach((line, index) => { const p = document.createElement('p'); p.textContent = line.text; p.className = 'lyric-line'; p.dataset.index = index; lyricsModal.content.appendChild(p); }); } catch (error) { console.error("Ошибка загрузки текста:", error); lyricsModal.content.textContent = "Не удалось загрузить текст."; } }
 function updateActiveLyric(currentTime) { if (currentLyrics.length === 0) return; let activeLineIndex = -1; for (let i = 0; i < currentLyrics.length; i++) { if (currentTime >= currentLyrics[i].startTime) { activeLineIndex = i; } else { break; } } if (activeLineIndex > -1) { document.querySelectorAll('.lyric-line.active').forEach(el => el.classList.remove('active')); const activeElement = document.querySelector(`.lyric-line[data-index="${activeLineIndex}"]`); if (activeElement) { activeElement.classList.add('active'); activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); } } }
-function addSongToList(songInfo) { if (document.getElementById(`song-${songInfo.songData.id}`)) return; emptyListMessage.style.display = 'none'; const { songData, requestParams } = songInfo; const card = document.createElement('div'); card.className = 'song-card'; card.id = `song-${songData.id}`; card.classList.toggle('is-favorite', songData.is_favorite); const friendlyModelName = modelMap[requestParams?.model] || 'N/A'; const downloadUrl = songData.audioUrl || songData.streamAudioUrl; const filename = `${songData.title || 'track'}.mp3`; card.innerHTML = `<div class="song-cover" id="cover-${songData.id}"><img src="${songData.imageUrl}" alt="Обложка трека"><div class="song-duration">${formatTime(songData.duration)}</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><div><span class="song-title">${songData.title || 'Без названия'}</span><span class="song-model-tag">${friendlyModelName}</span></div><div class="song-style"><div class="song-style-content">${songData.tags || '(no styles)'}</div></div></div><div class="song-actions"><button class="menu-trigger"><i class="fas fa-ellipsis-v"></i></button><ul class="song-menu"></ul></div>`; if (!playlist.some(p => p.songData.id === songData.id)) { playlist.unshift(songInfo); } const songIndex = playlist.findIndex(p => p.songData.id === songData.id); card.querySelector('.song-cover').onclick = () => playSongByIndex(songIndex); card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title')); const menu = card.querySelector('.song-menu'); card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); }; const menuItems = [ { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, { icon: 'fas fa-file-alt', text: 'Текст', action: () => showTimestampedLyrics(songData.id) }, { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } ]; menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); }); songListContainer.appendChild(card); }
+function addSongToList(songInfo) { if (document.getElementById(`song-${songInfo.songData.id}`)) return; emptyListMessage.style.display = 'none'; const { songData, requestParams } = songInfo; const card = document.createElement('div'); card.className = 'song-card'; card.id = `song-${songInfo.songData.id}`; card.classList.toggle('is-favorite', songData.is_favorite); const friendlyModelName = modelMap[requestParams?.model] || 'N/A'; const downloadUrl = songData.audioUrl || songData.streamAudioUrl; const filename = `${songData.title || 'track'}.mp3`; card.innerHTML = `<div class="song-cover" id="cover-${songInfo.songData.id}"><img src="${songData.imageUrl}" alt="Обложка трека"><div class="song-duration">${formatTime(songData.duration)}</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><div><span class="song-title">${songData.title || 'Без названия'}</span><span class="song-model-tag">${friendlyModelName}</span></div><div class="song-style"><div class="song-style-content">${songData.tags || '(no styles)'}</div></div></div><div class="song-actions"><button class="menu-trigger"><i class="fas fa-ellipsis-v"></i></button><ul class="song-menu"></ul></div>`; if (!playlist.some(p => p.songData.id === songData.id)) { playlist.unshift(songInfo); } const songIndex = playlist.findIndex(p => p.songData.id === songData.id); card.querySelector('.song-cover').onclick = () => playSongByIndex(songIndex); card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title')); const menu = card.querySelector('.song-menu'); card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); }; const menuItems = [ { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, { icon: 'fas fa-file-alt', text: 'Текст', action: () => showTimestampedLyrics(songData.id) }, { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } ]; menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); }); songListContainer.appendChild(card); }
 function renderLibrary() { songListContainer.innerHTML = ''; const filteredPlaylist = (currentLibraryTab === 'favorites') ? playlist.filter(p => p.songData.is_favorite) : playlist; if (filteredPlaylist.length > 0) { emptyListMessage.style.display = 'none'; filteredPlaylist.forEach(addSongToList); } else { emptyListMessage.textContent = currentLibraryTab === 'favorites' ? 'У вас пока нет избранных треков.' : 'Здесь будут отображаться ваши песни.'; emptyListMessage.style.display = 'block'; } }
 async function loadSongsFromServer() { try { const response = await fetch('/api/songs'); if (!response.ok) throw new Error('Network response was not ok'); playlist = await response.json(); renderLibrary(); } catch (e) { console.error("Не удалось загрузить песни с сервера", e); songListContainer.innerHTML = '<p id="empty-list-message" style="color: var(--accent-red);">Ошибка загрузки песен. Проверьте консоль.</p>'; } }
 async function startPolling(taskId) { if (pollingInterval) clearInterval(pollingInterval); createPlaceholderCard(taskId); updateStatus(`⏳ Задача ${taskId.slice(0, 8)}... в очереди.`); pollingInterval = setInterval(async () => { try { const response = await fetch(`/api/task-status/${taskId}`); const result = await response.json(); document.getElementById("response-output").textContent = JSON.stringify(result, null, 2); if (!response.ok || !result.data) { throw new Error(result.message || "Некорректный ответ от API"); } const taskData = result.data; const statusLowerCase = taskData.status.toLowerCase(); const successStatuses = ["success", "completed", "text_success", "first_success"]; const pendingStatuses = ["pending", "running", "submitted", "queued"]; if (successStatuses.includes(statusLowerCase)) { if (statusLowerCase === 'success' || statusLowerCase === 'completed') { clearInterval(pollingInterval); updateStatus("✅ Задача выполнена!", true); document.getElementById(`placeholder-${taskId}`)?.remove(); await loadSongsFromServer(); await handleApiCall("/api/chat/credit", { method: "GET" }, true); } else { updateStatus(`⏳ Статус: ${taskData.status}...`); } } else if (pendingStatuses.includes(statusLowerCase)) { updateStatus(`⏳ Статус: ${taskData.status}...`); } else { throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`); } } catch (error) { clearInterval(pollingInterval); updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true); document.getElementById(`placeholder-${taskId}`)?.remove(); } }, 10000); }
 function toggleCustomModeFields() { const isCustom = document.getElementById('g-customMode').checked; document.getElementById('simple-mode-fields').style.display = isCustom ? 'none' : 'flex'; document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none'; }
 function setupSliderListeners() { document.querySelectorAll('input[type="range"]').forEach(slider => { const valueSpan = slider.nextElementSibling; if (valueSpan && valueSpan.classList.contains('slider-value')) { slider.addEventListener('input', () => { valueSpan.textContent = slider.value; }); } }); }
 
+// *** НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ЛИМИТАМИ ***
+function updateCountersUI(element, limit) {
+    const counter = document.getElementById(`${element.id}-counter`);
+    if (counter) {
+        const length = element.value.length;
+        counter.textContent = `${length}/${limit}`;
+        counter.classList.toggle('limit-exceeded', length > limit);
+    }
+}
+
+function updateAllLimits() {
+    const model = document.getElementById('g-model-value').value;
+    const limits = modelLimits[model] || modelLimits['V4_5PLUS']; // Fallback
+
+    const fields = [
+        { id: 'g-title', limit: modelLimits.title },
+        { id: 'g-song-description', limit: modelLimits.songDescription },
+        { id: 'g-style', limit: limits.style },
+        { id: 'g-prompt', limit: limits.prompt }
+    ];
+
+    fields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+            element.maxLength = field.limit;
+            updateCountersUI(element, field.limit);
+        }
+    });
+}
+
+function setupCharCounters() {
+    ['g-title', 'g-song-description', 'g-style', 'g-prompt'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', () => updateCountersUI(element, element.maxLength));
+        }
+    });
+}
+
 function setupEventListeners() {
-    // *** ЛОГИКА МОБИЛЬНОГО МЕНЮ ***
-    const toggleSidebar = () => {
-        sidebar.classList.toggle('is-open');
-        sidebarOverlay.classList.toggle('is-visible');
-    };
+    const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     mobileMenuToggle.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
+    const toggleLibrary = () => { libraryCard.classList.toggle('is-open'); libraryOverlay.classList.toggle('is-visible'); };
+    mobileLibraryToggle.addEventListener('click', toggleLibrary);
+    libraryOverlay.addEventListener('click', toggleLibrary);
 
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
         button.addEventListener('click', (event) => {
@@ -160,14 +210,15 @@ function setupEventListeners() {
             document.getElementById(viewName).classList.add('active');
             event.currentTarget.classList.add('active');
             currentViewName = viewName;
-            if (window.innerWidth <= 768) { // Закрываем меню после выбора
-                toggleSidebar();
-            }
+            if (window.innerWidth <= 768) { toggleSidebar(); }
         });
     });
 
     setupSliderListeners();
-    document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
+    setupCharCounters();
+    updateAllLimits(); // Устанавливаем начальные лимиты при загрузке
+
+    document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); if (window.innerWidth <= 768) { toggleLibrary(); } }); });
     const customModeToggle = document.getElementById("g-customMode");
     customModeToggle.addEventListener('change', toggleCustomModeFields);
     toggleCustomModeFields(); 
@@ -183,7 +234,21 @@ function setupEventListeners() {
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, instrumental: document.getElementById("uc-instrumental").checked }; const fields = { title: 'uc-title', style: 'uc-style', prompt: 'uc-prompt', negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { content: document.getElementById("b-style-content").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    const selectButton = document.getElementById("select-model-button"); const selectDropdown = document.getElementById("select-model-dropdown"); selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); selectDropdown.addEventListener("click", e => { if (e.target.classList.contains("select-option")) { const currentSelected = selectDropdown.querySelector('.select-option.selected'); if (currentSelected) { currentSelected.classList.remove('selected'); } e.target.classList.add('selected'); document.getElementById("g-model-value").value = e.target.dataset.value; selectButton.textContent = e.target.textContent; selectDropdown.classList.remove("open"); } });
+    
+    const selectButton = document.getElementById("select-model-button"); 
+    const selectDropdown = document.getElementById("select-model-dropdown"); 
+    selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
+    selectDropdown.addEventListener("click", e => { 
+        if (e.target.classList.contains("select-option")) { 
+            const currentSelected = selectDropdown.querySelector('.select-option.selected');
+            if (currentSelected) { currentSelected.classList.remove('selected'); }
+            e.target.classList.add('selected');
+            document.getElementById("g-model-value").value = e.target.dataset.value; 
+            selectButton.textContent = e.target.textContent; 
+            selectDropdown.classList.remove("open");
+            updateAllLimits(); // *** ОБНОВЛЯЕМ ЛИМИТЫ ПРИ СМЕНЕ МОДЕЛИ ***
+        } 
+    });
     window.addEventListener("click", () => { selectDropdown.classList.remove("open"); document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); });
 }
 
