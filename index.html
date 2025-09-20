@@ -48,8 +48,8 @@
                     </ul>
                 </nav>
                 <div class="sidebar-footer">
+                    <!-- *** ИЗМЕНЕНИЕ: Убрана надпись "Кредиты:" *** -->
                     <div id="credits-container" class="credits-display" style="display: none;">
-                        <span class="credits-label">Кредиты:</span>
                         <span class="credits-value" id="credits-value">...</span>
                         <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
                     </div>
@@ -63,7 +63,6 @@
                         <div class="form-row"><label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label><div class="custom-select-wrapper"><input type="hidden" id="g-model-value" value="V4_5PLUS"><div class="select-button" id="select-model-button">V4.5+</div><div class="select-dropdown" id="select-model-dropdown"><div class="select-option selected" data-value="V4_5PLUS">V4.5+</div><div class="select-option" data-value="V4_5">V4.5</div><div class="select-option" data-value="V4">V4</div><div class="select-option" data-value="V3_5">V3.5</div></div></div></div>
                         <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/200</div></div></div>
                         <div id="custom-mode-fields" class="form-grid">
-                            <!-- *** ИЗМЕНЕНИЕ: Добавлен счетчик для названия *** -->
                             <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"><div class="char-counter" id="g-title-counter">0/80</div></div>
                             <div class="form-group"><label for="g-style">Стиль музыки</label><textarea id="g-style" placeholder="Пример: Pop, Mysterious, Upbeat"></textarea><div class="char-counter" id="g-style-counter">0/1000</div></div>
                             <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt"></textarea><div class="char-counter" id="g-prompt-counter">0/5000</div></div>

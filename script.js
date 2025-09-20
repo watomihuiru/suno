@@ -2,14 +2,13 @@
 const SECRET_KEY = 'messisipi'; // <<< ИЗМЕНИТЕ ЭТОТ КЛЮЧ НА СВОЙ !!!
 let currentViewName = 'generate', currentLibraryTab = 'all';
 const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
-// *** НОВЫЙ ОБЪЕКТ ДЛЯ ХРАНЕНИЯ ЛИМИТОВ ***
 const modelLimits = {
     'V3_5': { prompt: 3000, style: 200 },
     'V4': { prompt: 3000, style: 200 },
     'V4_5': { prompt: 5000, style: 1000 },
     'V4_5PLUS': { prompt: 5000, style: 1000 },
-    'title': 80, // Общий лимит для всех моделей
-    'songDescription': 200 // Общий лимит для простого режима
+    'title': 80,
+    'songDescription': 200
 };
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [];
 
@@ -154,7 +153,6 @@ async function startPolling(taskId) { if (pollingInterval) clearInterval(polling
 function toggleCustomModeFields() { const isCustom = document.getElementById('g-customMode').checked; document.getElementById('simple-mode-fields').style.display = isCustom ? 'none' : 'flex'; document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none'; }
 function setupSliderListeners() { document.querySelectorAll('input[type="range"]').forEach(slider => { const valueSpan = slider.nextElementSibling; if (valueSpan && valueSpan.classList.contains('slider-value')) { slider.addEventListener('input', () => { valueSpan.textContent = slider.value; }); } }); }
 
-// *** НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ЛИМИТАМИ ***
 function updateCountersUI(element, limit) {
     const counter = document.getElementById(`${element.id}-counter`);
     if (counter) {
@@ -166,15 +164,13 @@ function updateCountersUI(element, limit) {
 
 function updateAllLimits() {
     const model = document.getElementById('g-model-value').value;
-    const limits = modelLimits[model] || modelLimits['V4_5PLUS']; // Fallback
-
+    const limits = modelLimits[model] || modelLimits['V4_5PLUS'];
     const fields = [
         { id: 'g-title', limit: modelLimits.title },
         { id: 'g-song-description', limit: modelLimits.songDescription },
         { id: 'g-style', limit: limits.style },
         { id: 'g-prompt', limit: limits.prompt }
     ];
-
     fields.forEach(field => {
         const element = document.getElementById(field.id);
         if (element) {
@@ -216,9 +212,9 @@ function setupEventListeners() {
 
     setupSliderListeners();
     setupCharCounters();
-    updateAllLimits(); // Устанавливаем начальные лимиты при загрузке
+    updateAllLimits();
 
-    document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); if (window.innerWidth <= 768) { toggleLibrary(); } }); });
+    document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
     const customModeToggle = document.getElementById("g-customMode");
     customModeToggle.addEventListener('change', toggleCustomModeFields);
     toggleCustomModeFields(); 
@@ -246,7 +242,7 @@ function setupEventListeners() {
             document.getElementById("g-model-value").value = e.target.dataset.value; 
             selectButton.textContent = e.target.textContent; 
             selectDropdown.classList.remove("open");
-            updateAllLimits(); // *** ОБНОВЛЯЕМ ЛИМИТЫ ПРИ СМЕНЕ МОДЕЛИ ***
+            updateAllLimits();
         } 
     });
     window.addEventListener("click", () => { selectDropdown.classList.remove("open"); document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); });
