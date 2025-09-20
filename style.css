@@ -16,7 +16,7 @@ body {
 .page-container {
     width: 100%; height: 100%;
     display: grid;
-    /* *** ИСПРАВЛЕНИЕ: Задаем фиксированную ширину для библиотеки, чтобы она не схлапывалась *** */
+    /* *** ИСПРАВЛЕНИЕ: Задаем фиксированную ширину для библиотеки *** */
     grid-template-columns: var(--sidebar-width) 1fr 450px;
     gap: 24px;
     padding: 30px;
@@ -31,19 +31,16 @@ body {
     flex-direction: column;
     padding: 24px;
     grid-row: 1 / -1;
+    /* *** ИСПРАВЛЕНИЕ: Панель во всю высоту *** */
     margin: -30px 0 -30px -30px;
     padding-left: 30px;
-    /* *** ИСПРАВЛЕНИЕ: Отступ снизу для плеера *** */
-    padding-bottom: 100px;
     transition: transform 0.3s ease-in-out;
 }
 .sidebar-header {
-    /* *** ИСПРАВЛЕНИЕ: Отделяем заголовок от навигации *** */
     margin-bottom: 24px;
 }
 .sidebar-header h1 { font-size: 20px; font-weight: 600; }
 .sidebar-nav {
-    flex-grow: 1;
     /* *** ИСПРАВЛЕНИЕ: Стилизуем блок навигации как карточку *** */
     background-color: var(--bg-input);
     border: 1px solid var(--border);
@@ -56,8 +53,28 @@ body {
 .nav-button:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
 .nav-button.active { background-color: var(--accent-blue); color: white; font-weight: 600; }
 .notification-dot { display: none; position: absolute; top: 4px; right: 8px; width: 8px; height: 8px; background-color: var(--accent-red); border-radius: 50%; border: 2px solid var(--bg-card); }
-.sidebar-footer { margin-top: auto; padding-top: 24px; }
-.sidebar-footer .credits-display { width: 100%; justify-content: center; }
+.sidebar-footer {
+    /* *** ИСПРАВЛЕНИЕ: Прижимаем кредиты к низу *** */
+    margin-top: auto;
+    padding-top: 24px;
+}
+/* *** ИСПРАВЛЕНИЕ: Стили для круглых кредитов *** */
+.credits-display {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    background-color: var(--bg-input);
+}
+.credits-display .credits-value {
+    margin-right: 0;
+    font-size: 16px;
+}
 
 /* --- СТИЛИ ОСНОВНОГО КОНТЕНТА --- */
 .main-content { grid-column: 2 / 3; }
@@ -138,7 +155,8 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .progress-bar-inner { width: 0%; height: 100%; background-color: var(--accent-blue); }
 @keyframes fake-progress { from { width: 0%; } to { width: 95%; } }
 .song-card.placeholder .progress-bar-inner { animation: fake-progress 120s linear forwards; animation-delay: 0.5s; }
-#global-player { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1c2128; border-top: 1px solid var(--border); padding: 10px 30px; display: none; align-items: center; gap: 20px; z-index: 100; }
+/* *** ИСПРАВЛЕНИЕ: Позиционирование плеера *** */
+#global-player { position: fixed; bottom: 0; right: 0; left: var(--sidebar-width); background-color: #1c2128; border-top: 1px solid var(--border); padding: 10px 30px; display: none; align-items: center; gap: 20px; z-index: 100; }
 #player-song-info { display: flex; align-items: center; gap: 15px; min-width: 200px; }
 #player-cover { width: 56px; height: 56px; border-radius: 4px; }
 #player-title { font-weight: 600; }
@@ -197,4 +215,5 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     #sidebar-overlay.is-visible, #library-overlay.is-visible { display: block; }
     .library-card { display: flex; position: fixed; top: 0; right: 0; height: 100%; width: 85%; max-width: 320px; z-index: 1100; transform: translateX(100%); transition: transform 0.3s ease-in-out; grid-column: auto; margin: 0; border-radius: 8px 0 0 8px; }
     .library-card.is-open { transform: translateX(0); }
+    #global-player { left: 0; }
 }
