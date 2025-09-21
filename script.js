@@ -289,7 +289,6 @@ function setupEventListeners() {
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, instrumental: document.getElementById("uc-instrumental").checked }; const fields = { title: 'uc-title', style: 'uc-style', prompt: 'uc-prompt', negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     
-    // *** ИЗМЕНЕНИЕ: Новый обработчик для кнопки Boost ***
     const boostButton = document.getElementById('boost-style-button');
     boostButton.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -311,9 +310,9 @@ function setupEventListeners() {
                 body: JSON.stringify({ content: currentStyle })
             });
             const result = await response.json();
-            if (response.ok && result.data) {
-                styleTextarea.value = result.data;
-                // Имитируем событие ввода, чтобы счетчик символов обновился
+            // *** ИЗМЕНЕНИЕ: Проверяем правильный путь к данным: result.data.result ***
+            if (response.ok && result.data && result.data.result) {
+                styleTextarea.value = result.data.result;
                 styleTextarea.dispatchEvent(new Event('input', { bubbles: true }));
             } else {
                 updateStatus(`🚫 Ошибка Boost: ${result.message || 'Не удалось улучшить стиль.'}`, false, true);
