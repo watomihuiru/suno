@@ -1,5 +1,4 @@
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-// *** ИЗМЕНЕНИЕ: УДАЛЯЕМ СЕКРЕТНЫЙ КЛЮЧ ИЗ КЛИЕНТСКОГО КОДА ***
 let currentViewName = 'generate', currentLibraryTab = 'all';
 const modelMap = { "V4_5PLUS": "V4.5+", "V4_5": "V4.5", "V4": "V4", "V3_5": "V3.5" };
 const modelLimits = {
@@ -20,7 +19,6 @@ let mobileLibraryToggle, libraryCard, libraryOverlay;
 function formatTime(seconds) { if(isNaN(seconds)||seconds===null||!isFinite(seconds))return'0:00';const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return`${m}:${s<10?"0":""}${s}`;}
 
 // --- ЛОГИКА АВТОРИЗАЦИИ ---
-// *** ИЗМЕНЕНИЕ: Функция теперь отправляет пароль на сервер для проверки ***
 async function handleLogin() {
     const loginElements = { 
         overlay: document.getElementById('login-overlay'), 
@@ -63,7 +61,8 @@ function initializeApp() {
     statusContainer = document.getElementById("status-container");
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
-    globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), currentSongId: null };
+    // *** ИЗМЕНЕНИЕ: Добавлен closeBtn в объект плеера ***
+    globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), closeBtn: document.getElementById('close-player-btn'), currentSongId: null };
     lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close') };
     
     mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -124,6 +123,15 @@ function setupPlayerListeners() {
     globalPlayer.repeatBtn.onclick = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); };
     lyricsModal.closeBtn.onclick = () => { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; };
     lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; } };
+
+    // *** ИЗМЕНЕНИЕ: Добавлен обработчик для кнопки закрытия плеера ***
+    globalPlayer.closeBtn.onclick = () => {
+        globalPlayer.audio.pause();
+        globalPlayer.audio.src = '';
+        globalPlayer.currentSongId = null;
+        globalPlayer.container.style.display = 'none';
+        updateAllPlayIcons();
+    };
 }
 
 function playSongByIndex(index) {
@@ -186,7 +194,6 @@ function addSongToList(songInfo) {
     menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
     songListContainer.appendChild(card);
 
-    // *** ИЗМЕНЕНИЕ: Логика для кнопки "Показать полностью" ***
     const styleContent = card.querySelector('.song-style-content');
     if (styleContent.scrollHeight > styleContent.clientHeight) {
         const showMoreBtn = document.createElement('button');
