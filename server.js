@@ -46,7 +46,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// *** НОВЫЙ МАРШРУТ ДЛЯ ПРОВЕРКИ ПАРОЛЯ ***
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     const correctPassword = process.env.SITE_ACCESS_KEY;
@@ -93,6 +92,7 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
+// *** ИЗМЕНЕНИЕ: Полностью переработанный маршрут для поддержки перемотки (Range Requests) ***
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -107,18 +107,57 @@ app.get('/api/stream/:id', async (req, res) => {
             return res.status(404).send('URL аудио для этой песни не найден');
         }
 
-        const response = await axios({
-            method: 'get',
-            url: audioUrl,
-            responseType: 'stream',
-            headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            } 
+        // Сначала делаем HEAD-запрос, чтобы получить метаданные (размер, тип)
+        const headResponse = await axios.head(audioUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
         });
 
-        res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
-        response.data.pipe(res);
+        const totalSize = headResponse.headers['content-length'];
+        const contentType = headResponse.headers['content-type'] || 'audio/mpeg';
+        
+        // Проверяем, запрашивает ли браузер определенный диапазон байт
+        const range = req.headers.range;
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+            const chunksize = (end - start) + 1;
 
+            // Запрашиваем у Suno только нужный фрагмент
+            const audioResponse = await axios({
+                method: 'get',
+                url: audioUrl,
+                responseType: 'stream',
+                headers: {
+                    'Range': `bytes=${start}-${end}`,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            });
+
+            // Отправляем браузеру ответ 206 Partial Content
+            res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunksize,
+                'Content-Type': contentType,
+            });
+            audioResponse.data.pipe(res);
+        } else {
+            // Если диапазон не запрошен, отдаем файл целиком и сообщаем, что поддерживаем диапазоны
+            res.writeHead(200, {
+                'Content-Length': totalSize,
+                'Content-Type': contentType,
+                'Accept-Ranges': 'bytes',
+            });
+
+            const audioResponse = await axios({
+                method: 'get',
+                url: audioUrl,
+                responseType: 'stream',
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+            });
+            audioResponse.data.pipe(res);
+        }
     } catch (error) {
         const songId = req.params.id;
         if (error.response) {
