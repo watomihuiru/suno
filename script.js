@@ -61,7 +61,6 @@ function initializeApp() {
     statusContainer = document.getElementById("status-container");
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
-    // *** ИЗМЕНЕНИЕ: Добавлен closeBtn в объект плеера ***
     globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), closeBtn: document.getElementById('close-player-btn'), currentSongId: null };
     lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close') };
     
@@ -124,7 +123,6 @@ function setupPlayerListeners() {
     lyricsModal.closeBtn.onclick = () => { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; };
     lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; } };
 
-    // *** ИЗМЕНЕНИЕ: Добавлен обработчик для кнопки закрытия плеера ***
     globalPlayer.closeBtn.onclick = () => {
         globalPlayer.audio.pause();
         globalPlayer.audio.src = '';
@@ -290,8 +288,44 @@ function setupEventListeners() {
     document.getElementById("extend-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value }; const fields = { title: 'e-title', style: 'e-style', prompt: 'e-prompt', negativeTags: 'e-negativeTags', styleWeight: 'e-styleWeight', weirdnessConstraint: 'e-weirdnessConstraint', audioWeight: 'e-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, instrumental: document.getElementById("uc-instrumental").checked }; const fields = { title: 'uc-title', style: 'uc-style', prompt: 'uc-prompt', negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("boost-style-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { content: document.getElementById("b-style-content").value }; handleApiCall("/api/boost-style", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     
+    // *** ИЗМЕНЕНИЕ: Новый обработчик для кнопки Boost ***
+    const boostButton = document.getElementById('boost-style-button');
+    boostButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const styleTextarea = document.getElementById('g-style');
+        const currentStyle = styleTextarea.value.trim();
+        if (!currentStyle) {
+            styleTextarea.classList.add('input-error');
+            setTimeout(() => styleTextarea.classList.remove('input-error'), 1000);
+            return;
+        }
+
+        boostButton.disabled = true;
+        boostButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const response = await fetch('/api/boost-style', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: currentStyle })
+            });
+            const result = await response.json();
+            if (response.ok && result.data) {
+                styleTextarea.value = result.data;
+                // Имитируем событие ввода, чтобы счетчик символов обновился
+                styleTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                updateStatus(`🚫 Ошибка Boost: ${result.message || 'Не удалось улучшить стиль.'}`, false, true);
+            }
+        } catch (error) {
+            updateStatus(`💥 Критическая ошибка Boost: ${error.message}`, false, true);
+        } finally {
+            boostButton.disabled = false;
+            boostButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+        }
+    });
+
     const selectButton = document.getElementById("select-model-button"); 
     const selectDropdown = document.getElementById("select-model-dropdown"); 
     selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
