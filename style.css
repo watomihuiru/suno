@@ -30,8 +30,8 @@ body {
     display: flex;
     flex-direction: column;
     grid-row: 1 / -1;
-    /* Убираем отрицательный отступ снизу, чтобы не ломать высоту грида */
-    margin: -30px 0 0 -30px;
+    /* ИСПРАВЛЕНИЕ: Добавляем отрицательный отступ снизу для растягивания фона */
+    margin: -30px 0 -120px -30px;
     padding: 24px;
     padding-left: 30px;
     transition: transform 0.3s ease-in-out;
