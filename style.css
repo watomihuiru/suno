@@ -2,7 +2,7 @@
     --bg-page: #0E1117; --bg-card: #161B22; --bg-input: #0E1117;
     --border: #30363D; --text-primary: #E6EDF3; --text-secondary: #8B949E;
     --accent-blue: #3882F6; --accent-blue-hover: #58A6FF; --accent-blue-active: #2188ff;
-    --accent-green: #238636; --accent-red: #da3336; --accent-yellow: #f7b731;
+    --accent-green: #238636; --accent-red: #da3633; --accent-yellow: #f7b731;
     --sidebar-width: 240px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,12 +13,14 @@ body {
     padding: 0;
 }
 .page-container {
-    width: 100%; height: 100%;
+    width: 100%;
+    height: 100vh; /* Задаем высоту в % от экрана для стабильности макета */
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: var(--sidebar-width) 1fr minmax(350px, 1fr);
     gap: 24px;
     padding: 30px;
-    padding-bottom: 124px; /* Увеличено для отступа под плавающий плеер */
+    padding-bottom: 120px; /* Оставляем место для плеера */
 }
 
 /* --- СТИЛИ БОКОВОЙ ПАНЕЛИ --- */
@@ -27,15 +29,15 @@ body {
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    padding: 24px;
     grid-row: 1 / -1;
-    margin: -30px 0 -124px -30px; /* Скорректирован отрицательный отступ */
+    /* Убираем отрицательный отступ снизу, чтобы не ломать высоту грида */
+    margin: -30px 0 0 -30px;
+    padding: 24px;
     padding-left: 30px;
-    padding-bottom: 24px;
     transition: transform 0.3s ease-in-out;
 }
 .sidebar-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 32px; }
-.sidebar-nav { flex-grow: 1; }
+.sidebar-nav { flex-grow: 1; } /* Это свойство заставляет навигацию растягиваться */
 .sidebar-nav ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .nav-button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 6px; background: none; border: none; color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; text-align: left; transition: background-color 0.2s, color 0.2s; position: relative; }
 .nav-button i { width: 18px; text-align: center; font-size: 16px; }
@@ -125,9 +127,10 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .song-card.placeholder .progress-bar-inner { animation: fake-progress 120s linear forwards; animation-delay: 0.5s; }
 #global-player {
     position: fixed;
-    bottom: 24px;
-    left: calc(var(--sidebar-width) + 24px);
-    right: 24px;
+    bottom: 30px;
+    /* Позиционируем плеер относительно колонок грида */
+    left: calc(var(--sidebar-width) + 30px + 24px); /* ширина сайдбара + отступ контейнера + гэп */
+    right: 30px; /* отступ контейнера справа */
     background-color: #1c2128;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -136,7 +139,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     align-items: center;
     gap: 20px;
     z-index: 100;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
 }
 #player-song-info { display: flex; align-items: center; gap: 15px; min-width: 200px; }
 #player-cover { width: 56px; height: 56px; border-radius: 4px; }
@@ -183,8 +186,9 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     .page-container { grid-template-columns: var(--sidebar-width) 1fr; }
     .library-card { display: none; }
     #global-player {
-        right: 24px;
-        left: calc(var(--sidebar-width) + 24px);
+        /* На планшете плеер растягивается до правого края */
+        right: 30px;
+        left: calc(var(--sidebar-width) + 30px + 24px);
     }
 }
 @media (max-width: 768px) {
@@ -201,6 +205,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
     .library-card { display: flex; position: fixed; top: 0; right: 0; height: 100%; width: 85%; max-width: 320px; z-index: 1100; transform: translateX(100%); transition: transform 0.3s ease-in-out; grid-column: auto; margin: 0; border-radius: 8px 0 0 8px; }
     .library-card.is-open { transform: translateX(0); }
     #global-player {
+        /* На мобильных плеер занимает всю ширину с отступами */
         left: 15px;
         right: 15px;
         bottom: 15px;
