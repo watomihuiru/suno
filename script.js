@@ -7,7 +7,13 @@ const modelLimits = {
     'V4_5': { prompt: 5000, style: 1000 },
     'V4_5PLUS': { prompt: 5000, style: 1000 },
     'title': 80,
-    'songDescription': 200
+    'songDescription': 400
+};
+const extendModelLimits = {
+    'V3_5': { prompt: 3000, style: 200, title: 80 },
+    'V4': { prompt: 3000, style: 200, title: 80 },
+    'V4_5': { prompt: 5000, style: 1000, title: 100 },
+    'V4_5PLUS': { prompt: 5000, style: 1000, title: 100 }
 };
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [], lastActiveLyricIndex = -1;
 let isUserScrollingLyrics = false;
@@ -367,7 +373,19 @@ function addSongToList(songInfo) {
         playlist.unshift(songInfo);
     }
     const songIndex = playlist.findIndex(p => p.songData.id === songData.id);
-    card.querySelector('.song-cover').onclick = () => playSongByIndex(songIndex);
+    
+    card.querySelector('.song-cover').onclick = () => {
+        if (globalPlayer.currentSongId === songData.id && globalPlayer.audio.src) {
+            if (globalPlayer.audio.paused) {
+                globalPlayer.audio.play();
+            } else {
+                globalPlayer.audio.pause();
+            }
+        } else {
+            playSongByIndex(songIndex);
+        }
+    };
+
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
@@ -412,15 +430,50 @@ function updateCountersUI(element, limit) {
 }
 
 function updateAllLimits() {
-    const model = document.getElementById('g-model-value').value;
-    const limits = modelLimits[model] || modelLimits['V4_5PLUS'];
-    const fields = [
+    // Generate Form
+    const g_model = document.getElementById('g-model-value').value;
+    const g_limits = modelLimits[g_model] || modelLimits['V4_5PLUS'];
+    const g_fields = [
         { id: 'g-title', limit: modelLimits.title },
         { id: 'g-song-description', limit: modelLimits.songDescription },
-        { id: 'g-style', limit: limits.style },
-        { id: 'g-prompt', limit: limits.prompt }
+        { id: 'g-style', limit: g_limits.style },
+        { id: 'g-prompt', limit: g_limits.prompt }
     ];
-    fields.forEach(field => {
+    g_fields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+            element.maxLength = field.limit;
+            updateCountersUI(element, field.limit);
+        }
+    });
+
+    // Upload Cover Form
+    const uc_model = document.getElementById('uc-model-value').value;
+    const uc_limits = modelLimits[uc_model] || modelLimits['V4_5PLUS'];
+    const uc_fields = [
+        { id: 'uc-title', limit: modelLimits.title },
+        { id: 'uc-song-description', limit: modelLimits.songDescription },
+        { id: 'uc-style', limit: uc_limits.style },
+        { id: 'uc-prompt', limit: uc_limits.prompt }
+    ];
+    uc_fields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+            element.maxLength = field.limit;
+            updateCountersUI(element, field.limit);
+        }
+    });
+
+    // Upload Extend Form
+    const ue_model = document.getElementById('ue-model-value').value;
+    const ue_limits = extendModelLimits[ue_model] || extendModelLimits['V4_5PLUS'];
+    const ue_fields = [
+        { id: 'ue-title', limit: ue_limits.title },
+        { id: 'ue-style', limit: ue_limits.style },
+        { id: 'ue-prompt', limit: ue_limits.prompt },
+        { id: 'ue-prompt-simple', limit: ue_limits.prompt }
+    ];
+    ue_fields.forEach(field => {
         const element = document.getElementById(field.id);
         if (element) {
             element.maxLength = field.limit;
@@ -430,7 +483,7 @@ function updateAllLimits() {
 }
 
 function setupCharCounters() {
-    ['g-title', 'g-song-description', 'g-style', 'g-prompt'].forEach(id => {
+    ['g-title', 'g-song-description', 'g-style', 'g-prompt', 'uc-title', 'uc-song-description', 'uc-style', 'uc-prompt', 'ue-title', 'ue-style', 'ue-prompt', 'ue-prompt-simple'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('input', () => updateCountersUI(element, element.maxLength));
@@ -452,7 +505,7 @@ function setupCustomSelect(buttonId, dropdownId, valueInputId) {
             valueInput.value = e.target.dataset.value;
             selectButton.textContent = e.target.textContent;
             selectDropdown.classList.remove("open");
-            if (valueInputId === 'g-model-value') updateAllLimits();
+            updateAllLimits();
         }
     });
 }
@@ -504,6 +557,18 @@ function setupEventListeners() {
         document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
     });
     
+    document.getElementById("uc-customMode").addEventListener('change', () => {
+        const isCustom = document.getElementById('uc-customMode').checked;
+        document.getElementById('uc-simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
+        document.getElementById('uc-custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
+    });
+
+    document.getElementById("ue-customMode").addEventListener('change', () => {
+        const isCustom = document.getElementById('ue-customMode').checked;
+        document.getElementById('ue-simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
+        document.getElementById('ue-custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
+    });
+
     setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
     setupInstrumentalToggle('ue-instrumental', 'ue-prompt-group', 'ue-vocalGender-group');
@@ -511,63 +576,104 @@ function setupEventListeners() {
     setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
     setupCustomSelect('select-model-button-ue', 'select-model-dropdown-ue', 'ue-model-value');
 
-    document.getElementById("generate-music-form").addEventListener("submit", (e) => { e.preventDefault(); if (!validateGenerateForm()) return; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, styleWeight: parseFloat(document.getElementById('g-styleWeight').value), weirdnessConstraint: parseFloat(document.getElementById('g-weirdnessConstraint').value) }; if (isCustom) { payload.title = document.getElementById('g-title').value; payload.style = document.getElementById('g-style').value; payload.negativeTags = document.getElementById('g-negativeTags').value; if (!isInstrumental) { payload.prompt = document.getElementById('g-prompt').value; const vocalGender = document.getElementById('g-vocalGender').value; if(vocalGender) payload.vocalGender = vocalGender; } } else { payload.prompt = document.getElementById('g-song-description').value; } handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    document.getElementById("generate-music-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!validateGenerateForm()) return;
+        const isCustom = document.getElementById("g-customMode").checked;
+        const model = document.getElementById("g-model-value").value;
+        
+        let payload = { model, customMode: isCustom };
+
+        if (isCustom) {
+            const isInstrumental = document.getElementById("g-instrumental").checked;
+            payload.title = document.getElementById('g-title').value;
+            payload.style = document.getElementById('g-style').value;
+            payload.instrumental = isInstrumental;
+            payload.negativeTags = document.getElementById('g-negativeTags').value;
+            payload.styleWeight = parseFloat(document.getElementById('g-styleWeight').value);
+            payload.weirdnessConstraint = parseFloat(document.getElementById('g-weirdnessConstraint').value);
+
+            if (!isInstrumental) {
+                payload.prompt = document.getElementById('g-prompt').value;
+                const vocalGender = document.getElementById('g-vocalGender').value;
+                if (vocalGender) payload.vocalGender = vocalGender;
+            }
+        } else {
+            payload.prompt = document.getElementById('g-song-description').value;
+        }
+        handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    });
     
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => {
         e.preventDefault();
-        const isInstrumental = document.getElementById("uc-instrumental").checked;
-        const payload = {
+        if (!validateUploadCoverForm()) return;
+        const isCustom = document.getElementById("uc-customMode").checked;
+        const model = document.getElementById('uc-model-value').value;
+
+        let payload = {
+            model: model,
+            customMode: isCustom,
             uploadUrl: document.getElementById("uc-uploadUrl").value,
-            title: document.getElementById('uc-title').value,
-            style: document.getElementById('uc-style').value,
-            instrumental: isInstrumental,
-            model: document.getElementById('uc-model-value').value,
-            customMode: true,
             callBackUrl: "https://api.example.com/callback"
         };
-        
-        const optionalFields = { negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' };
-        for (const key in optionalFields) {
-            const element = document.getElementById(optionalFields[key]);
-            if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
-        }
 
-        if (!isInstrumental) {
-            payload.prompt = document.getElementById('uc-prompt').value;
-            const vocalGender = document.getElementById('uc-vocalGender').value;
-            if (vocalGender) payload.vocalGender = vocalGender;
-        }
+        if (isCustom) {
+            const isInstrumental = document.getElementById("uc-instrumental").checked;
+            payload.title = document.getElementById('uc-title').value;
+            payload.style = document.getElementById('uc-style').value;
+            payload.instrumental = isInstrumental;
+            
+            const optionalFields = { negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' };
+            for (const key in optionalFields) {
+                const element = document.getElementById(optionalFields[key]);
+                if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
+            }
 
+            if (!isInstrumental) {
+                payload.prompt = document.getElementById('uc-prompt').value;
+                const vocalGender = document.getElementById('uc-vocalGender').value;
+                if (vocalGender) payload.vocalGender = vocalGender;
+            }
+        } else {
+            payload.prompt = document.getElementById('uc-song-description').value;
+        }
         handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
     });
 
-    // *** ИЗМЕНЕНИЕ: Полностью переработанный обработчик для формы "Продлить свое" ***
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => {
         e.preventDefault();
-        const isInstrumental = document.getElementById("ue-instrumental").checked;
-        const payload = {
+        if (!validateUploadExtendForm()) return;
+        const isCustom = document.getElementById("ue-customMode").checked;
+        const model = document.getElementById('ue-model-value').value;
+
+        let payload = {
+            model: model,
+            defaultParamFlag: isCustom,
             uploadUrl: document.getElementById("ue-uploadUrl").value,
-            title: document.getElementById('ue-title').value,
-            style: document.getElementById('ue-style').value,
-            continueAt: document.getElementById('ue-continueAt').value,
-            instrumental: isInstrumental,
-            model: document.getElementById('ue-model-value').value,
-            defaultParamFlag: true,
             callBackUrl: "https://api.example.com/callback"
         };
 
-        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'ue-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
-        for (const key in optionalFields) {
-            const element = document.getElementById(optionalFields[key]);
-            if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
-        }
+        if (isCustom) {
+            const isInstrumental = document.getElementById("ue-instrumental").checked;
+            payload.title = document.getElementById('ue-title').value;
+            payload.style = document.getElementById('ue-style').value;
+            payload.continueAt = document.getElementById('ue-continueAt').value;
+            payload.instrumental = isInstrumental;
 
-        if (!isInstrumental) {
-            payload.prompt = document.getElementById('ue-prompt').value;
-            const vocalGender = document.getElementById('ue-vocalGender').value;
-            if (vocalGender) payload.vocalGender = vocalGender;
+            const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'ue-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
+            for (const key in optionalFields) {
+                const element = document.getElementById(optionalFields[key]);
+                if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
+            }
+
+            if (!isInstrumental) {
+                payload.prompt = document.getElementById('ue-prompt').value;
+                const vocalGender = document.getElementById('ue-vocalGender').value;
+                if (vocalGender) payload.vocalGender = vocalGender;
+            }
+        } else {
+            payload.prompt = document.getElementById('ue-prompt-simple').value;
         }
-        
         handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
     });
     
@@ -612,7 +718,61 @@ function setupEventListeners() {
     });
 }
 
-function validateGenerateForm() { let isValid = true; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const fieldsToValidate = []; if (isCustom) { fieldsToValidate.push(document.getElementById('g-title')); fieldsToValidate.push(document.getElementById('g-style')); if (!isInstrumental) { fieldsToValidate.push(document.getElementById('g-prompt')); } } else { fieldsToValidate.push(document.getElementById('g-song-description')); } fieldsToValidate.forEach(field => { if (!field.value.trim()) { isValid = false; field.classList.add('input-error'); setTimeout(() => field.classList.remove('input-error'), 1000); } }); return isValid; }
+function validateField(field) {
+    if (!field || !field.value.trim()) {
+        if (field) {
+            field.classList.add('input-error');
+            setTimeout(() => field.classList.remove('input-error'), 1000);
+        }
+        return false;
+    }
+    return true;
+}
+
+function validateGenerateForm() {
+    const isCustom = document.getElementById("g-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("g-instrumental").checked;
+        let valid = validateField(document.getElementById('g-title')) && validateField(document.getElementById('g-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('g-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('g-song-description'));
+    }
+}
+
+function validateUploadCoverForm() {
+    if (!validateField(document.getElementById('uc-uploadUrl'))) return false;
+    const isCustom = document.getElementById("uc-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("uc-instrumental").checked;
+        let valid = validateField(document.getElementById('uc-title')) && validateField(document.getElementById('uc-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('uc-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('uc-song-description'));
+    }
+}
+
+function validateUploadExtendForm() {
+    if (!validateField(document.getElementById('ue-uploadUrl'))) return false;
+    const isCustom = document.getElementById("ue-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("ue-instrumental").checked;
+        let valid = validateField(document.getElementById('ue-continueAt')) && validateField(document.getElementById('ue-title')) && validateField(document.getElementById('ue-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('ue-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('ue-prompt-simple'));
+    }
+}
+
 function createPlaceholderCard(taskId) { const card = document.createElement('div'); card.className = 'song-card placeholder'; card.id = `placeholder-${taskId}`; card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`; songListContainer.prepend(card); }
 function updateStatus(message, isSuccess = false, isError = false) { if(statusContainer) statusContainer.innerHTML = `<div class="status-message ${isSuccess ? 'success' : ''} ${isError ? 'error' : ''}">${message}</div>`; }
 async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false) { const responseOutput = document.getElementById("response-output"); if(!isCreditCheck) { updateStatus('Ожидание запуска задачи...'); responseOutput.textContent = "Выполняется запрос..."; } if (pollingInterval && !isCreditCheck) clearInterval(pollingInterval); try { const response = await fetch(endpoint, options); const result = await response.json(); if (response.ok) { if(!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2); if (isCreditCheck && result.data !== undefined) { document.getElementById("credits-value").textContent = result.data; document.getElementById("credits-container").style.display = 'inline-flex'; } if (isGeneration && result.data && result.data.taskId) { startPolling(result.data.taskId); } else if (isGeneration) { updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true); } } else { if(!isCreditCheck) responseOutput.textContent = `🚫 Ошибка ${response.status}:\n\n${JSON.stringify(result, null, 2)}`; updateStatus(`🚫 Ошибка запуска: ${result.message || 'Сервер вернул ошибку.'}`, false, true); } } catch (error) { if(!isCreditCheck) responseOutput.textContent = "💥 Сетевая ошибка:\n\n" + error.message; updateStatus(`💥 Критическая ошибка: ${error.message}`, false, true); } }

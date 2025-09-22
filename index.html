@@ -59,7 +59,7 @@
                     <form id="generate-music-form">
                         <div class="form-grid">
                             <div class="form-row"><label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label><div class="custom-select-wrapper"><input type="hidden" id="g-model-value" value="V4_5PLUS"><div class="select-button" id="select-model-button">V4.5+</div><div class="select-dropdown" id="select-model-dropdown"><div class="select-option selected" data-value="V4_5PLUS">V4.5+</div><div class="select-option" data-value="V4_5">V4.5</div><div class="select-option" data-value="V4">V4</div><div class="select-option" data-value="V3_5">V3.5</div></div></div></div>
-                            <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/200</div></div></div>
+                            <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/400</div></div></div>
                             <div id="custom-mode-fields" class="form-grid">
                                 <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"><div class="char-counter" id="g-title-counter">0/80</div></div>
                                 <div class="form-group">
@@ -84,13 +84,12 @@
                     </form>
                 </div>
                 
-                <!-- *** ИЗМЕНЕНИЕ: Форма "Продлить свое" полностью переработана *** -->
                 <div id="upload-extend" class="view-content">
                     <div class="view-header"><h2>Продлить свое</h2><p>Продлите собственный аудиофайл по ссылке.</p></div>
                     <form id="upload-extend-form">
                         <div class="form-grid">
                              <div class="form-row">
-                                <label>Модель</label>
+                                <label class="toggle-switch"><input type="checkbox" id="ue-customMode" checked><span class="slider"></span><span>Пользовательские параметры</span></label>
                                 <div class="custom-select-wrapper">
                                     <input type="hidden" id="ue-model-value" value="V4_5PLUS">
                                     <div class="select-button" id="select-model-button-ue">V4.5+</div>
@@ -103,19 +102,26 @@
                                 </div>
                             </div>
                             <div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div>
-                            <div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60" required></div>
-                            <div class="form-group"><label for="ue-title">Новое название</label><input type="text" id="ue-title" placeholder="Введите новое название" required></div>
-                            <div class="form-group"><label for="ue-style">Стиль музыки</label><textarea id="ue-style" placeholder="Pop, Mysterious, Upbeat" required></textarea></div>
-                            <div class="form-group" id="ue-prompt-group"><label for="ue-prompt">Новый текст (Prompt)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..." required></textarea></div>
-                            <hr class="divider">
-                            <label class="toggle-switch"><input type="checkbox" id="ue-instrumental"><span class="slider"></span><span>Инструментал</span></label>
-                            <div class="form-group"><label for="ue-negativeTags">Негативные теги</label><input type="text" id="ue-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
-                            <div class="form-group" id="ue-vocalGender-group"><label for="ue-vocalGender">Пол вокала</label><select id="ue-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                            <details class="advanced-options"><summary>Дополнительно</summary>
-                                <div class="form-group slider-group"><label for="ue-styleWeight">Сила стиля</label><input type="range" id="ue-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                <div class="form-group slider-group"><label for="ue-weirdnessConstraint">Креативность</label><input type="range" id="ue-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                <div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                            </details>
+                            
+                            <div id="ue-simple-mode-fields" class="form-grid" style="display: none;">
+                                 <div class="form-group"><label for="ue-prompt-simple">Новый текст (Prompt)</label><textarea id="ue-prompt-simple" placeholder="Extend the music with more relaxing notes..."></textarea><div class="char-counter" id="ue-prompt-simple-counter">0/5000</div></div>
+                            </div>
+
+                            <div id="ue-custom-mode-fields" class="form-grid">
+                                <div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60" required></div>
+                                <div class="form-group"><label for="ue-title">Новое название</label><input type="text" id="ue-title" placeholder="Введите новое название" required><div class="char-counter" id="ue-title-counter">0/100</div></div>
+                                <div class="form-group"><label for="ue-style">Стиль музыки</label><textarea id="ue-style" placeholder="Pop, Mysterious, Upbeat" required></textarea><div class="char-counter" id="ue-style-counter">0/1000</div></div>
+                                <div class="form-group" id="ue-prompt-group"><label for="ue-prompt">Новый текст (Prompt)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..." required></textarea><div class="char-counter" id="ue-prompt-counter">0/5000</div></div>
+                                <hr class="divider">
+                                <label class="toggle-switch"><input type="checkbox" id="ue-instrumental"><span class="slider"></span><span>Инструментал</span></label>
+                                <div class="form-group"><label for="ue-negativeTags">Негативные теги</label><input type="text" id="ue-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
+                                <div class="form-group" id="ue-vocalGender-group"><label for="ue-vocalGender">Пол вокала</label><select id="ue-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                                <details class="advanced-options"><summary>Дополнительно</summary>
+                                    <div class="form-group slider-group"><label for="ue-styleWeight">Сила стиля</label><input type="range" id="ue-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                    <div class="form-group slider-group"><label for="ue-weirdnessConstraint">Креативность</label><input type="range" id="ue-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                    <div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                </details>
+                            </div>
                         </div>
                         <button type="submit" class="submit-button">Продлить загруженное</button>
                     </form>
@@ -126,7 +132,7 @@
                     <form id="upload-cover-form">
                         <div class="form-grid">
                             <div class="form-row">
-                                <label>Модель</label>
+                                <label class="toggle-switch"><input type="checkbox" id="uc-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
                                 <div class="custom-select-wrapper">
                                     <input type="hidden" id="uc-model-value" value="V4_5PLUS">
                                     <div class="select-button" id="select-model-button-uc">V4.5+</div>
@@ -138,19 +144,27 @@
                                     </div>
                                 </div>
                             </div>
+                            
                             <div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div>
-                            <div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера" required></div>
-                            <div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat" required></textarea></div>
-                            <div class="form-group" id="uc-prompt-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..." required></textarea></div>
-                            <hr class="divider">
-                            <label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label>
-                            <div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
-                            <div class="form-group" id="uc-vocalGender-group"><label for="uc-vocalGender">Пол вокала</label><select id="uc-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                            <details class="advanced-options"><summary>Дополнительно</summary>
-                                <div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                <div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                <div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                            </details>
+
+                            <div id="uc-simple-mode-fields" class="form-grid" style="display: none;">
+                                <div class="form-group" id="uc-song-description-group"><label for="uc-song-description">Описание кавера</label><textarea id="uc-song-description" placeholder="A calm and relaxing piano track..."></textarea><div class="char-counter" id="uc-song-description-counter">0/400</div></div>
+                            </div>
+
+                            <div id="uc-custom-mode-fields" class="form-grid">
+                                <div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера" required><div class="char-counter" id="uc-title-counter">0/80</div></div>
+                                <div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat" required></textarea><div class="char-counter" id="uc-style-counter">0/1000</div></div>
+                                <div class="form-group" id="uc-prompt-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..." required></textarea><div class="char-counter" id="uc-prompt-counter">0/5000</div></div>
+                                <hr class="divider">
+                                <label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label>
+                                <div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
+                                <div class="form-group" id="uc-vocalGender-group"><label for="uc-vocalGender">Пол вокала</label><select id="uc-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                                <details class="advanced-options"><summary>Дополнительно</summary>
+                                    <div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                    <div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                    <div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                </details>
+                            </div>
                         </div>
                         <button type="submit" class="submit-button">Создать кавер</button>
                     </form>
