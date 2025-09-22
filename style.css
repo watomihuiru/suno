@@ -3,6 +3,7 @@
     --border: #30363D; --text-primary: #E6EDF3; --text-secondary: #8B949E;
     --accent-blue: #3882F6; --accent-blue-hover: #58A6FF; --accent-blue-active: #2188ff;
     --accent-green: #238636; --accent-red: #da3633; --accent-yellow: #f7b731;
+    --accent-pink: #E1AFD1;
     --sidebar-width: 240px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -144,6 +145,82 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .progress-bar-inner { width: 0%; height: 100%; background-color: var(--accent-blue); }
 @keyframes fake-progress { from { width: 0%; } to { width: 95%; } }
 .song-card.placeholder .progress-bar-inner { animation: fake-progress 120s linear forwards; animation-delay: 0.5s; }
+
+/* --- СТИЛИ АУДИО-РЕДАКТОРА --- */
+.audio-editor {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.editor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.editor-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+.editor-details {
+    flex-grow: 1;
+}
+.editor-title {
+    font-weight: 600;
+    font-size: 16px;
+}
+.editor-time {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.waveform-container {
+    position: relative;
+    height: 60px;
+    width: 100%;
+    cursor: ew-resize;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.waveform-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.waveform-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 50%; /* Default position */
+    background-color: rgba(225, 175, 209, 0.25);
+    pointer-events: none;
+}
+.waveform-handle {
+    position: absolute;
+    top: 0;
+    left: 50%; /* Default position */
+    width: 3px;
+    height: 100%;
+    background-color: white;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+.extend-time-label {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 8px;
+}
+
 #global-player {
     position: fixed;
     bottom: 30px;

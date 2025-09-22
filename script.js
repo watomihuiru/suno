@@ -19,6 +19,7 @@ let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, 
 let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
+let songToEdit = null;
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
@@ -391,6 +392,8 @@ function addSongToList(songInfo) {
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
     
     const menuItems = [ 
+        { icon: 'fas fa-wave-square', text: 'Расширить', action: () => setupExtendView(songInfo) },
+        { icon: 'fas fa-microphone', text: 'Кавер', action: () => setupCoverView(songInfo) },
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
@@ -541,6 +544,7 @@ function setupEventListeners() {
             document.getElementById(viewName).classList.add('active');
             event.currentTarget.classList.add('active');
             currentViewName = viewName;
+            resetEditViews();
             if (window.innerWidth <= 768) { toggleSidebar(); }
         });
     });
@@ -609,11 +613,12 @@ function setupEventListeners() {
         if (!validateUploadCoverForm()) return;
         const isCustom = document.getElementById("uc-customMode").checked;
         const model = document.getElementById('uc-model-value').value;
+        const uploadUrl = songToEdit ? songToEdit.songData.audioUrl : document.getElementById("uc-uploadUrl").value;
 
         let payload = {
             model: model,
             customMode: isCustom,
-            uploadUrl: document.getElementById("uc-uploadUrl").value,
+            uploadUrl: uploadUrl,
             callBackUrl: "https://api.example.com/callback"
         };
 
@@ -638,6 +643,7 @@ function setupEventListeners() {
             payload.prompt = document.getElementById('uc-song-description').value;
         }
         handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+        resetEditViews();
     });
 
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => {
@@ -645,11 +651,12 @@ function setupEventListeners() {
         if (!validateUploadExtendForm()) return;
         const isCustom = document.getElementById("ue-customMode").checked;
         const model = document.getElementById('ue-model-value').value;
+        const uploadUrl = songToEdit ? songToEdit.songData.audioUrl : document.getElementById("ue-uploadUrl").value;
 
         let payload = {
             model: model,
             defaultParamFlag: isCustom,
-            uploadUrl: document.getElementById("ue-uploadUrl").value,
+            uploadUrl: uploadUrl,
             callBackUrl: "https://api.example.com/callback"
         };
 
@@ -675,6 +682,7 @@ function setupEventListeners() {
             payload.prompt = document.getElementById('ue-prompt-simple').value;
         }
         handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+        resetEditViews();
     });
     
     const boostButton = document.getElementById('boost-style-button');
@@ -744,7 +752,14 @@ function validateGenerateForm() {
 }
 
 function validateUploadCoverForm() {
-    if (!validateField(document.getElementById('uc-uploadUrl'))) return false;
+    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('uc-uploadUrl').value;
+    if (!url || !url.trim()) {
+        const field = document.getElementById('uc-uploadUrl');
+        field.classList.add('input-error');
+        setTimeout(() => field.classList.remove('input-error'), 1000);
+        return false;
+    }
+
     const isCustom = document.getElementById("uc-customMode").checked;
     if (isCustom) {
         const isInstrumental = document.getElementById("uc-instrumental").checked;
@@ -759,7 +774,14 @@ function validateUploadCoverForm() {
 }
 
 function validateUploadExtendForm() {
-    if (!validateField(document.getElementById('ue-uploadUrl'))) return false;
+    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('ue-uploadUrl').value;
+    if (!url || !url.trim()) {
+        const field = document.getElementById('ue-uploadUrl');
+        field.classList.add('input-error');
+        setTimeout(() => field.classList.remove('input-error'), 1000);
+        return false;
+    }
+
     const isCustom = document.getElementById("ue-customMode").checked;
     if (isCustom) {
         const isInstrumental = document.getElementById("ue-instrumental").checked;
@@ -776,6 +798,145 @@ function validateUploadExtendForm() {
 function createPlaceholderCard(taskId) { const card = document.createElement('div'); card.className = 'song-card placeholder'; card.id = `placeholder-${taskId}`; card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`; songListContainer.prepend(card); }
 function updateStatus(message, isSuccess = false, isError = false) { if(statusContainer) statusContainer.innerHTML = `<div class="status-message ${isSuccess ? 'success' : ''} ${isError ? 'error' : ''}">${message}</div>`; }
 async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false) { const responseOutput = document.getElementById("response-output"); if(!isCreditCheck) { updateStatus('Ожидание запуска задачи...'); responseOutput.textContent = "Выполняется запрос..."; } if (pollingInterval && !isCreditCheck) clearInterval(pollingInterval); try { const response = await fetch(endpoint, options); const result = await response.json(); if (response.ok) { if(!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2); if (isCreditCheck && result.data !== undefined) { document.getElementById("credits-value").textContent = result.data; document.getElementById("credits-container").style.display = 'inline-flex'; } if (isGeneration && result.data && result.data.taskId) { startPolling(result.data.taskId); } else if (isGeneration) { updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true); } } else { if(!isCreditCheck) responseOutput.textContent = `🚫 Ошибка ${response.status}:\n\n${JSON.stringify(result, null, 2)}`; updateStatus(`🚫 Ошибка запуска: ${result.message || 'Сервер вернул ошибку.'}`, false, true); } } catch (error) { if(!isCreditCheck) responseOutput.textContent = "💥 Сетевая ошибка:\n\n" + error.message; updateStatus(`💥 Критическая ошибка: ${error.message}`, false, true); } }
+
+// --- НОВЫЕ ФУНКЦИИ ДЛЯ РЕДАКТОРА ---
+
+function setupExtendView(songInfo) {
+    songToEdit = songInfo;
+    document.querySelector('.nav-button[data-view="upload-extend"]').click();
+    
+    document.getElementById('ue-title').value = songInfo.songData.title || '';
+    document.getElementById('ue-style').value = songInfo.songData.tags || '';
+    
+    document.getElementById('ue-url-group').style.display = 'none';
+    document.getElementById('ue-continueAt-group').style.display = 'none';
+    const editor = document.getElementById('ue-audio-editor');
+    editor.style.display = 'flex';
+    renderAudioEditor('extend', songInfo, editor);
+}
+
+function setupCoverView(songInfo) {
+    songToEdit = songInfo;
+    document.querySelector('.nav-button[data-view="upload"]').click();
+
+    document.getElementById('uc-title').value = songInfo.songData.title || '';
+    document.getElementById('uc-style').value = songInfo.songData.tags || '';
+    document.getElementById('uc-prompt').value = songInfo.songData.prompt || '';
+
+    document.getElementById('uc-url-group').style.display = 'none';
+    const editor = document.getElementById('uc-audio-editor');
+    editor.style.display = 'flex';
+    renderAudioEditor('cover', songInfo, editor);
+}
+
+function resetEditViews() {
+    songToEdit = null;
+    
+    document.getElementById('ue-url-group').style.display = 'flex';
+    document.getElementById('ue-continueAt-group').style.display = 'flex';
+    document.getElementById('ue-audio-editor').style.display = 'none';
+    document.getElementById('ue-audio-editor').innerHTML = '';
+
+    document.getElementById('uc-url-group').style.display = 'flex';
+    document.getElementById('uc-audio-editor').style.display = 'none';
+    document.getElementById('uc-audio-editor').innerHTML = '';
+}
+
+function renderAudioEditor(mode, songInfo, container) {
+    const { songData } = songInfo;
+    const isExtend = mode === 'extend';
+
+    container.innerHTML = `
+        <div class="editor-info">
+            <img src="${songData.imageUrl}" class="editor-cover" alt="cover">
+            <div class="editor-details">
+                <div class="editor-title">${songData.title}</div>
+                <div class="editor-time">0:00 / ${formatTime(songData.duration)}</div>
+            </div>
+        </div>
+        <div class="waveform-container">
+            <canvas class="waveform-canvas"></canvas>
+            ${isExtend ? '<div class="waveform-progress"></div><div class="waveform-handle"></div>' : ''}
+        </div>
+        ${isExtend ? '<div class="extend-time-label">Расширить с 0:00</div>' : ''}
+    `;
+
+    const canvas = container.querySelector('.waveform-canvas');
+    drawSimulatedWaveform(canvas, isExtend ? '#8B949E' : '#E1AFD1');
+    
+    if (isExtend) {
+        initExtendHandle(songInfo, container);
+    }
+}
+
+function drawSimulatedWaveform(canvas, color) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+    const barWidth = 2;
+    const gap = 1;
+    const numBars = Math.floor(width / (barWidth + gap));
+    
+    ctx.fillStyle = color;
+    for (let i = 0; i < numBars; i++) {
+        const barHeight = Math.random() * height * 0.8 + height * 0.1;
+        const y = (height - barHeight) / 2;
+        ctx.fillRect(i * (barWidth + gap), y, barWidth, barHeight);
+    }
+}
+
+function initExtendHandle(songInfo, container) {
+    const { duration } = songInfo.songData;
+    const handle = container.querySelector('.waveform-handle');
+    const progress = container.querySelector('.waveform-progress');
+    const timeLabel = container.querySelector('.extend-time-label');
+    const continueAtInput = document.getElementById('ue-continueAt');
+    const waveformContainer = container.querySelector('.waveform-container');
+
+    let isDragging = false;
+
+    const updatePosition = (clientX) => {
+        const rect = waveformContainer.getBoundingClientRect();
+        let x = clientX - rect.left;
+        x = Math.max(0, Math.min(x, rect.width)); // Clamp between 0 and width
+        
+        const percent = x / rect.width;
+        const currentTime = duration * percent;
+
+        handle.style.left = `${percent * 100}%`;
+        progress.style.width = `${percent * 100}%`;
+        timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
+        continueAtInput.value = Math.round(currentTime);
+    };
+    
+    // Set initial position
+    updatePosition(waveformContainer.getBoundingClientRect().left + waveformContainer.getBoundingClientRect().width);
+
+
+    waveformContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        updatePosition(e.clientX);
+        document.body.style.cursor = 'ew-resize';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            updatePosition(e.clientX);
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        document.body.style.cursor = '';
+    });
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('access-key-button').addEventListener('click', handleLogin);
