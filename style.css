@@ -188,11 +188,11 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .lyric-tag { font-weight: 700; color: var(--text-primary); cursor: default !important; }
 .lyric-tag:hover { background-color: transparent; }
 #lyrics-modal-close { align-self: flex-end; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; line-height: 1; margin: -12px -12px 12px 0; }
-/* *** ИЗМЕНЕНИЕ: Стили для новой кнопки *** */
 .fab-button {
     position: absolute;
     bottom: 20px;
-    left: 20px;
+    /* *** ИЗМЕНЕНИЕ: Перенос вправо *** */
+    right: 20px;
     width: 40px;
     height: 40px;
     border-radius: 50%;

@@ -10,10 +10,10 @@ const modelLimits = {
     'songDescription': 200
 };
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [], lastActiveLyricIndex = -1;
-// *** ИЗМЕНЕНИЕ: Новые переменные для управления скроллом ***
 let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
-
+// *** ИЗМЕНЕНИЕ: ID для requestAnimationFrame ***
+let lyricsAnimationId;
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
@@ -66,7 +66,6 @@ function initializeApp() {
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
     globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), closeBtn: document.getElementById('close-player-btn'), currentSongId: null };
-    // *** ИЗМЕНЕНИЕ: Добавляем кнопку возврата в объект ***
     lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close'), returnBtn: document.getElementById('return-to-active-lyric-btn') };
     
     mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -102,25 +101,64 @@ async function refreshAudioUrlAndPlay(songId) {
     }
 }
 
+// *** ИЗМЕНЕНИЕ: Новая функция для запуска/остановки цикла анимации текста ***
+function startLyricsAnimationLoop() {
+    if (lyricsAnimationId) cancelAnimationFrame(lyricsAnimationId); // Предотвращаем дублирование
+    function loop() {
+        updateActiveLyric(globalPlayer.audio.currentTime);
+        lyricsAnimationId = requestAnimationFrame(loop);
+    }
+    lyricsAnimationId = requestAnimationFrame(loop);
+}
+
+function stopLyricsAnimationLoop() {
+    if (lyricsAnimationId) {
+        cancelAnimationFrame(lyricsAnimationId);
+        lyricsAnimationId = null;
+    }
+}
+
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); if (globalPlayer.currentSongId) { refreshAudioUrlAndPlay(globalPlayer.currentSongId); } };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
-    globalPlayer.audio.onplay = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; updateAllPlayIcons(); };
-    globalPlayer.audio.onpause = () => { globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; updateAllPlayIcons(); };
+    
+    // *** ИЗМЕНЕНИЕ: Запускаем и останавливаем цикл анимации здесь ***
+    globalPlayer.audio.onplay = () => { 
+        globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; 
+        updateAllPlayIcons();
+        if (lyricsModal.overlay.style.display === 'flex' && currentLyrics.length > 0) {
+            startLyricsAnimationLoop();
+        }
+    };
+    globalPlayer.audio.onpause = () => { 
+        globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; 
+        updateAllPlayIcons();
+        stopLyricsAnimationLoop();
+    };
+    globalPlayer.audio.onended = () => {
+        stopLyricsAnimationLoop();
+        if (isRepeatOne) { 
+            globalPlayer.audio.currentTime = 0; 
+            globalPlayer.audio.play(); 
+        } else { 
+            playNext(); 
+        }
+    };
+
     globalPlayer.audio.onloadedmetadata = () => { globalPlayer.seekBar.max = globalPlayer.audio.duration; globalPlayer.totalDuration.textContent = formatTime(globalPlayer.audio.duration); };
+    // *** ИЗМЕНЕНИЕ: Убираем вызов updateActiveLyric отсюда, он теперь в цикле анимации ***
     globalPlayer.audio.ontimeupdate = () => {
         globalPlayer.seekBar.value = globalPlayer.audio.currentTime;
         globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
         const progressPercent = (globalPlayer.audio.currentTime / globalPlayer.audio.duration) * 100;
         globalPlayer.seekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
-        updateActiveLyric(globalPlayer.audio.currentTime);
     };
     globalPlayer.seekBar.addEventListener('input', () => {
         globalPlayer.audio.currentTime = globalPlayer.seekBar.value;
         const progressPercent = (globalPlayer.audio.currentTime / globalPlayer.audio.duration) * 100;
         globalPlayer.seekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
     });
-    globalPlayer.audio.onended = () => { if (isRepeatOne) { globalPlayer.audio.currentTime = 0; globalPlayer.audio.play(); } else { playNext(); } };
+    
     globalPlayer.nextBtn.onclick = playNext;
     globalPlayer.prevBtn.onclick = playPrevious;
     globalPlayer.shuffleBtn.onclick = () => { isShuffled = !isShuffled; globalPlayer.shuffleBtn.classList.toggle('active', isShuffled); };
@@ -133,6 +171,7 @@ function setupPlayerListeners() {
         lastActiveLyricIndex = -1;
         isUserScrollingLyrics = false;
         clearTimeout(lyricsScrollTimeout);
+        stopLyricsAnimationLoop(); // *** ИЗМЕНЕНИЕ: Останавливаем цикл при закрытии ***
     };
     lyricsModal.closeBtn.onclick = closeModal;
     lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) closeModal(); };
@@ -145,7 +184,6 @@ function setupPlayerListeners() {
         updateAllPlayIcons();
     };
 
-    // *** ИЗМЕНЕНИЕ: Логика управления скроллом и кнопкой ***
     lyricsModal.content.addEventListener('scroll', () => {
         if (currentLyrics.length === 0) return;
         isUserScrollingLyrics = true;
@@ -164,6 +202,20 @@ function setupPlayerListeners() {
         const activeElement = document.querySelector(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
         if (activeElement) {
             activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
+    });
+
+    // *** ИЗМЕНЕНИЕ: Исправлен обработчик клика для перемотки ***
+    lyricsModal.content.addEventListener('click', (e) => {
+        const targetSegment = e.target.closest('.lyric-segment');
+        if (targetSegment && !targetSegment.classList.contains('lyric-tag')) {
+            const seekTime = parseFloat(targetSegment.dataset.startTime);
+            if (!isNaN(seekTime) && globalPlayer.audio.src) {
+                globalPlayer.audio.currentTime = seekTime;
+                if (globalPlayer.audio.paused) {
+                    globalPlayer.audio.play();
+                }
+            }
         }
     });
 }
@@ -211,6 +263,7 @@ function showSimpleLyrics(songId) {
     lyricsModal.content.innerHTML = `<div class="lyrics-paragraph">${rawText}</div>`;
     lyricsModal.overlay.style.display = 'flex';
     currentLyrics = [];
+    stopLyricsAnimationLoop();
 }
 
 async function showTimestampedLyrics(songId) {
@@ -220,6 +273,7 @@ async function showTimestampedLyrics(songId) {
     lastActiveLyricIndex = -1;
     isUserScrollingLyrics = false;
     lyricsModal.returnBtn.classList.remove('visible');
+    stopLyricsAnimationLoop();
 
     try {
         const songInfo = playlist.find(p => p.songData.id === songId);
@@ -262,23 +316,26 @@ async function showTimestampedLyrics(songId) {
         });
         lyricsModal.content.appendChild(lyricsContainer);
 
+        // *** ИЗМЕНЕНИЕ: Запускаем цикл, если аудио уже играет ***
+        if (!globalPlayer.audio.paused) {
+            startLyricsAnimationLoop();
+        }
+
     } catch (error) {
         console.error("Критическая ошибка при загрузке караоке:", error);
         lyricsModal.content.textContent = "Не удалось загрузить караоке из-за ошибки.";
     }
 }
 
-// *** ИЗМЕНЕНИЕ: Новая, более надежная логика подсветки ***
 function updateActiveLyric(currentTime) {
     if (currentLyrics.length === 0) return;
 
     let activeSegmentIndex = -1;
-    // Находим последний сегмент, который уже должен был начаться
     for (let i = 0; i < currentLyrics.length; i++) {
         if (currentTime >= currentLyrics[i].startS) {
             activeSegmentIndex = i;
         } else {
-            break; // Оптимизация: дальше можно не искать
+            break;
         }
     }
 
@@ -291,7 +348,6 @@ function updateActiveLyric(currentTime) {
             const activeElement = document.querySelector(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
             if (activeElement) {
                 activeElement.classList.add('active');
-                // Прокручиваем только если пользователь не скроллит сам
                 if (!isUserScrollingLyrics) {
                     activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                 }
