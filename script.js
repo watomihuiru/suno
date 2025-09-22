@@ -506,13 +506,13 @@ function setupEventListeners() {
     
     setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
+    setupInstrumentalToggle('ue-instrumental', 'ue-prompt-group', 'ue-vocalGender-group');
     setupCustomSelect('select-model-button', 'select-model-dropdown', 'g-model-value');
     setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
+    setupCustomSelect('select-model-button-ue', 'select-model-dropdown-ue', 'ue-model-value');
 
     document.getElementById("generate-music-form").addEventListener("submit", (e) => { e.preventDefault(); if (!validateGenerateForm()) return; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, styleWeight: parseFloat(document.getElementById('g-styleWeight').value), weirdnessConstraint: parseFloat(document.getElementById('g-weirdnessConstraint').value) }; if (isCustom) { payload.title = document.getElementById('g-title').value; payload.style = document.getElementById('g-style').value; payload.negativeTags = document.getElementById('g-negativeTags').value; if (!isInstrumental) { payload.prompt = document.getElementById('g-prompt').value; const vocalGender = document.getElementById('g-vocalGender').value; if(vocalGender) payload.vocalGender = vocalGender; } } else { payload.prompt = document.getElementById('g-song-description').value; } handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     
-    // *** ИЗМЕНЕНИЕ: Удален обработчик для extend-music-form ***
-
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => {
         e.preventDefault();
         const isInstrumental = document.getElementById("uc-instrumental").checked;
@@ -526,18 +526,10 @@ function setupEventListeners() {
             callBackUrl: "https://api.example.com/callback"
         };
         
-        const optionalFields = {
-            negativeTags: 'uc-negativeTags',
-            styleWeight: 'uc-styleWeight',
-            weirdnessConstraint: 'uc-weirdnessConstraint',
-            audioWeight: 'uc-audioWeight'
-        };
-
+        const optionalFields = { negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' };
         for (const key in optionalFields) {
             const element = document.getElementById(optionalFields[key]);
-            if (element.value) {
-                payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value;
-            }
+            if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
         }
 
         if (!isInstrumental) {
@@ -549,7 +541,35 @@ function setupEventListeners() {
         handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
     });
 
-    document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    // *** ИЗМЕНЕНИЕ: Полностью переработанный обработчик для формы "Продлить свое" ***
+    document.getElementById("upload-extend-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const isInstrumental = document.getElementById("ue-instrumental").checked;
+        const payload = {
+            uploadUrl: document.getElementById("ue-uploadUrl").value,
+            title: document.getElementById('ue-title').value,
+            style: document.getElementById('ue-style').value,
+            continueAt: document.getElementById('ue-continueAt').value,
+            instrumental: isInstrumental,
+            model: document.getElementById('ue-model-value').value,
+            defaultParamFlag: true,
+            callBackUrl: "https://api.example.com/callback"
+        };
+
+        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'ue-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
+        for (const key in optionalFields) {
+            const element = document.getElementById(optionalFields[key]);
+            if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
+        }
+
+        if (!isInstrumental) {
+            payload.prompt = document.getElementById('ue-prompt').value;
+            const vocalGender = document.getElementById('ue-vocalGender').value;
+            if (vocalGender) payload.vocalGender = vocalGender;
+        }
+        
+        handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    });
     
     const boostButton = document.getElementById('boost-style-button');
     boostButton.addEventListener('click', async (e) => {

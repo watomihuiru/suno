@@ -40,7 +40,6 @@
                 <nav class="sidebar-nav">
                     <ul>
                         <li><button class="nav-button active" data-view="generate"><i class="fas fa-magic"></i><span>Создать</span></button></li>
-                        <!-- *** ИЗМЕНЕНИЕ: Удалена вкладка "Продлить" *** -->
                         <li><button class="nav-button" data-view="upload-extend"><i class="fas fa-wave-square"></i><span>Продлить свое</span></button></li>
                         <li><button class="nav-button" data-view="upload"><i class="fas fa-upload"></i><span>Создать кавер</span></button></li>
                         <li><button class="nav-button" data-view="logs" id="logs-nav-button"><i class="fas fa-file-alt"></i><span>Логи</span><span id="logs-notification-dot" class="notification-dot"></span></button></li>
@@ -85,9 +84,42 @@
                     </form>
                 </div>
                 
-                <!-- *** ИЗМЕНЕНИЕ: Удален блок <div id="extend"> *** -->
-                
-                <div id="upload-extend" class="view-content"><div class="view-header"><h2>Продлить свое</h2><p>Продлите собственный аудиофайл по ссылке.</p></div><form id="upload-extend-form"><div class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><div class="form-group"><label for="ue-prompt">Новый текст (опционально)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..."></textarea></div><details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div>
+                <!-- *** ИЗМЕНЕНИЕ: Форма "Продлить свое" полностью переработана *** -->
+                <div id="upload-extend" class="view-content">
+                    <div class="view-header"><h2>Продлить свое</h2><p>Продлите собственный аудиофайл по ссылке.</p></div>
+                    <form id="upload-extend-form">
+                        <div class="form-grid">
+                             <div class="form-row">
+                                <label>Модель</label>
+                                <div class="custom-select-wrapper">
+                                    <input type="hidden" id="ue-model-value" value="V4_5PLUS">
+                                    <div class="select-button" id="select-model-button-ue">V4.5+</div>
+                                    <div class="select-dropdown" id="select-model-dropdown-ue">
+                                        <div class="select-option selected" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option" data-value="V4_5">V4.5</div>
+                                        <div class="select-option" data-value="V4">V4</div>
+                                        <div class="select-option" data-value="V3_5">V3.5</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div>
+                            <div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60" required></div>
+                            <div class="form-group"><label for="ue-title">Новое название</label><input type="text" id="ue-title" placeholder="Введите новое название" required></div>
+                            <div class="form-group"><label for="ue-style">Стиль музыки</label><textarea id="ue-style" placeholder="Pop, Mysterious, Upbeat" required></textarea></div>
+                            <div class="form-group" id="ue-prompt-group"><label for="ue-prompt">Новый текст (Prompt)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..." required></textarea></div>
+                            <hr class="divider">
+                            <label class="toggle-switch"><input type="checkbox" id="ue-instrumental"><span class="slider"></span><span>Инструментал</span></label>
+                            <div class="form-group"><label for="ue-negativeTags">Негативные теги</label><input type="text" id="ue-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
+                            <div class="form-group" id="ue-vocalGender-group"><label for="ue-vocalGender">Пол вокала</label><select id="ue-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                            <details class="advanced-options"><summary>Дополнительно</summary>
+                                <div class="form-group slider-group"><label for="ue-styleWeight">Сила стиля</label><input type="range" id="ue-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                <div class="form-group slider-group"><label for="ue-weirdnessConstraint">Креативность</label><input type="range" id="ue-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                <div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                            </details>
+                        </div>
+                        <button type="submit" class="submit-button">Продлить загруженное</button>
+                    </form>
+                </div>
 
                 <div id="upload" class="view-content">
                     <div class="view-header"><h2>Создать кавер</h2><p>Создайте кавер на собственный аудиофайл по ссылке.</p></div>
@@ -96,13 +128,13 @@
                             <div class="form-row">
                                 <label>Модель</label>
                                 <div class="custom-select-wrapper">
-                                    <input type="hidden" id="uc-model-value" value="V3_5">
-                                    <div class="select-button" id="select-model-button-uc">V3.5</div>
+                                    <input type="hidden" id="uc-model-value" value="V4_5PLUS">
+                                    <div class="select-button" id="select-model-button-uc">V4.5+</div>
                                     <div class="select-dropdown" id="select-model-dropdown-uc">
-                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option selected" data-value="V4_5PLUS">V4.5+</div>
                                         <div class="select-option" data-value="V4_5">V4.5</div>
                                         <div class="select-option" data-value="V4">V4</div>
-                                        <div class="select-option selected" data-value="V3_5">V3.5</div>
+                                        <div class="select-option" data-value="V3_5">V3.5</div>
                                     </div>
                                 </div>
                             </div>
