@@ -180,9 +180,19 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 #lyrics-modal-overlay, #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(14, 17, 23, 0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
 #lyrics-modal-overlay { display: none; }
 #lyrics-modal-box { background-color: var(--bg-card); padding: 24px; border-radius: 8px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
-#lyrics-modal-content { overflow-y: auto; line-height: 1.8; white-space: pre-wrap; padding-right: 10px; font-size: 18px; text-align: center; }
-.lyric-line { transition: color 0.3s, background-color 0.3s; padding: 4px; border-radius: 4px; }
-.lyric-line.active { color: var(--accent-yellow); background-color: rgba(247, 183, 49, 0.1); }
+#lyrics-modal-content { overflow-y: auto; padding-right: 10px; font-size: 22px; font-weight: 600; line-height: 1.6; text-align: center; }
+/* *** ИЗМЕНЕНИЕ: Новые стили для караоке *** */
+.lyrics-paragraph {
+    color: var(--text-secondary);
+}
+.lyric-word {
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+    display: inline-block; /* Для transform */
+}
+.lyric-word.active {
+    color: var(--accent-yellow);
+    transform: scale(1.05);
+}
 #lyrics-modal-close { align-self: flex-end; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; line-height: 1; margin: -12px -12px 12px 0; }
 #login-box { background-color: var(--bg-card); padding: 32px; border-radius: 8px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 340px; }
 #login-box h3 { margin-bottom: 16px; font-weight: 600; }

@@ -9,7 +9,7 @@ const modelLimits = {
     'title': 80,
     'songDescription': 200
 };
-let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [];
+let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [], lastActiveLyricIndex = -1;
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
@@ -120,8 +120,8 @@ function setupPlayerListeners() {
     globalPlayer.prevBtn.onclick = playPrevious;
     globalPlayer.shuffleBtn.onclick = () => { isShuffled = !isShuffled; globalPlayer.shuffleBtn.classList.toggle('active', isShuffled); };
     globalPlayer.repeatBtn.onclick = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); };
-    lyricsModal.closeBtn.onclick = () => { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; };
-    lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; } };
+    lyricsModal.closeBtn.onclick = () => { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; lastActiveLyricIndex = -1; };
+    lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; lastActiveLyricIndex = -1; } };
 
     globalPlayer.closeBtn.onclick = () => {
         globalPlayer.audio.pause();
@@ -166,8 +166,99 @@ async function downloadSong(event, url, filename) { event.preventDefault(); cons
 function copyToClipboard(text, element) { navigator.clipboard.writeText(text).then(() => { const originalText = element.textContent; element.textContent = 'Скопировано!'; element.style.color = 'var(--accent-green)'; setTimeout(() => { element.textContent = originalText; element.style.color = ''; }, 1500); }); }
 async function deleteSong(songId, cardElement) { try { await fetch(`/api/songs/${songId}`, { method: 'DELETE' }); cardElement.style.transition = 'opacity 0.3s, transform 0.3s'; cardElement.style.opacity = '0'; cardElement.style.transform = 'translateX(-20px)'; setTimeout(() => { cardElement.remove(); playlist = playlist.filter(p => p.songData.id !== songId); if (songListContainer.children.length === 1 && songListContainer.querySelector('#empty-list-message')) { emptyListMessage.style.display = 'block'; } else if (songListContainer.children.length === 0) {emptyListMessage.style.display = 'block';} }, 300); } catch (e) { console.error("Could not delete song", e); } }
 async function toggleFavorite(songId, cardElement) { const songInfo = playlist.find(p => p.songData.id === songId); if (!songInfo) return; const newStatus = !songInfo.songData.is_favorite; try { await fetch(`/api/songs/${songId}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_favorite: newStatus }) }); songInfo.songData.is_favorite = newStatus; cardElement.classList.toggle('is-favorite', newStatus); const favButton = cardElement.querySelector('.favorite-action'); if (favButton) { favButton.innerHTML = `<i class="${newStatus ? 'fas fa-heart' : 'far fa-heart'}"></i> ${newStatus ? 'Убрать из избранного' : 'В избранное'}`; } } catch(e) { console.error("Could not update favorite status", e); } }
-async function showTimestampedLyrics(songId) { lyricsModal.content.innerHTML = '<p>Загрузка текста...</p>'; lyricsModal.overlay.style.display = 'flex'; try { const songInfo = playlist.find(p => p.songData.id === songId); const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId }; const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok || !result.data || !result.data.alignedWords || result.data.alignedWords.length === 0) { lyricsModal.content.textContent = songInfo ? (songInfo.songData.prompt || "Текст недоступен.") : "Текст недоступен."; currentLyrics = []; return; } currentLyrics = result.data.alignedWords.map(line => ({ text: line.word, startTime: line.startS })); lyricsModal.content.innerHTML = ''; currentLyrics.forEach((line, index) => { const p = document.createElement('p'); p.textContent = line.text; p.className = 'lyric-line'; p.dataset.index = index; lyricsModal.content.appendChild(p); }); } catch (error) { console.error("Ошибка загрузки текста:", error); lyricsModal.content.textContent = "Не удалось загрузить текст."; } }
-function updateActiveLyric(currentTime) { if (currentLyrics.length === 0) return; let activeLineIndex = -1; for (let i = 0; i < currentLyrics.length; i++) { if (currentTime >= currentLyrics[i].startTime) { activeLineIndex = i; } else { break; } } if (activeLineIndex > -1) { document.querySelectorAll('.lyric-line.active').forEach(el => el.classList.remove('active')); const activeElement = document.querySelector(`.lyric-line[data-index="${activeLineIndex}"]`); if (activeElement) { activeElement.classList.add('active'); activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); } } }
+
+// *** ИЗМЕНЕНИЕ: Функция полностью переработана для караоке-эффекта ***
+async function showTimestampedLyrics(songId) {
+    lyricsModal.content.innerHTML = '<p>Загрузка текста...</p>';
+    lyricsModal.overlay.style.display = 'flex';
+    currentLyrics = [];
+    lastActiveLyricIndex = -1;
+
+    try {
+        const songInfo = playlist.find(p => p.songData.id === songId);
+        const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId };
+        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await response.json();
+
+        if (!response.ok || !result.data || !result.data.alignedWords || result.data.alignedWords.length === 0) {
+            lyricsModal.content.textContent = songInfo ? (songInfo.songData.prompt || "Текст недоступен.") : "Текст недоступен.";
+            return;
+        }
+
+        // Обрабатываем данные для создания массива отдельных слов с таймингами
+        const processedLyrics = [];
+        result.data.alignedWords.forEach(line => {
+            const words = line.word.trim().split(/\s+/);
+            const lineDuration = line.endS - line.startS;
+            const wordDuration = words.length > 0 ? lineDuration / words.length : 0;
+
+            words.forEach((word, index) => {
+                processedLyrics.push({
+                    text: word,
+                    startTime: line.startS + (index * wordDuration),
+                    endTime: line.startS + ((index + 1) * wordDuration)
+                });
+            });
+        });
+        currentLyrics = processedLyrics;
+
+        // Создаем HTML-элементы для каждого слова
+        lyricsModal.content.innerHTML = '';
+        const lyricsContainer = document.createElement('p');
+        lyricsContainer.className = 'lyrics-paragraph';
+        currentLyrics.forEach((word, index) => {
+            const span = document.createElement('span');
+            span.textContent = word.text + ' ';
+            span.className = 'lyric-word';
+            span.dataset.index = index;
+            lyricsContainer.appendChild(span);
+        });
+        lyricsModal.content.appendChild(lyricsContainer);
+
+    } catch (error) {
+        console.error("Ошибка загрузки текста:", error);
+        lyricsModal.content.textContent = "Не удалось загрузить текст.";
+    }
+}
+
+// *** ИЗМЕНЕНИЕ: Функция полностью переработана для подсветки слов ***
+function updateActiveLyric(currentTime) {
+    if (currentLyrics.length === 0) return;
+
+    let activeWordIndex = -1;
+
+    // Находим индекс текущего активного слова
+    for (let i = 0; i < currentLyrics.length; i++) {
+        if (currentTime >= currentLyrics[i].startTime && currentTime < currentLyrics[i].endTime) {
+            activeWordIndex = i;
+            break;
+        }
+    }
+
+    // Если активное слово изменилось, обновляем классы
+    if (activeWordIndex !== lastActiveLyricIndex) {
+        // Убираем подсветку с предыдущего слова
+        if (lastActiveLyricIndex > -1) {
+            const prevActiveElement = document.querySelector(`.lyric-word[data-index="${lastActiveLyricIndex}"]`);
+            if (prevActiveElement) {
+                prevActiveElement.classList.remove('active');
+            }
+        }
+
+        // Подсвечиваем новое слово
+        if (activeWordIndex > -1) {
+            const activeElement = document.querySelector(`.lyric-word[data-index="${activeWordIndex}"]`);
+            if (activeElement) {
+                activeElement.classList.add('active');
+                // Плавно прокручиваем к активному слову
+                activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        lastActiveLyricIndex = activeWordIndex;
+    }
+}
+
 function addSongToList(songInfo) {
     if (document.getElementById(`song-${songInfo.songData.id}`)) return;
     emptyListMessage.style.display = 'none';
@@ -310,7 +401,6 @@ function setupEventListeners() {
                 body: JSON.stringify({ content: currentStyle })
             });
             const result = await response.json();
-            // *** ИЗМЕНЕНИЕ: Проверяем правильный путь к данным: result.data.result ***
             if (response.ok && result.data && result.data.result) {
                 styleTextarea.value = result.data.result;
                 styleTextarea.dispatchEvent(new Event('input', { bubbles: true }));
