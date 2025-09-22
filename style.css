@@ -181,10 +181,10 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 #lyrics-modal-overlay { display: none; }
 #lyrics-modal-box { background-color: var(--bg-card); padding: 24px; border-radius: 8px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
 /* *** ИЗМЕНЕНИЕ: Новые стили для караоке и форматирования *** */
-#lyrics-modal-content { overflow-y: auto; padding-right: 10px; font-size: 20px; font-weight: 500; line-height: 1.6; text-align: left; }
+#lyrics-modal-content { overflow-y: auto; padding-right: 10px; font-size: 20px; font-weight: 500; line-height: 1.8; text-align: left; white-space: pre-wrap; }
 .lyrics-paragraph { color: var(--text-secondary); }
-.lyric-word { transition: color 0.2s ease-in-out, transform 0.2s ease-in-out; display: inline-block; }
-.lyric-word.active { color: var(--accent-yellow); transform: scale(1.02); }
+.lyric-segment { transition: color 0.2s ease-in-out, transform 0.2s ease-in-out; display: inline; /* Не inline-block, чтобы переносы работали естественно */ }
+.lyric-segment.active { color: var(--accent-yellow); font-weight: 600; }
 .lyric-tag { font-weight: 700; color: var(--text-primary); }
 #lyrics-modal-close { align-self: flex-end; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; line-height: 1; margin: -12px -12px 12px 0; }
 #login-box { background-color: var(--bg-card); padding: 32px; border-radius: 8px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 340px; }

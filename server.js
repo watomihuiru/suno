@@ -32,6 +32,11 @@ async function setupDatabase() {
             );
         `);
         console.log('Таблица "songs" готова.');
+
+        // *** ИЗМЕНЕНИЕ: Добавляем новую колонку для кэширования текста, если ее нет ***
+        await client.query('ALTER TABLE songs ADD COLUMN IF NOT EXISTS lyrics_data JSONB;');
+        console.log('Колонка "lyrics_data" для кэша готова.');
+
     } catch (err) {
         console.error('Ошибка при настройке таблицы:', err);
     } finally {
@@ -92,7 +97,6 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
-// *** ИЗМЕНЕНИЕ: Полностью переработанный маршрут для поддержки перемотки (Range Requests) ***
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -107,7 +111,6 @@ app.get('/api/stream/:id', async (req, res) => {
             return res.status(404).send('URL аудио для этой песни не найден');
         }
 
-        // Сначала делаем HEAD-запрос, чтобы получить метаданные (размер, тип)
         const headResponse = await axios.head(audioUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
         });
@@ -115,7 +118,6 @@ app.get('/api/stream/:id', async (req, res) => {
         const totalSize = headResponse.headers['content-length'];
         const contentType = headResponse.headers['content-type'] || 'audio/mpeg';
         
-        // Проверяем, запрашивает ли браузер определенный диапазон байт
         const range = req.headers.range;
         if (range) {
             const parts = range.replace(/bytes=/, "").split("-");
@@ -123,7 +125,6 @@ app.get('/api/stream/:id', async (req, res) => {
             const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
             const chunksize = (end - start) + 1;
 
-            // Запрашиваем у Suno только нужный фрагмент
             const audioResponse = await axios({
                 method: 'get',
                 url: audioUrl,
@@ -134,7 +135,6 @@ app.get('/api/stream/:id', async (req, res) => {
                 }
             });
 
-            // Отправляем браузеру ответ 206 Partial Content
             res.writeHead(206, {
                 'Content-Range': `bytes ${start}-${end}/${totalSize}`,
                 'Accept-Ranges': 'bytes',
@@ -143,7 +143,6 @@ app.get('/api/stream/:id', async (req, res) => {
             });
             audioResponse.data.pipe(res);
         } else {
-            // Если диапазон не запрошен, отдаем файл целиком и сообщаем, что поддерживаем диапазоны
             res.writeHead(200, {
                 'Content-Length': totalSize,
                 'Content-Type': contentType,
@@ -212,8 +211,41 @@ app.post('/api/generate', (req, res) => { const payload = { ...req.body, callBac
 app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/generate/extend', req.body));
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
-app.post('/api/lyrics', (req, res) => proxyRequest(res, 'POST', '/generate/get-timestamped-lyrics', req.body));
 app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
+
+// *** ИЗМЕНЕНИЕ: Полностью переработанный эндпоинт для текста с кэшированием ***
+app.post('/api/lyrics', async (req, res) => {
+    const { taskId, audioId } = req.body;
+
+    try {
+        // 1. Проверяем кэш в БД
+        const dbCheck = await pool.query('SELECT lyrics_data FROM songs WHERE id = $1', [audioId]);
+        if (dbCheck.rows.length > 0 && dbCheck.rows[0].lyrics_data) {
+            console.log(`[Lyrics] Отдаем кэшированный текст для ${audioId}`);
+            return res.json({ data: dbCheck.rows[0].lyrics_data, source: 'cache' });
+        }
+
+        // 2. Если в кэше нет, делаем запрос к API
+        console.log(`[Lyrics] Кэш не найден для ${audioId}. Запрашиваем API...`);
+        const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/generate/get-timestamped-lyrics`, { taskId, audioId }, {
+            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+        });
+
+        // 3. Если ответ успешный и содержит данные, сохраняем в БД
+        if (sunoResponse.data && sunoResponse.data.data && Array.isArray(sunoResponse.data.data.alignedWords)) {
+            console.log(`[Lyrics] Получен успешный ответ от API для ${audioId}. Сохраняем в кэш.`);
+            await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2', [sunoResponse.data.data, audioId]);
+        }
+
+        res.json(sunoResponse.data);
+
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
+        console.error(`[Lyrics] Ошибка при получении текста для ${audioId}:`, details);
+        res.status(status).json({ message: `Ошибка при запросе текста`, details });
+    }
+});
 
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;
@@ -228,29 +260,14 @@ app.get('/api/task-status/:taskId', async (req, res) => {
                 for (const song of taskData.response.sunoData) {
                     if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
 
-                    // *** ИЗМЕНЕНИЕ: Гарантируем сохранение taskId в request_params ***
                     let paramsToSave = taskData.param;
-
-                    // Если API вернул параметры строкой (как в документации), пытаемся распарсить
                     if (typeof paramsToSave === 'string') {
-                        try {
-                            paramsToSave = JSON.parse(paramsToSave);
-                        } catch (e) {
-                            console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}. Сохраняем как строку.`, e);
-                            // Если не парсится, оставляем как есть, но taskId добавим отдельно ниже
-                        }
+                        try { paramsToSave = JSON.parse(paramsToSave); } catch (e) { console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}.`); }
                     }
 
-                    let finalRequestParams;
-
-                    if (typeof paramsToSave === 'object' && paramsToSave !== null) {
-                        // Если это объект, добавляем taskId
-                        finalRequestParams = { ...paramsToSave, taskId: taskData.taskId };
-                    } else {
-                        // Если это все еще строка или что-то другое, создаем новый объект
-                        finalRequestParams = { rawParam: paramsToSave, taskId: taskData.taskId };
-                    }
-                    // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+                    const finalRequestParams = (typeof paramsToSave === 'object' && paramsToSave !== null)
+                        ? { ...paramsToSave, taskId: taskData.taskId }
+                        : { rawParam: paramsToSave, taskId: taskData.taskId };
 
                     await pool.query(
                         `INSERT INTO songs (id, song_data, request_params) 
