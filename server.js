@@ -33,7 +33,6 @@ async function setupDatabase() {
         `);
         console.log('Таблица "songs" готова.');
 
-        // *** ИЗМЕНЕНИЕ: Добавляем новую колонку для кэширования текста, если ее нет ***
         await client.query('ALTER TABLE songs ADD COLUMN IF NOT EXISTS lyrics_data JSONB;');
         console.log('Колонка "lyrics_data" для кэша готова.');
 
@@ -208,30 +207,24 @@ async function proxyRequest(res, method, endpoint, data) {
 }
 
 app.post('/api/generate', (req, res) => { const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' }; proxyRequest(res, 'POST', '/generate', payload); });
-app.post('/api/generate/extend', (req, res) => proxyRequest(res, 'POST', '/generate/extend', req.body));
+// *** ИЗМЕНЕНИЕ: Удален эндпоинт /api/generate/extend ***
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
-app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
-
-// *** ИЗМЕНЕНИЕ: Полностью переработанный эндпоинт для текста с кэшированием ***
 app.post('/api/lyrics', async (req, res) => {
     const { taskId, audioId } = req.body;
 
     try {
-        // 1. Проверяем кэш в БД
         const dbCheck = await pool.query('SELECT lyrics_data FROM songs WHERE id = $1', [audioId]);
         if (dbCheck.rows.length > 0 && dbCheck.rows[0].lyrics_data) {
             console.log(`[Lyrics] Отдаем кэшированный текст для ${audioId}`);
             return res.json({ data: dbCheck.rows[0].lyrics_data, source: 'cache' });
         }
 
-        // 2. Если в кэше нет, делаем запрос к API
         console.log(`[Lyrics] Кэш не найден для ${audioId}. Запрашиваем API...`);
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/generate/get-timestamped-lyrics`, { taskId, audioId }, {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
 
-        // 3. Если ответ успешный и содержит данные, сохраняем в БД
         if (sunoResponse.data && sunoResponse.data.data && Array.isArray(sunoResponse.data.data.alignedWords)) {
             console.log(`[Lyrics] Получен успешный ответ от API для ${audioId}. Сохраняем в кэш.`);
             await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2', [sunoResponse.data.data, audioId]);
@@ -246,6 +239,7 @@ app.post('/api/lyrics', async (req, res) => {
         res.status(status).json({ message: `Ошибка при запросе текста`, details });
     }
 });
+app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
 
 app.get('/api/task-status/:taskId', async (req, res) => {
     const { taskId } = req.params;

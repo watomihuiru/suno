@@ -510,8 +510,9 @@ function setupEventListeners() {
     setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
 
     document.getElementById("generate-music-form").addEventListener("submit", (e) => { e.preventDefault(); if (!validateGenerateForm()) return; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, styleWeight: parseFloat(document.getElementById('g-styleWeight').value), weirdnessConstraint: parseFloat(document.getElementById('g-weirdnessConstraint').value) }; if (isCustom) { payload.title = document.getElementById('g-title').value; payload.style = document.getElementById('g-style').value; payload.negativeTags = document.getElementById('g-negativeTags').value; if (!isInstrumental) { payload.prompt = document.getElementById('g-prompt').value; const vocalGender = document.getElementById('g-vocalGender').value; if(vocalGender) payload.vocalGender = vocalGender; } } else { payload.prompt = document.getElementById('g-song-description').value; } handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("extend-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value }; const fields = { title: 'e-title', style: 'e-style', prompt: 'e-prompt', negativeTags: 'e-negativeTags', styleWeight: 'e-styleWeight', weirdnessConstraint: 'e-weirdnessConstraint', audioWeight: 'e-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     
+    // *** ИЗМЕНЕНИЕ: Удален обработчик для extend-music-form ***
+
     document.getElementById("upload-cover-form").addEventListener("submit", (e) => {
         e.preventDefault();
         const isInstrumental = document.getElementById("uc-instrumental").checked;
@@ -522,7 +523,6 @@ function setupEventListeners() {
             instrumental: isInstrumental,
             model: document.getElementById('uc-model-value').value,
             customMode: true,
-            // *** ИЗМЕНЕНИЕ: Добавлен недостающий callBackUrl ***
             callBackUrl: "https://api.example.com/callback"
         };
         
