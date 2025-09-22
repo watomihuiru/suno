@@ -12,8 +12,17 @@
 </head>
 <body>
 
-    <div id="login-overlay">
+    <section id="landing-page">
+        <div class="landing-content">
+            <h1>Создавайте музыку с помощью ИИ</h1>
+            <p>Воплощайте свои музыкальные идеи в жизнь. От простого текста до полноценного трека за считанные секунды.</p>
+            <button id="start-button">Начать</button>
+        </div>
+    </section>
+
+    <div id="login-overlay" style="display: none;">
         <div id="login-box">
+            <button id="login-close-button">&times;</button>
             <h3>Введите ключ доступа</h3>
             <input type="password" id="access-key-input" placeholder="••••••••">
             <button id="access-key-button">Войти</button>

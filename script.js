@@ -51,10 +51,12 @@ async function handleLogin() {
         if (response.ok) {
             sessionStorage.setItem('is-authenticated', 'true');
             loginElements.overlay.style.display = 'none';
+            document.getElementById('landing-page').style.display = 'none';
             const appTemplate = document.getElementById('app-template');
             loginElements.container.innerHTML = ''; 
             loginElements.container.appendChild(appTemplate.content.cloneNode(true));
             loginElements.container.style.display = 'block';
+            document.body.style.overflow = ''; // Возвращаем стандартный overflow
             initializeApp();
         } else {
             const result = await response.json();
@@ -1050,17 +1052,40 @@ function initExtendHandle(songInfo, container, updateUI) {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('access-key-button').addEventListener('click', handleLogin);
-    document.getElementById('access-key-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { handleLogin(); } });
+    const loginOverlay = document.getElementById('login-overlay');
+    const startButton = document.getElementById('start-button');
+    const loginCloseButton = document.getElementById('login-close-button');
+
+    const showLogin = () => loginOverlay.style.display = 'flex';
+    const hideLogin = () => loginOverlay.style.display = 'none';
+
     if (sessionStorage.getItem('is-authenticated') === 'true') {
-        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('landing-page').style.display = 'none';
         const appTemplate = document.getElementById('app-template');
         const appContainer = document.getElementById('app-container');
-        if (appContainer.children.length === 0) { appContainer.appendChild(appTemplate.content.cloneNode(true)); }
+        if (appContainer.children.length === 0) { 
+            appContainer.appendChild(appTemplate.content.cloneNode(true)); 
+        }
         appContainer.style.display = 'block';
+        document.body.style.overflow = '';
         initializeApp();
     } else {
-        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('landing-page').style.display = 'flex';
         document.getElementById('app-container').style.display = 'none';
+        
+        startButton.addEventListener('click', showLogin);
+        loginCloseButton.addEventListener('click', hideLogin);
+        loginOverlay.addEventListener('click', (e) => {
+            if (e.target === loginOverlay) {
+                hideLogin();
+            }
+        });
     }
-});
+
+    document.getElementById('access-key-button').addEventListener('click', handleLogin);
+    document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter') { 
+            handleLogin(); 
+        } 
+    });
+})
