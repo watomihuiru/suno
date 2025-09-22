@@ -142,11 +142,13 @@ function setupPlayerListeners() {
     };
     globalPlayer.audio.onended = () => {
         stopLyricsAnimationLoop();
-        if (isRepeatOne) { 
-            globalPlayer.audio.currentTime = 0; 
-            globalPlayer.audio.play(); 
-        } else { 
-            playNext(); 
+        if (isRepeatOne) {
+            globalPlayer.audio.currentTime = 0;
+            globalPlayer.audio.play();
+        } else {
+            // Stop playback and reset UI, but don't play the next song.
+            globalPlayer.audio.currentTime = 0;
+            globalPlayer.audio.pause(); // Ensure it's paused, which will trigger onpause handler.
         }
     };
 
@@ -936,6 +938,7 @@ function initEditorPlayer(songInfo, container) {
         updatePlayIcon();
         playbackProgress.style.width = '0%';
         timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
+        editorAudio.currentTime = 0;
     });
 
     editorAudio.addEventListener('timeupdate', () => {
