@@ -20,6 +20,7 @@ let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
 let songToEdit = null;
+let editorAudio = null;
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
@@ -392,8 +393,8 @@ function addSongToList(songInfo) {
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
     
     const menuItems = [ 
-        { icon: 'fas fa-wave-square', text: 'Расширить', action: () => setupExtendView(songInfo) },
-        { icon: 'fas fa-microphone', text: 'Кавер', action: () => setupCoverView(songInfo) },
+        { icon: 'fas fa-clone', text: 'Расширить', action: () => setupExtendView(songInfo) },
+        { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => setupCoverView(songInfo) },
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
@@ -832,6 +833,13 @@ function setupCoverView(songInfo) {
 function resetEditViews() {
     songToEdit = null;
     
+    if (editorAudio) {
+        editorAudio.pause();
+        editorAudio.removeAttribute('src');
+        editorAudio.load();
+        editorAudio = null;
+    }
+
     document.getElementById('ue-url-group').style.display = 'flex';
     document.getElementById('ue-continueAt-group').style.display = 'flex';
     document.getElementById('ue-audio-editor').style.display = 'none';
@@ -848,7 +856,10 @@ function renderAudioEditor(mode, songInfo, container) {
 
     container.innerHTML = `
         <div class="editor-info">
-            <img src="${songData.imageUrl}" class="editor-cover" alt="cover">
+            <div class="editor-cover-container">
+                <img src="${songData.imageUrl}" class="editor-cover" alt="cover">
+                ${isExtend ? '<div class="editor-play-icon"><i class="fas fa-play"></i></div>' : ''}
+            </div>
             <div class="editor-details">
                 <div class="editor-title">${songData.title}</div>
                 <div class="editor-time">0:00 / ${formatTime(songData.duration)}</div>
@@ -856,6 +867,7 @@ function renderAudioEditor(mode, songInfo, container) {
         </div>
         <div class="waveform-container">
             <canvas class="waveform-canvas"></canvas>
+            ${isExtend ? '<div class="waveform-playback-progress"></div>' : ''}
             ${isExtend ? '<div class="waveform-progress"></div><div class="waveform-handle"></div>' : ''}
         </div>
         ${isExtend ? '<div class="extend-time-label">Расширить с 0:00</div>' : ''}
@@ -866,6 +878,7 @@ function renderAudioEditor(mode, songInfo, container) {
     
     if (isExtend) {
         initExtendHandle(songInfo, container);
+        initEditorPlayer(songInfo, container);
     }
 }
 
@@ -891,6 +904,71 @@ function drawSimulatedWaveform(canvas, color) {
     }
 }
 
+function initEditorPlayer(songInfo, container) {
+    const { songData } = songInfo;
+    const coverContainer = container.querySelector('.editor-cover-container');
+    const playIcon = container.querySelector('.editor-play-icon i');
+    const timeDisplay = container.querySelector('.editor-time');
+    const playbackProgress = container.querySelector('.waveform-playback-progress');
+    const waveformContainer = container.querySelector('.waveform-container');
+
+    if (editorAudio) {
+        editorAudio.pause();
+        editorAudio.removeAttribute('src');
+    }
+    editorAudio = new Audio(`/api/stream/${songData.id}`);
+
+    const updatePlayIcon = () => {
+        playIcon.className = editorAudio.paused ? 'fas fa-play' : 'fas fa-pause';
+    };
+
+    coverContainer.addEventListener('click', () => {
+        if (editorAudio.paused) {
+            editorAudio.play();
+        } else {
+            editorAudio.pause();
+        }
+    });
+
+    editorAudio.addEventListener('play', updatePlayIcon);
+    editorAudio.addEventListener('pause', updatePlayIcon);
+    editorAudio.addEventListener('ended', () => {
+        updatePlayIcon();
+        playbackProgress.style.width = '0%';
+        timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
+    });
+
+    editorAudio.addEventListener('timeupdate', () => {
+        const { currentTime, duration } = editorAudio;
+        if (isNaN(duration) || duration === 0) return;
+        const progressPercent = (currentTime / duration) * 100;
+        playbackProgress.style.width = `${progressPercent}%`;
+        timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+    });
+    
+    const seek = (e) => {
+        if (!editorAudio.duration) return;
+        const rect = waveformContainer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percent = Math.max(0, Math.min(1, x / rect.width));
+        editorAudio.currentTime = editorAudio.duration * percent;
+    };
+
+    let isSeeking = false;
+    waveformContainer.addEventListener('mousedown', (e) => {
+        isSeeking = true;
+        seek(e);
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (isSeeking) {
+            seek(e);
+        }
+    });
+    document.addEventListener('mouseup', () => {
+        isSeeking = false;
+    });
+}
+
 function initExtendHandle(songInfo, container) {
     const { duration } = songInfo.songData;
     const handle = container.querySelector('.waveform-handle');
@@ -904,7 +982,7 @@ function initExtendHandle(songInfo, container) {
     const updatePosition = (clientX) => {
         const rect = waveformContainer.getBoundingClientRect();
         let x = clientX - rect.left;
-        x = Math.max(0, Math.min(x, rect.width)); // Clamp between 0 and width
+        x = Math.max(0, Math.min(x, rect.width));
         
         const percent = x / rect.width;
         const currentTime = duration * percent;
@@ -915,13 +993,11 @@ function initExtendHandle(songInfo, container) {
         continueAtInput.value = Math.round(currentTime);
     };
     
-    // Set initial position
     updatePosition(waveformContainer.getBoundingClientRect().left + waveformContainer.getBoundingClientRect().width);
 
-
-    waveformContainer.addEventListener('mousedown', (e) => {
+    handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
         isDragging = true;
-        updatePosition(e.clientX);
         document.body.style.cursor = 'ew-resize';
     });
 
@@ -932,8 +1008,10 @@ function initExtendHandle(songInfo, container) {
     });
 
     document.addEventListener('mouseup', () => {
-        isDragging = false;
-        document.body.style.cursor = '';
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.cursor = '';
+        }
     });
 }
 
