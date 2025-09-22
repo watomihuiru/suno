@@ -393,9 +393,16 @@ function addSongToList(songInfo) {
     const menu = card.querySelector('.song-menu');
     card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
     
+    const closeMobileLibrary = () => {
+        if (window.innerWidth <= 768 && libraryCard.classList.contains('is-open')) {
+            libraryCard.classList.remove('is-open');
+            libraryOverlay.classList.remove('is-visible');
+        }
+    };
+
     const menuItems = [ 
-        { icon: 'fas fa-clone', text: 'Расширить', action: () => setupExtendView(songInfo) },
-        { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => setupCoverView(songInfo) },
+        { icon: 'fas fa-clone', text: 'Расширить', action: () => { setupExtendView(songInfo); closeMobileLibrary(); } },
+        { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => { setupCoverView(songInfo); closeMobileLibrary(); } },
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
