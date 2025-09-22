@@ -167,8 +167,10 @@ function copyToClipboard(text, element) { navigator.clipboard.writeText(text).th
 async function deleteSong(songId, cardElement) { try { await fetch(`/api/songs/${songId}`, { method: 'DELETE' }); cardElement.style.transition = 'opacity 0.3s, transform 0.3s'; cardElement.style.opacity = '0'; cardElement.style.transform = 'translateX(-20px)'; setTimeout(() => { cardElement.remove(); playlist = playlist.filter(p => p.songData.id !== songId); if (songListContainer.children.length === 1 && songListContainer.querySelector('#empty-list-message')) { emptyListMessage.style.display = 'block'; } else if (songListContainer.children.length === 0) {emptyListMessage.style.display = 'block';} }, 300); } catch (e) { console.error("Could not delete song", e); } }
 async function toggleFavorite(songId, cardElement) { const songInfo = playlist.find(p => p.songData.id === songId); if (!songInfo) return; const newStatus = !songInfo.songData.is_favorite; try { await fetch(`/api/songs/${songId}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_favorite: newStatus }) }); songInfo.songData.is_favorite = newStatus; cardElement.classList.toggle('is-favorite', newStatus); const favButton = cardElement.querySelector('.favorite-action'); if (favButton) { favButton.innerHTML = `<i class="${newStatus ? 'fas fa-heart' : 'far fa-heart'}"></i> ${newStatus ? 'Убрать из избранного' : 'В избранное'}`; } } catch(e) { console.error("Could not update favorite status", e); } }
 
-// *** ИЗМЕНЕНИЕ: Функция полностью переработана для караоке-эффекта ***
+// *** ИЗМЕНЕНИЕ: Функция полностью переработана для отладки и нового форматирования ***
 async function showTimestampedLyrics(songId) {
+    console.log(`--- Вызов showTimestampedLyrics для ID: ${songId} ---`);
+
     lyricsModal.content.innerHTML = '<p>Загрузка текста...</p>';
     lyricsModal.overlay.style.display = 'flex';
     currentLyrics = [];
@@ -176,18 +178,31 @@ async function showTimestampedLyrics(songId) {
 
     try {
         const songInfo = playlist.find(p => p.songData.id === songId);
-        const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId };
-        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const result = await response.json();
-
-        if (!response.ok || !result.data || !result.data.alignedWords || result.data.alignedWords.length === 0) {
-            lyricsModal.content.textContent = songInfo ? (songInfo.songData.prompt || "Текст недоступен.") : "Текст недоступен.";
+        if (!songInfo) {
+            console.error(`Не удалось найти информацию о песне с ID: ${songId} в плейлисте.`);
+            lyricsModal.content.textContent = "Ошибка: информация о песне не найдена.";
             return;
         }
 
-        // Обрабатываем данные для создания массива отдельных слов с таймингами
+        const payload = { audioId: songId, taskId: songInfo?.requestParams?.taskId };
+        console.log('Отправка запроса на /api/lyrics с данными:', payload);
+        
+        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await response.json();
+        
+        document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
+        console.log('Ответ API для текста:', result);
+
+        if (!response.ok || !result.data || !Array.isArray(result.data.alignedWords) || result.data.alignedWords.length === 0) {
+            console.warn('alignedWords не найдены или пусты. Караоке недоступно. Отображается обычный текст.');
+            lyricsModal.content.textContent = songInfo.songData.prompt || "Текст с временными метками недоступен.";
+            return;
+        }
+
         const processedLyrics = [];
         result.data.alignedWords.forEach(line => {
+            if (typeof line.word !== 'string' || typeof line.startS !== 'number' || typeof line.endS !== 'number') return;
+
             const words = line.word.trim().split(/\s+/);
             const lineDuration = line.endS - line.startS;
             const wordDuration = words.length > 0 ? lineDuration / words.length : 0;
@@ -201,33 +216,42 @@ async function showTimestampedLyrics(songId) {
             });
         });
         currentLyrics = processedLyrics;
+        console.log('Обработанный текст для караоке (массив слов):', currentLyrics);
 
-        // Создаем HTML-элементы для каждого слова
         lyricsModal.content.innerHTML = '';
-        const lyricsContainer = document.createElement('p');
+        const lyricsContainer = document.createElement('div');
         lyricsContainer.className = 'lyrics-paragraph';
+
         currentLyrics.forEach((word, index) => {
+            // Проверяем, является ли слово тегом типа [Verse]
+            if (/^\[.*\]$/.test(word.text) && index > 0) {
+                lyricsContainer.appendChild(document.createElement('br'));
+            }
+
             const span = document.createElement('span');
             span.textContent = word.text + ' ';
             span.className = 'lyric-word';
             span.dataset.index = index;
+            
+            if (/^\[.*\]$/.test(word.text)) {
+                span.classList.add('lyric-tag');
+            }
+
             lyricsContainer.appendChild(span);
         });
         lyricsModal.content.appendChild(lyricsContainer);
 
     } catch (error) {
-        console.error("Ошибка загрузки текста:", error);
-        lyricsModal.content.textContent = "Не удалось загрузить текст.";
+        console.error("Критическая ошибка при загрузке текста:", error);
+        lyricsModal.content.textContent = "Не удалось загрузить текст из-за ошибки.";
     }
 }
 
-// *** ИЗМЕНЕНИЕ: Функция полностью переработана для подсветки слов ***
 function updateActiveLyric(currentTime) {
     if (currentLyrics.length === 0) return;
 
     let activeWordIndex = -1;
 
-    // Находим индекс текущего активного слова
     for (let i = 0; i < currentLyrics.length; i++) {
         if (currentTime >= currentLyrics[i].startTime && currentTime < currentLyrics[i].endTime) {
             activeWordIndex = i;
@@ -235,9 +259,7 @@ function updateActiveLyric(currentTime) {
         }
     }
 
-    // Если активное слово изменилось, обновляем классы
     if (activeWordIndex !== lastActiveLyricIndex) {
-        // Убираем подсветку с предыдущего слова
         if (lastActiveLyricIndex > -1) {
             const prevActiveElement = document.querySelector(`.lyric-word[data-index="${lastActiveLyricIndex}"]`);
             if (prevActiveElement) {
@@ -245,12 +267,10 @@ function updateActiveLyric(currentTime) {
             }
         }
 
-        // Подсвечиваем новое слово
         if (activeWordIndex > -1) {
             const activeElement = document.querySelector(`.lyric-word[data-index="${activeWordIndex}"]`);
             if (activeElement) {
                 activeElement.classList.add('active');
-                // Плавно прокручиваем к активному слову
                 activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
