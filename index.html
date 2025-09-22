@@ -77,7 +77,7 @@
                                 <hr class="divider">
                                 <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
-                                <div class="form-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                                <div class="form-group" id="g-vocalGender-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
                                 <details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="g-styleWeight">Сила стиля</label><input type="range" id="g-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="g-weirdnessConstraint">Креативность</label><input type="range" id="g-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details>
                             </div>
                         </div>
@@ -89,7 +89,41 @@
                 
                 <div id="upload-extend" class="view-content"><div class="view-header"><h2>Продлить свое</h2><p>Продлите собственный аудиофайл по ссылке.</p></div><form id="upload-extend-form"><div class="form-grid"><div class="form-group"><label for="ue-uploadUrl">URL загруженного аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="ue-continueAt">Продлить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div><div class="form-group"><label for="ue-prompt">Новый текст (опционально)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..."></textarea></div><details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details></div><button type="submit" class="submit-button">Продлить загруженное</button></form></div>
 
-                <div id="upload" class="view-content"><div class="view-header"><h2>Создать кавер</h2><p>Создайте кавер на собственный аудиофайл по ссылке.</p></div><form id="upload-cover-form"><div class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера"></div><div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat"></textarea></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label><div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div><details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details></div><button type="submit" class="submit-button">Создать кавер</button></form></div>
+                <!-- *** ИЗМЕНЕНИЕ: Форма "Создать кавер" полностью переработана *** -->
+                <div id="upload" class="view-content">
+                    <div class="view-header"><h2>Создать кавер</h2><p>Создайте кавер на собственный аудиофайл по ссылке.</p></div>
+                    <form id="upload-cover-form">
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label>Модель</label>
+                                <div class="custom-select-wrapper">
+                                    <input type="hidden" id="uc-model-value" value="V3_5">
+                                    <div class="select-button" id="select-model-button-uc">V3.5</div>
+                                    <div class="select-dropdown" id="select-model-dropdown-uc">
+                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option" data-value="V4_5">V4.5</div>
+                                        <div class="select-option" data-value="V4">V4</div>
+                                        <div class="select-option selected" data-value="V3_5">V3.5</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div>
+                            <div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера" required></div>
+                            <div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat" required></textarea></div>
+                            <div class="form-group" id="uc-prompt-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..." required></textarea></div>
+                            <hr class="divider">
+                            <label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label>
+                            <div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
+                            <div class="form-group" id="uc-vocalGender-group"><label for="uc-vocalGender">Пол вокала</label><select id="uc-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+                            <details class="advanced-options"><summary>Дополнительно</summary>
+                                <div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                <div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                <div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                            </details>
+                        </div>
+                        <button type="submit" class="submit-button">Создать кавер</button>
+                    </form>
+                </div>
                 
                 <div id="logs" class="view-content">
                     <div class="view-header"><h2>Логи операций</h2><p>Здесь отображается статус и ответы от API в реальном времени.</p></div>

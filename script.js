@@ -12,7 +12,6 @@ const modelLimits = {
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [], lastActiveLyricIndex = -1;
 let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
-// *** ИЗМЕНЕНИЕ: ID для requestAnimationFrame ***
 let lyricsAnimationId;
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
@@ -101,9 +100,8 @@ async function refreshAudioUrlAndPlay(songId) {
     }
 }
 
-// *** ИЗМЕНЕНИЕ: Новая функция для запуска/остановки цикла анимации текста ***
 function startLyricsAnimationLoop() {
-    if (lyricsAnimationId) cancelAnimationFrame(lyricsAnimationId); // Предотвращаем дублирование
+    if (lyricsAnimationId) cancelAnimationFrame(lyricsAnimationId);
     function loop() {
         updateActiveLyric(globalPlayer.audio.currentTime);
         lyricsAnimationId = requestAnimationFrame(loop);
@@ -122,7 +120,6 @@ function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); if (globalPlayer.currentSongId) { refreshAudioUrlAndPlay(globalPlayer.currentSongId); } };
     globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     
-    // *** ИЗМЕНЕНИЕ: Запускаем и останавливаем цикл анимации здесь ***
     globalPlayer.audio.onplay = () => { 
         globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; 
         updateAllPlayIcons();
@@ -146,7 +143,6 @@ function setupPlayerListeners() {
     };
 
     globalPlayer.audio.onloadedmetadata = () => { globalPlayer.seekBar.max = globalPlayer.audio.duration; globalPlayer.totalDuration.textContent = formatTime(globalPlayer.audio.duration); };
-    // *** ИЗМЕНЕНИЕ: Убираем вызов updateActiveLyric отсюда, он теперь в цикле анимации ***
     globalPlayer.audio.ontimeupdate = () => {
         globalPlayer.seekBar.value = globalPlayer.audio.currentTime;
         globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
@@ -171,7 +167,7 @@ function setupPlayerListeners() {
         lastActiveLyricIndex = -1;
         isUserScrollingLyrics = false;
         clearTimeout(lyricsScrollTimeout);
-        stopLyricsAnimationLoop(); // *** ИЗМЕНЕНИЕ: Останавливаем цикл при закрытии ***
+        stopLyricsAnimationLoop();
     };
     lyricsModal.closeBtn.onclick = closeModal;
     lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) closeModal(); };
@@ -205,7 +201,6 @@ function setupPlayerListeners() {
         }
     });
 
-    // *** ИЗМЕНЕНИЕ: Исправлен обработчик клика для перемотки ***
     lyricsModal.content.addEventListener('click', (e) => {
         const targetSegment = e.target.closest('.lyric-segment');
         if (targetSegment && !targetSegment.classList.contains('lyric-tag')) {
@@ -316,7 +311,6 @@ async function showTimestampedLyrics(songId) {
         });
         lyricsModal.content.appendChild(lyricsContainer);
 
-        // *** ИЗМЕНЕНИЕ: Запускаем цикл, если аудио уже играет ***
         if (!globalPlayer.audio.paused) {
             startLyricsAnimationLoop();
         }
@@ -444,6 +438,40 @@ function setupCharCounters() {
     });
 }
 
+// *** ИЗМЕНЕНИЕ: Новые переиспользуемые функции для UI ***
+function setupCustomSelect(buttonId, dropdownId, valueInputId) {
+    const selectButton = document.getElementById(buttonId);
+    const selectDropdown = document.getElementById(dropdownId);
+    const valueInput = document.getElementById(valueInputId);
+
+    selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); });
+    selectDropdown.addEventListener("click", e => {
+        if (e.target.classList.contains("select-option")) {
+            const currentSelected = selectDropdown.querySelector('.select-option.selected');
+            if (currentSelected) currentSelected.classList.remove('selected');
+            e.target.classList.add('selected');
+            valueInput.value = e.target.dataset.value;
+            selectButton.textContent = e.target.textContent;
+            selectDropdown.classList.remove("open");
+            if (valueInputId === 'g-model-value') updateAllLimits();
+        }
+    });
+}
+
+function setupInstrumentalToggle(toggleId, promptGroupId, vocalGenderGroupId) {
+    const instrumentalToggle = document.getElementById(toggleId);
+    const promptGroup = document.getElementById(promptGroupId);
+    const vocalGenderGroup = document.getElementById(vocalGenderGroupId);
+
+    function toggleFields() {
+        const isInstrumental = instrumentalToggle.checked;
+        if (promptGroup) promptGroup.style.display = isInstrumental ? 'none' : 'flex';
+        if (vocalGenderGroup) vocalGenderGroup.style.display = isInstrumental ? 'none' : 'flex';
+    }
+    instrumentalToggle.addEventListener('change', toggleFields);
+    toggleFields(); // Initial call
+}
+
 function setupEventListeners() {
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     mobileMenuToggle.addEventListener('click', toggleSidebar);
@@ -470,19 +498,58 @@ function setupEventListeners() {
     updateAllLimits();
 
     document.querySelectorAll('#library-tabs .tab-button').forEach(button => { button.addEventListener('click', (event) => { const filter = button.dataset.filter; currentLibraryTab = filter; document.querySelectorAll('#library-tabs .tab-button').forEach(btn => btn.classList.remove('active')); event.currentTarget.classList.add('active'); renderLibrary(); }); });
-    const customModeToggle = document.getElementById("g-customMode");
-    customModeToggle.addEventListener('change', toggleCustomModeFields);
-    toggleCustomModeFields(); 
-    const instrumentalToggle = document.getElementById("g-instrumental");
-    const promptGroup = document.getElementById("g-prompt-group");
-    const vocalGenderGroup = document.querySelector("#g-vocalGender").parentElement;
-    function toggleInstrumentalFields() { const isInstrumental = instrumentalToggle.checked; promptGroup.style.display = isInstrumental ? 'none' : 'flex'; vocalGenderGroup.style.display = isInstrumental ? 'none' : 'flex'; }
-    instrumentalToggle.addEventListener('change', toggleInstrumentalFields);
-    toggleInstrumentalFields();
+    
+    document.getElementById("g-customMode").addEventListener('change', () => {
+        const isCustom = document.getElementById('g-customMode').checked;
+        document.getElementById('simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
+        document.getElementById('custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
+    });
+    
+    // *** ИЗМЕНЕНИЕ: Используем новые функции для настройки UI ***
+    setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
+    setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
+    setupCustomSelect('select-model-button', 'select-model-dropdown', 'g-model-value');
+    setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
 
     document.getElementById("generate-music-form").addEventListener("submit", (e) => { e.preventDefault(); if (!validateGenerateForm()) return; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const payload = { model: document.getElementById("g-model-value").value, instrumental: isInstrumental, customMode: isCustom, styleWeight: parseFloat(document.getElementById('g-styleWeight').value), weirdnessConstraint: parseFloat(document.getElementById('g-weirdnessConstraint').value) }; if (isCustom) { payload.title = document.getElementById('g-title').value; payload.style = document.getElementById('g-style').value; payload.negativeTags = document.getElementById('g-negativeTags').value; if (!isInstrumental) { payload.prompt = document.getElementById('g-prompt').value; const vocalGender = document.getElementById('g-vocalGender').value; if(vocalGender) payload.vocalGender = vocalGender; } } else { payload.prompt = document.getElementById('g-song-description').value; } handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     document.getElementById("extend-music-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { audioId: document.getElementById("e-audioId").value, continueAt: document.getElementById("e-continueAt").value }; const fields = { title: 'e-title', style: 'e-style', prompt: 'e-prompt', negativeTags: 'e-negativeTags', styleWeight: 'e-styleWeight', weirdnessConstraint: 'e-weirdnessConstraint', audioWeight: 'e-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
-    document.getElementById("upload-cover-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("uc-uploadUrl").value, instrumental: document.getElementById("uc-instrumental").checked }; const fields = { title: 'uc-title', style: 'uc-style', prompt: 'uc-prompt', negativeTags: 'uc-negativeTags', styleWeight: 'uc-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'uc-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
+    
+    // *** ИЗМЕНЕНИЕ: Полностью переработанный обработчик для формы кавера ***
+    document.getElementById("upload-cover-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const isInstrumental = document.getElementById("uc-instrumental").checked;
+        const payload = {
+            uploadUrl: document.getElementById("uc-uploadUrl").value,
+            title: document.getElementById('uc-title').value,
+            style: document.getElementById('uc-style').value,
+            instrumental: isInstrumental,
+            model: document.getElementById('uc-model-value').value,
+            customMode: true, // Всегда true для этой формы
+        };
+        
+        const optionalFields = {
+            negativeTags: 'uc-negativeTags',
+            styleWeight: 'uc-styleWeight',
+            weirdnessConstraint: 'uc-weirdnessConstraint',
+            audioWeight: 'uc-audioWeight'
+        };
+
+        for (const key in optionalFields) {
+            const element = document.getElementById(optionalFields[key]);
+            if (element.value) {
+                payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value;
+            }
+        }
+
+        if (!isInstrumental) {
+            payload.prompt = document.getElementById('uc-prompt').value;
+            const vocalGender = document.getElementById('uc-vocalGender').value;
+            if (vocalGender) payload.vocalGender = vocalGender;
+        }
+
+        handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    });
+
     document.getElementById("upload-extend-form").addEventListener("submit", (e) => { e.preventDefault(); const payload = { uploadUrl: document.getElementById("ue-uploadUrl").value, continueAt: document.getElementById("ue-continueAt").value }; const fields = { prompt: 'ue-prompt', audioWeight: 'ue-audioWeight' }; for (const key in fields) { const element = document.getElementById(fields[key]); if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; } } handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true); });
     
     const boostButton = document.getElementById('boost-style-button');
@@ -520,21 +587,10 @@ function setupEventListeners() {
         }
     });
 
-    const selectButton = document.getElementById("select-model-button"); 
-    const selectDropdown = document.getElementById("select-model-dropdown"); 
-    selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); }); 
-    selectDropdown.addEventListener("click", e => { 
-        if (e.target.classList.contains("select-option")) { 
-            const currentSelected = selectDropdown.querySelector('.select-option.selected');
-            if (currentSelected) { currentSelected.classList.remove('selected'); }
-            e.target.classList.add('selected');
-            document.getElementById("g-model-value").value = e.target.dataset.value; 
-            selectButton.textContent = e.target.textContent; 
-            selectDropdown.classList.remove("open");
-            updateAllLimits();
-        } 
+    window.addEventListener("click", () => { 
+        document.querySelectorAll('.select-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); 
     });
-    window.addEventListener("click", () => { selectDropdown.classList.remove("open"); document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); });
 }
 
 function validateGenerateForm() { let isValid = true; const isCustom = document.getElementById("g-customMode").checked; const isInstrumental = document.getElementById("g-instrumental").checked; const fieldsToValidate = []; if (isCustom) { fieldsToValidate.push(document.getElementById('g-title')); fieldsToValidate.push(document.getElementById('g-style')); if (!isInstrumental) { fieldsToValidate.push(document.getElementById('g-prompt')); } } else { fieldsToValidate.push(document.getElementById('g-song-description')); } fieldsToValidate.forEach(field => { if (!field.value.trim()) { isValid = false; field.classList.add('input-error'); setTimeout(() => field.classList.remove('input-error'), 1000); } }); return isValid; }

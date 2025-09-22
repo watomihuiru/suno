@@ -191,7 +191,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .fab-button {
     position: absolute;
     bottom: 20px;
-    /* *** ИЗМЕНЕНИЕ: Перенос вправо *** */
     right: 20px;
     width: 40px;
     height: 40px;
