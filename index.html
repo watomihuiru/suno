@@ -43,7 +43,6 @@
                         <li><button class="nav-button" data-view="extend"><i class="fas fa-forward"></i><span>Продлить</span></button></li>
                         <li><button class="nav-button" data-view="upload-extend"><i class="fas fa-wave-square"></i><span>Продлить свое</span></button></li>
                         <li><button class="nav-button" data-view="upload"><i class="fas fa-upload"></i><span>Создать кавер</span></button></li>
-                        <!-- *** ИЗМЕНЕНИЕ: Удалена вкладка Boost *** -->
                         <li><button class="nav-button" data-view="logs" id="logs-nav-button"><i class="fas fa-file-alt"></i><span>Логи</span><span id="logs-notification-dot" class="notification-dot"></span></button></li>
                     </ul>
                 </nav>
@@ -64,7 +63,6 @@
                             <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/200</div></div></div>
                             <div id="custom-mode-fields" class="form-grid">
                                 <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"><div class="char-counter" id="g-title-counter">0/80</div></div>
-                                <!-- *** ИЗМЕНЕНИЕ: Добавлена обертка и кнопка для поля стиля *** -->
                                 <div class="form-group">
                                     <label for="g-style">Стиль музыки</label>
                                     <div class="style-input-container">
@@ -93,8 +91,6 @@
 
                 <div id="upload" class="view-content"><div class="view-header"><h2>Создать кавер</h2><p>Создайте кавер на собственный аудиофайл по ссылке.</p></div><form id="upload-cover-form"><div class="form-grid"><div class="form-group"><label for="uc-uploadUrl">URL загруженного аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3" required></div><div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера"></div><div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat"></textarea></div><div class="form-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea></div><label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label><div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div><details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details></div><button type="submit" class="submit-button">Создать кавер</button></form></div>
                 
-                <!-- *** ИЗМЕНЕНИЕ: Удалена вся секция для view-content "boost" *** -->
-
                 <div id="logs" class="view-content">
                     <div class="view-header"><h2>Логи операций</h2><p>Здесь отображается статус и ответы от API в реальном времени.</p></div>
                     <div id="logs-content">
@@ -149,6 +145,8 @@
         <div id="lyrics-modal-box">
             <button id="lyrics-modal-close">&times;</button>
             <div id="lyrics-modal-content"></div>
+            <!-- *** ИЗМЕНЕНИЕ: Добавлена кнопка возврата к активному слову *** -->
+            <button id="return-to-active-lyric-btn" class="fab-button"><i class="fas fa-crosshairs"></i></button>
         </div>
     </div>
 

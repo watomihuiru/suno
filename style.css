@@ -179,16 +179,45 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 #close-player-btn { display: none; }
 #lyrics-modal-overlay, #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(14, 17, 23, 0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
 #lyrics-modal-overlay { display: none; }
-#lyrics-modal-box { background-color: var(--bg-card); padding: 24px; border-radius: 8px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
-/* *** ИЗМЕНЕНИЕ: Новые стили для караоке и форматирования *** */
+#lyrics-modal-box { position: relative; background-color: var(--bg-card); padding: 24px; border-radius: 8px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
 #lyrics-modal-content { overflow-y: auto; padding-right: 10px; font-size: 20px; font-weight: 500; line-height: 1.8; text-align: left; white-space: pre-wrap; }
 .lyrics-paragraph { color: var(--text-secondary); }
-.lyric-segment { transition: color 0.1s ease-in-out; border-radius: 3px; }
-.lyric-segment:hover { background-color: rgba(255, 255, 255, 0.08); cursor: pointer; }
+.lyric-segment { transition: color 0.1s ease-in-out; border-radius: 3px; cursor: pointer; }
+.lyric-segment:hover { background-color: rgba(255, 255, 255, 0.08); }
 .lyric-segment.active { color: var(--accent-yellow); font-weight: 600; }
 .lyric-tag { font-weight: 700; color: var(--text-primary); cursor: default !important; }
 .lyric-tag:hover { background-color: transparent; }
 #lyrics-modal-close { align-self: flex-end; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; line-height: 1; margin: -12px -12px 12px 0; }
+/* *** ИЗМЕНЕНИЕ: Стили для новой кнопки *** */
+.fab-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(48, 54, 61, 0.8);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+    backdrop-filter: blur(5px);
+}
+.fab-button.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.fab-button:hover {
+    background-color: rgba(60, 66, 73, 0.9);
+}
 #login-box { background-color: var(--bg-card); padding: 32px; border-radius: 8px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 340px; }
 #login-box h3 { margin-bottom: 16px; font-weight: 600; }
 #access-key-input { width: 100%; padding: 10px 12px; background-color: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 16px; text-align: center; }
@@ -201,36 +230,11 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
 .form-group.slider-group label { flex-basis: 120px; flex-shrink: 0; }
 .form-group.slider-group input[type="range"] { flex-grow: 1; }
 .slider-value { font-family: monospace; font-size: 14px; font-weight: 600; color: var(--text-primary); width: 40px; text-align: right; }
-
-/* *** НОВЫЕ СТИЛИ для кнопки Boost *** */
-.style-input-container {
-    position: relative;
-}
-#g-style {
-    padding-right: 40px; /* Место для кнопки */
-}
-.input-action-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 16px;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s, color 0.2s;
-    padding: 4px;
-}
-.input-action-btn:hover {
-    opacity: 1;
-    color: var(--text-primary);
-}
-.input-action-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-/* *** КОНЕЦ НОВЫХ СТИЛЕЙ *** */
+.style-input-container { position: relative; }
+#g-style { padding-right: 40px; }
+.input-action-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--text-secondary); font-size: 16px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s, color 0.2s; padding: 4px; }
+.input-action-btn:hover { opacity: 1; color: var(--text-primary); }
+.input-action-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 
 /* --- СТИЛИ ДЛЯ МОБИЛЬНОЙ ВЕРСИИ --- */
 .mobile-header { display: none; }

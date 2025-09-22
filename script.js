@@ -10,6 +10,10 @@ const modelLimits = {
     'songDescription': 200
 };
 let pollingInterval, playlist = [], currentTrackIndex = -1, isShuffled = false, isRepeatOne = false, currentLyrics = [], lastActiveLyricIndex = -1;
+// *** ИЗМЕНЕНИЕ: Новые переменные для управления скроллом ***
+let isUserScrollingLyrics = false;
+let lyricsScrollTimeout;
+
 
 // --- ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ ---
 let statusContainer, songListContainer, emptyListMessage, globalPlayer, lyricsModal;
@@ -62,7 +66,8 @@ function initializeApp() {
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
     globalPlayer = { container: document.getElementById("global-player"), audio: document.createElement('audio'), cover: document.getElementById("player-cover"), title: document.getElementById("player-title"), seekBar: document.getElementById("seek-bar"), playPauseBtn: document.getElementById("play-pause-btn"), currentTime: document.getElementById("current-time"), totalDuration: document.getElementById("total-duration"), prevBtn: document.getElementById('prev-btn'), nextBtn: document.getElementById('next-btn'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), closeBtn: document.getElementById('close-player-btn'), currentSongId: null };
-    lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close') };
+    // *** ИЗМЕНЕНИЕ: Добавляем кнопку возврата в объект ***
+    lyricsModal = { overlay: document.getElementById('lyrics-modal-overlay'), content: document.getElementById('lyrics-modal-content'), closeBtn: document.getElementById('lyrics-modal-close'), returnBtn: document.getElementById('return-to-active-lyric-btn') };
     
     mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     sidebar = document.querySelector('.sidebar');
@@ -120,8 +125,17 @@ function setupPlayerListeners() {
     globalPlayer.prevBtn.onclick = playPrevious;
     globalPlayer.shuffleBtn.onclick = () => { isShuffled = !isShuffled; globalPlayer.shuffleBtn.classList.toggle('active', isShuffled); };
     globalPlayer.repeatBtn.onclick = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); };
-    lyricsModal.closeBtn.onclick = () => { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; lastActiveLyricIndex = -1; };
-    lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) { lyricsModal.overlay.style.display = 'none'; currentLyrics = []; lastActiveLyricIndex = -1; } };
+    
+    const closeModal = () => {
+        lyricsModal.overlay.style.display = 'none';
+        lyricsModal.returnBtn.classList.remove('visible');
+        currentLyrics = [];
+        lastActiveLyricIndex = -1;
+        isUserScrollingLyrics = false;
+        clearTimeout(lyricsScrollTimeout);
+    };
+    lyricsModal.closeBtn.onclick = closeModal;
+    lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) closeModal(); };
 
     globalPlayer.closeBtn.onclick = () => {
         globalPlayer.audio.pause();
@@ -131,17 +145,25 @@ function setupPlayerListeners() {
         updateAllPlayIcons();
     };
 
-    // *** ИЗМЕНЕНИЕ: Добавляем обработчик клика для перемотки ***
-    lyricsModal.content.addEventListener('click', (e) => {
-        if (e.target.classList.contains('lyric-segment')) {
-            const seekTime = parseFloat(e.target.dataset.startTime);
-            if (!isNaN(seekTime) && globalPlayer.audio.src) {
-                globalPlayer.audio.currentTime = seekTime;
-                globalPlayer.seekBar.value = seekTime;
-                if (globalPlayer.audio.paused) {
-                    globalPlayer.audio.play();
-                }
-            }
+    // *** ИЗМЕНЕНИЕ: Логика управления скроллом и кнопкой ***
+    lyricsModal.content.addEventListener('scroll', () => {
+        if (currentLyrics.length === 0) return;
+        isUserScrollingLyrics = true;
+        lyricsModal.returnBtn.classList.add('visible');
+        clearTimeout(lyricsScrollTimeout);
+        lyricsScrollTimeout = setTimeout(() => {
+            isUserScrollingLyrics = false;
+            lyricsModal.returnBtn.classList.remove('visible');
+        }, 4000);
+    });
+
+    lyricsModal.returnBtn.addEventListener('click', () => {
+        clearTimeout(lyricsScrollTimeout);
+        isUserScrollingLyrics = false;
+        lyricsModal.returnBtn.classList.remove('visible');
+        const activeElement = document.querySelector(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
+        if (activeElement) {
+            activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         }
     });
 }
@@ -191,12 +213,13 @@ function showSimpleLyrics(songId) {
     currentLyrics = [];
 }
 
-// *** ИЗМЕНЕНИЕ: Логика полностью переписана для точности и перемотки ***
 async function showTimestampedLyrics(songId) {
     lyricsModal.content.innerHTML = '<p>Загрузка караоке...</p>';
     lyricsModal.overlay.style.display = 'flex';
     currentLyrics = [];
     lastActiveLyricIndex = -1;
+    isUserScrollingLyrics = false;
+    lyricsModal.returnBtn.classList.remove('visible');
 
     try {
         const songInfo = playlist.find(p => p.songData.id === songId);
@@ -210,7 +233,6 @@ async function showTimestampedLyrics(songId) {
         const result = await response.json();
         
         document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
-        console.log('Ответ API для караоке:', result);
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {
@@ -231,7 +253,7 @@ async function showTimestampedLyrics(songId) {
             span.textContent = segment.word;
             span.className = 'lyric-segment';
             span.dataset.index = index;
-            span.dataset.startTime = segment.startS; // Для перемотки
+            span.dataset.startTime = segment.startS;
 
             if (segment.word.startsWith('[') && segment.word.endsWith(']')) {
                 span.classList.add('lyric-tag');
@@ -246,14 +268,17 @@ async function showTimestampedLyrics(songId) {
     }
 }
 
+// *** ИЗМЕНЕНИЕ: Новая, более надежная логика подсветки ***
 function updateActiveLyric(currentTime) {
     if (currentLyrics.length === 0) return;
 
     let activeSegmentIndex = -1;
+    // Находим последний сегмент, который уже должен был начаться
     for (let i = 0; i < currentLyrics.length; i++) {
-        if (currentTime >= currentLyrics[i].startS && currentTime <= currentLyrics[i].endS) {
+        if (currentTime >= currentLyrics[i].startS) {
             activeSegmentIndex = i;
-            break;
+        } else {
+            break; // Оптимизация: дальше можно не искать
         }
     }
 
@@ -266,7 +291,8 @@ function updateActiveLyric(currentTime) {
             const activeElement = document.querySelector(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
             if (activeElement) {
                 activeElement.classList.add('active');
-                if (!activeElement.classList.contains('lyric-tag')) {
+                // Прокручиваем только если пользователь не скроллит сам
+                if (!isUserScrollingLyrics) {
                     activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                 }
             }
