@@ -146,9 +146,8 @@ function setupPlayerListeners() {
             globalPlayer.audio.currentTime = 0;
             globalPlayer.audio.play();
         } else {
-            // Stop playback and reset UI, but don't play the next song.
             globalPlayer.audio.currentTime = 0;
-            globalPlayer.audio.pause(); // Ensure it's paused, which will trigger onpause handler.
+            globalPlayer.audio.pause();
         }
     };
 
@@ -879,8 +878,24 @@ function renderAudioEditor(mode, songInfo, container) {
     drawSimulatedWaveform(canvas, isExtend ? '#8B949E' : '#E1AFD1');
     
     if (isExtend) {
-        initExtendHandle(songInfo, container);
-        initEditorPlayer(songInfo, container);
+        const updateExtendUI = (percent) => {
+            const { duration } = songInfo.songData;
+            const handle = container.querySelector('.waveform-handle');
+            const progress = container.querySelector('.waveform-progress');
+            const timeLabel = container.querySelector('.extend-time-label');
+            const continueAtInput = document.getElementById('ue-continueAt');
+
+            percent = Math.max(0, Math.min(1, percent));
+            const currentTime = duration * percent;
+
+            handle.style.left = `${percent * 100}%`;
+            progress.style.width = `${percent * 100}%`;
+            timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
+            continueAtInput.value = Math.round(currentTime);
+        };
+
+        initExtendHandle(songInfo, container, updateExtendUI);
+        initEditorPlayer(songInfo, container, updateExtendUI);
     }
 }
 
@@ -906,7 +921,7 @@ function drawSimulatedWaveform(canvas, color) {
     }
 }
 
-function initEditorPlayer(songInfo, container) {
+function initEditorPlayer(songInfo, container, updateExtendUI) {
     const { songData } = songInfo;
     const coverContainer = container.querySelector('.editor-cover-container');
     const playIcon = container.querySelector('.editor-play-icon i');
@@ -955,10 +970,17 @@ function initEditorPlayer(songInfo, container) {
         const x = e.clientX - rect.left;
         const percent = Math.max(0, Math.min(1, x / rect.width));
         editorAudio.currentTime = editorAudio.duration * percent;
+        
+        if (updateExtendUI) {
+            updateExtendUI(percent);
+        }
     };
 
     let isSeeking = false;
     waveformContainer.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('waveform-handle')) {
+            return;
+        }
         isSeeking = true;
         seek(e);
     });
@@ -972,31 +994,26 @@ function initEditorPlayer(songInfo, container) {
     });
 }
 
-function initExtendHandle(songInfo, container) {
+function initExtendHandle(songInfo, container, updateUI) {
     const { duration } = songInfo.songData;
     const handle = container.querySelector('.waveform-handle');
-    const progress = container.querySelector('.waveform-progress');
-    const timeLabel = container.querySelector('.extend-time-label');
-    const continueAtInput = document.getElementById('ue-continueAt');
     const waveformContainer = container.querySelector('.waveform-container');
 
     let isDragging = false;
 
-    const updatePosition = (clientX) => {
+    const updatePositionFromDrag = (clientX) => {
         const rect = waveformContainer.getBoundingClientRect();
         let x = clientX - rect.left;
-        x = Math.max(0, Math.min(x, rect.width));
+        const percent = Math.max(0, Math.min(1, x / rect.width));
         
-        const percent = x / rect.width;
-        const currentTime = duration * percent;
+        updateUI(percent);
 
-        handle.style.left = `${percent * 100}%`;
-        progress.style.width = `${percent * 100}%`;
-        timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
-        continueAtInput.value = Math.round(currentTime);
+        if (editorAudio && editorAudio.duration) {
+            editorAudio.currentTime = duration * percent;
+        }
     };
     
-    updatePosition(waveformContainer.getBoundingClientRect().left + waveformContainer.getBoundingClientRect().width);
+    updateUI(1);
 
     handle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
@@ -1006,7 +1023,7 @@ function initExtendHandle(songInfo, container) {
 
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            updatePosition(e.clientX);
+            updatePositionFromDrag(e.clientX);
         }
     });
 
