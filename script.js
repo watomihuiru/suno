@@ -536,6 +536,16 @@ function setupInstrumentalToggle(toggleId, promptGroupId, vocalGenderGroupId) {
     toggleFields();
 }
 
+function showView(viewName) {
+    if (currentViewName === viewName) return;
+    document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(viewName).classList.add('active');
+    document.querySelector(`.nav-button[data-view="${viewName}"]`).classList.add('active');
+    currentViewName = viewName;
+    resetEditViews();
+}
+
 function setupEventListeners() {
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     mobileMenuToggle.addEventListener('click', toggleSidebar);
@@ -545,16 +555,12 @@ function setupEventListeners() {
     libraryOverlay.addEventListener('click', toggleLibrary);
 
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', () => {
             const viewName = button.dataset.view;
-            if (currentViewName === viewName) return;
-            document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
-            document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(viewName).classList.add('active');
-            event.currentTarget.classList.add('active');
-            currentViewName = viewName;
-            resetEditViews();
-            if (window.innerWidth <= 768) { toggleSidebar(); }
+            showView(viewName);
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
         });
     });
 
@@ -812,7 +818,7 @@ async function handleApiCall(endpoint, options, isCreditCheck = false, isGenerat
 
 function setupExtendView(songInfo) {
     songToEdit = songInfo;
-    document.querySelector('.nav-button[data-view="upload-extend"]').click();
+    showView('upload-extend');
     
     document.getElementById('ue-title').value = songInfo.songData.title || '';
     document.getElementById('ue-style').value = songInfo.songData.tags || '';
@@ -826,7 +832,7 @@ function setupExtendView(songInfo) {
 
 function setupCoverView(songInfo) {
     songToEdit = songInfo;
-    document.querySelector('.nav-button[data-view="upload"]').click();
+    showView('upload');
 
     document.getElementById('uc-title').value = songInfo.songData.title || '';
     document.getElementById('uc-style').value = songInfo.songData.tags || '';
