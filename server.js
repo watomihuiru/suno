@@ -222,17 +222,43 @@ app.get('/api/task-status/:taskId', async (req, res) => {
         const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` } });
         const taskData = response.data.data;
         const successStatuses = ['success', 'completed', 'text_success', 'first_success'];
+
         if (taskData && successStatuses.includes(taskData.status.toLowerCase())) {
             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                 for (const song of taskData.response.sunoData) {
                     if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
+
+                    // *** ИЗМЕНЕНИЕ: Гарантируем сохранение taskId в request_params ***
+                    let paramsToSave = taskData.param;
+
+                    // Если API вернул параметры строкой (как в документации), пытаемся распарсить
+                    if (typeof paramsToSave === 'string') {
+                        try {
+                            paramsToSave = JSON.parse(paramsToSave);
+                        } catch (e) {
+                            console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}. Сохраняем как строку.`, e);
+                            // Если не парсится, оставляем как есть, но taskId добавим отдельно ниже
+                        }
+                    }
+
+                    let finalRequestParams;
+
+                    if (typeof paramsToSave === 'object' && paramsToSave !== null) {
+                        // Если это объект, добавляем taskId
+                        finalRequestParams = { ...paramsToSave, taskId: taskData.taskId };
+                    } else {
+                        // Если это все еще строка или что-то другое, создаем новый объект
+                        finalRequestParams = { rawParam: paramsToSave, taskId: taskData.taskId };
+                    }
+                    // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+
                     await pool.query(
                         `INSERT INTO songs (id, song_data, request_params) 
                          VALUES ($1, $2, $3) 
                          ON CONFLICT (id) DO UPDATE SET 
                             song_data = EXCLUDED.song_data, 
                             request_params = EXCLUDED.request_params`,
-                        [song.id, song, taskData.param]
+                        [song.id, song, finalRequestParams]
                     );
                 }
             }
