@@ -62,6 +62,8 @@ export function openFullscreenPlayer() {
 
 function closeFullscreenPlayer() {
     globalPlayer.fsOverlay.classList.remove('is-open');
+    globalPlayer.fsOverlay.style.background = '';
+    globalPlayer.fsOverlay.style.animation = 'none';
     stopLyricsAnimationLoop();
 }
 
@@ -100,11 +102,11 @@ function stopLyricsAnimationLoop() {
 }
 
 function updatePlayerBackground(imageUrl) {
-    const playerContainer = document.getElementById('global-player');
-    if (!playerContainer || !imageUrl) return;
+    const playerOverlay = document.getElementById('fullscreen-player-overlay');
+    if (!playerOverlay || !imageUrl) return;
 
-    playerContainer.style.background = '';
-    playerContainer.style.animation = 'none';
+    playerOverlay.style.background = '';
+    playerOverlay.style.animation = 'none';
 
     const img = new Image();
     img.crossOrigin = "Anonymous";
@@ -118,21 +120,21 @@ function updatePlayerBackground(imageUrl) {
                 const color1 = `rgb(${palette[0].join(',')})`;
                 const color2 = `rgb(${palette[1].join(',')})`;
                 
-                playerContainer.style.background = `linear-gradient(270deg, ${color1}, ${color2})`;
-                playerContainer.style.backgroundSize = '400% 400%';
-                playerContainer.style.animation = 'animateGradient 15s ease infinite';
+                playerOverlay.style.background = `linear-gradient(270deg, ${color1}, ${color2})`;
+                playerOverlay.style.backgroundSize = '400% 400%';
+                playerOverlay.style.animation = 'animateGradient 15s ease infinite';
             }
         } catch (e) {
             console.error("ColorThief error:", e);
-            playerContainer.style.background = '';
-            playerContainer.style.animation = 'none';
+            playerOverlay.style.background = '';
+            playerOverlay.style.animation = 'none';
         }
     };
 
     img.onerror = (e) => {
         console.error("Error loading image for color extraction:", e);
-        playerContainer.style.background = '';
-        playerContainer.style.animation = 'none';
+        playerOverlay.style.background = '';
+        playerOverlay.style.animation = 'none';
     }
 }
 
@@ -214,8 +216,6 @@ function setupPlayerListeners() {
         globalPlayer.audio.src = '';
         globalPlayer.currentSongId = null;
         globalPlayer.container.style.display = 'none';
-        globalPlayer.container.style.background = '';
-        globalPlayer.container.style.animation = 'none';
         updateAllPlayIcons();
     };
 
@@ -261,9 +261,7 @@ export function playSongByIndex(index) {
     globalPlayer.fsTitle.textContent = songData.title || 'Без названия';
     globalPlayer.fsSubtitle.textContent = songData.tags || '';
 
-    if (window.innerWidth <= 768) {
-        updatePlayerBackground(songData.imageUrl);
-    }
+    updatePlayerBackground(songData.imageUrl);
 
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
