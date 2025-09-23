@@ -73,8 +73,8 @@ function setupEventListeners() {
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const libraryCard = document.querySelector('.library-card');
-    const libraryOverlay = document.getElementById('library-overlay');
     const mobileLibraryBtn = document.getElementById('mobile-library-btn');
+    const mobileLibraryCloseBtn = document.getElementById('mobile-library-close-btn');
 
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);
@@ -82,7 +82,7 @@ function setupEventListeners() {
 
     const toggleLibrary = () => {
         const isOpen = libraryCard.classList.toggle('is-open');
-        libraryOverlay.classList.toggle('is-visible', isOpen);
+        document.body.classList.toggle('library-open', isOpen);
         mobileLibraryBtn.classList.toggle('active', isOpen);
 
         if (isOpen) {
@@ -96,7 +96,7 @@ function setupEventListeners() {
         }
     };
     mobileLibraryBtn.addEventListener('click', toggleLibrary);
-    libraryOverlay.addEventListener('click', toggleLibrary);
+    mobileLibraryCloseBtn.addEventListener('click', toggleLibrary);
 
     // Navigation
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
@@ -116,7 +116,7 @@ function setupEventListeners() {
             showView(viewName);
             if (libraryCard.classList.contains('is-open')) {
                 libraryCard.classList.remove('is-open');
-                libraryOverlay.classList.remove('is-visible');
+                document.body.classList.remove('library-open');
                 mobileLibraryBtn.classList.remove('active');
             }
         });

@@ -7,6 +7,9 @@
 .mobile-bottom-nav {
     display: none;
 }
+.mobile-only-close-btn {
+    display: none;
+}
 
 @media (max-width: 1200px) {
     .page-container { 
@@ -25,6 +28,9 @@
     body { 
         overflow: auto; 
     }
+    body.library-open {
+        overflow: hidden;
+    }
     .landing-content h1 { 
         font-size: 36px; 
     }
@@ -36,7 +42,7 @@
         height: auto; 
         padding: 15px; 
         padding-top: 70px; 
-        padding-bottom: 150px; 
+        padding-bottom: 80px; 
     }
     .main-content { 
         grid-column: 1 / -1; 
@@ -88,24 +94,44 @@
         display: block; 
     }
     .library-card { 
-        display: flex; 
-        position: fixed; 
-        top: 0; 
-        right: 0; 
-        height: 100%; 
-        width: 85%; 
-        max-width: 320px; 
-        z-index: 1100; 
-        transform: translateX(100%); 
-        transition: transform 0.3s ease-in-out; 
-        grid-column: auto; 
-        margin: 0; 
-        border-radius: 8px 0 0 8px; 
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 1200;
+        grid-column: auto;
+        margin: 0;
+        border-radius: 0;
+        padding-top: 60px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        transform: none;
     }
     .library-card.is-open { 
-        transform: translateX(0); 
+        opacity: 1;
+        visibility: visible;
     }
-    
+    .mobile-only-close-btn {
+        display: block;
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 1201;
+    }
+    body.library-open .mobile-header,
+    body.library-open .mobile-bottom-nav,
+    body.library-open #global-player {
+        display: none;
+    }
     .mobile-bottom-nav {
         display: flex;
         position: fixed;
@@ -120,7 +146,6 @@
         align-items: flex-start;
         padding-top: 8px;
     }
-
     .mobile-nav-btn {
         display: flex;
         flex-direction: column;
@@ -137,16 +162,13 @@
         cursor: pointer;
         transition: color 0.2s;
     }
-
     .mobile-nav-btn i {
         font-size: 20px;
         margin-bottom: 2px;
     }
-
     .mobile-nav-btn.active {
         color: var(--accent-blue);
     }
-
     #global-player {
         left: 15px;
         right: 15px;
