@@ -58,6 +58,7 @@ export function showLibraryView() {
         document.querySelector('.main-content').style.display = 'none';
         document.querySelector('.library-card').style.display = 'flex';
         setActiveMobileNav('library');
+        currentViewName = 'library';
     }
 }
 

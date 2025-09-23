@@ -44,7 +44,7 @@ export function initializePlayer() {
         fsNextBtn: document.getElementById('fs-next-btn'),
         fsShuffleBtn: document.getElementById('fs-shuffle-btn'),
         fsRepeatBtn: document.getElementById('fs-repeat-btn'),
-        fsCollapseBtn: document.getElementById('fs-collapse-btn'),
+        fsCloseBtn: document.getElementById('fs-close-btn'),
     };
     setupPlayerListeners();
 }
@@ -176,7 +176,7 @@ function setupPlayerListeners() {
         updateAllPlayIcons();
     };
 
-    globalPlayer.fsCollapseBtn.onclick = closeFullscreenPlayer;
+    globalPlayer.fsCloseBtn.onclick = closeFullscreenPlayer;
 
     globalPlayer.fsLyricsContent.addEventListener('scroll', () => {
         if (currentLyrics.length === 0) return;
@@ -220,7 +220,7 @@ export function playSongByIndex(index) {
 
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
-    globalPlayer.container.style.display = 'grid';
+    globalPlayer.container.style.display = 'flex';
     updateAllPlayIcons();
     showTimestampedLyrics(songData.id, true); // Pre-load lyrics for fullscreen player
 }

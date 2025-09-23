@@ -136,24 +136,21 @@
     #global-player {
         left: 15px;
         right: 15px;
-        bottom: 75px;
-        padding: 8px;
+        bottom: 70px;
+        padding: 8px 12px;
         gap: 12px;
         display: none;
-        grid-template-columns: auto 1fr auto;
-        grid-template-rows: 1fr auto;
+        flex-wrap: wrap;
         align-items: center;
         cursor: pointer;
     }
     #player-song-info {
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-        gap: 12px;
+        flex-grow: 1;
         min-width: 0;
     }
     #player-cover {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
     }
     .player-text-info {
         overflow: hidden;
@@ -164,8 +161,6 @@
         text-overflow: ellipsis;
     }
     #player-main {
-        grid-column: 3 / 4;
-        grid-row: 1 / 2;
         flex-direction: row;
         max-width: none;
         margin: 0;
@@ -186,9 +181,8 @@
     }
     #player-timeline-mobile {
         display: block;
-        grid-column: 1 / -1;
-        grid-row: 2 / 3;
-        padding: 0;
+        width: 100%;
+        order: 99;
         margin-top: 4px;
     }
     #seek-bar-mobile {
