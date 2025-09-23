@@ -165,6 +165,7 @@ function setupEventListeners() {
     window.addEventListener("click", () => { 
         document.querySelectorAll('.select-dropdown.open').forEach(d => d.classList.remove('open'));
         document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); 
+        document.querySelectorAll('.move-to-project-submenu.is-open').forEach(menu => menu.classList.remove('is-open'));
     });
 }
 

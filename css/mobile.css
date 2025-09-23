@@ -197,4 +197,12 @@
     #seek-bar-mobile::-moz-range-thumb {
         display: none;
     }
+    .menu-item.hide-on-mobile {
+        display: none;
+    }
+    .move-to-project-submenu {
+        right: 100%;
+        left: auto;
+        margin-right: 5px;
+    }
 }

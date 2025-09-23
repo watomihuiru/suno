@@ -157,11 +157,17 @@ function addSongToList(songInfo) {
     moveMenuItem.className = 'menu-item move-to-project-action';
     moveMenuItem.innerHTML = `<i class="fas fa-folder-plus"></i> Переместить`;
     moveMenuItem.appendChild(moveSubMenu);
+    moveMenuItem.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768) {
+            e.stopPropagation();
+            moveSubMenu.classList.toggle('is-open');
+        }
+    });
 
     const menuItems = [ 
         { icon: 'fas fa-clone', text: 'Расширить', action: () => { setupExtendView(songInfo); } },
         { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => { setupCoverView(songInfo); } },
-        { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
+        { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id), className: 'hide-on-mobile' },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
         moveMenuItem,
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 

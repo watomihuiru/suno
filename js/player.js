@@ -52,7 +52,11 @@ export function initializePlayer() {
 export function openFullscreenPlayer() {
     if (globalPlayer.currentSongId) {
         globalPlayer.fsOverlay.classList.add('is-open');
-        showTimestampedLyrics(globalPlayer.currentSongId, true); // Load lyrics without opening modal
+        if (window.innerWidth <= 768) {
+            showSimpleLyrics(globalPlayer.currentSongId, true);
+        } else {
+            showTimestampedLyrics(globalPlayer.currentSongId, true); // Load lyrics without opening modal
+        }
     }
 }
 
@@ -222,7 +226,10 @@ export function playSongByIndex(index) {
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
     globalPlayer.container.style.display = 'flex';
     updateAllPlayIcons();
-    showTimestampedLyrics(songData.id, true); // Pre-load lyrics for fullscreen player
+    
+    if (globalPlayer.fsOverlay.classList.contains('is-open')) {
+        openFullscreenPlayer(); // Reload lyrics if player is already open
+    }
 }
 
 function playNext() { 
@@ -258,13 +265,15 @@ export function updateAllPlayIcons() {
     });
 }
 
-export function showSimpleLyrics(songId) {
+export function showSimpleLyrics(songId, isPreload = false) {
     const songInfo = getSongById(songId);
     if (!songInfo) return;
     const rawText = songInfo.songData.prompt || "Текст для этой песни не найден.";
     
-    globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${rawText}</div>`;
-    openFullscreenPlayer();
+    globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${rawText.replace(/\n/g, '<br>')}</div>`;
+    if (!isPreload) {
+        openFullscreenPlayer();
+    }
     currentLyrics = [];
     stopLyricsAnimationLoop();
 }
@@ -274,6 +283,8 @@ export async function showTimestampedLyrics(songId, isPreload = false) {
     if (!isPreload) {
         lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Загрузка караоке...</p>';
         openFullscreenPlayer();
+    } else {
+        lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Загрузка караоке...</p>';
     }
     
     currentLyrics = [];
@@ -296,7 +307,7 @@ export async function showTimestampedLyrics(songId, isPreload = false) {
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {
-            lyricsContainer.innerHTML = `<p class="lyrics-placeholder">Текст с временными метками недоступен. <br><br> <strong>Обычный текст:</strong><br>${songInfo.songData.prompt || 'Нет данных'}</p>`;
+            lyricsContainer.innerHTML = `<p class="lyrics-placeholder">Текст с временными метками недоступен. <br><br> <strong>Обычный текст:</strong><br>${(songInfo.songData.prompt || 'Нет данных').replace(/\n/g, '<br>')}</p>`;
             return;
         }
 
