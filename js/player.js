@@ -61,8 +61,7 @@ function openFullscreenPlayer() {
 
 function closeFullscreenPlayer() {
     globalPlayer.fsOverlay.classList.remove('is-open');
-    globalPlayer.fsOverlay.style.background = '';
-    globalPlayer.fsOverlay.style.animation = 'none';
+    globalPlayer.fsOverlay.style.setProperty('--adaptive-gradient', 'transparent');
     stopLyricsAnimationLoop();
 }
 
@@ -104,8 +103,7 @@ function updatePlayerBackground(imageUrl) {
     const playerOverlay = document.getElementById('fullscreen-player-overlay');
     if (!playerOverlay || !imageUrl) return;
 
-    playerOverlay.style.background = '';
-    playerOverlay.style.animation = 'none';
+    playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
 
     const img = new Image();
     img.crossOrigin = "Anonymous";
@@ -118,22 +116,18 @@ function updatePlayerBackground(imageUrl) {
             if (palette && palette.length >= 2) {
                 const color1 = `rgb(${palette[0].join(',')})`;
                 const color2 = `rgb(${palette[1].join(',')})`;
-                
-                playerOverlay.style.background = `linear-gradient(270deg, ${color1}, ${color2})`;
-                playerOverlay.style.backgroundSize = '400% 400%';
-                playerOverlay.style.animation = 'animateGradient 15s ease infinite';
+                const gradient = `linear-gradient(270deg, ${color1}, ${color2})`;
+                playerOverlay.style.setProperty('--adaptive-gradient', gradient);
             }
         } catch (e) {
             console.error("ColorThief error:", e);
-            playerOverlay.style.background = '';
-            playerOverlay.style.animation = 'none';
+            playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
         }
     };
 
     img.onerror = (e) => {
         console.error("Error loading image for color extraction:", e);
-        playerOverlay.style.background = '';
-        playerOverlay.style.animation = 'none';
+        playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
     }
 }
 
@@ -260,7 +254,9 @@ export function playSongByIndex(index) {
     globalPlayer.fsTitle.textContent = songData.title || 'Без названия';
     globalPlayer.fsSubtitle.textContent = songData.tags || '';
 
-    updatePlayerBackground(songData.imageUrl);
+    if (globalPlayer.fsOverlay.classList.contains('is-open')) {
+        updatePlayerBackground(songData.imageUrl);
+    }
 
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
@@ -268,7 +264,6 @@ export function playSongByIndex(index) {
     updateAllPlayIcons();
     
     if (globalPlayer.fsOverlay.classList.contains('is-open')) {
-        // If player is already open, just reload the lyrics
         showTimestampedLyrics(globalPlayer.currentSongId);
     }
 }
@@ -342,30 +337,44 @@ export async function showTimestampedLyrics(songId) {
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {
-            lyricsContainer.innerHTML = `<p class="lyrics-placeholder">Текст с временными метками недоступен. <br><br> <strong>Обычный текст:</strong><br>${(songInfo.songData.prompt || 'Нет данных').replace(/\n/g, '<br>')}</p>`;
+            showSimpleLyrics(songId); // Fallback to simple lyrics
             return;
         }
 
         currentLyrics = lyricsData.alignedWords;
-        
+        const rawText = songInfo.songData.prompt || '';
+        const lines = rawText.split('\n');
+        let wordDataIndex = 0;
+
         lyricsContainer.innerHTML = '';
         const paragraph = document.createElement('div');
         paragraph.className = 'lyrics-paragraph';
 
-        currentLyrics.forEach((segment, index) => {
-            if (typeof segment.word !== 'string') return;
-
-            const span = document.createElement('span');
-            span.textContent = segment.word + ' ';
-            span.className = 'lyric-segment';
-            span.dataset.index = index;
-            span.dataset.startTime = segment.startS;
-
-            if (segment.word.startsWith('[') && segment.word.endsWith(']')) {
-                span.classList.add('lyric-tag');
+        lines.forEach(lineText => {
+            const lineDiv = document.createElement('div');
+            if (lineText.trim() === '') {
+                lineDiv.innerHTML = '&nbsp;';
+            } else {
+                const lineWords = lineText.trim().split(/\s+/);
+                lineWords.forEach(word => {
+                    if (wordDataIndex < currentLyrics.length) {
+                        const segment = currentLyrics[wordDataIndex];
+                        const span = document.createElement('span');
+                        span.textContent = segment.word + ' ';
+                        span.className = 'lyric-segment';
+                        span.dataset.index = wordDataIndex;
+                        span.dataset.startTime = segment.startS;
+                        if (segment.word.startsWith('[') && segment.word.endsWith(']')) {
+                            span.classList.add('lyric-tag');
+                        }
+                        lineDiv.appendChild(span);
+                        wordDataIndex++;
+                    }
+                });
             }
-            paragraph.appendChild(span);
+            paragraph.appendChild(lineDiv);
         });
+        
         lyricsContainer.appendChild(paragraph);
 
         if (!globalPlayer.audio.paused) {
@@ -400,7 +409,11 @@ function updateActiveLyric(currentTime) {
             if (activeElement) {
                 activeElement.classList.add('active');
                 if (!isUserScrollingLyrics) {
-                    activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    // Scroll the parent line into view
+                    const parentLine = activeElement.parentElement;
+                    if (parentLine) {
+                       parentLine.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    }
                 }
             }
         }
