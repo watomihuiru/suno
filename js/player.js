@@ -10,7 +10,6 @@ let lastActiveLyricIndex = -1;
 let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
-let lyricsModal;
 
 export function initializePlayer() {
     globalPlayer = { 
@@ -18,7 +17,9 @@ export function initializePlayer() {
         audio: document.createElement('audio'), 
         cover: document.getElementById("player-cover"), 
         title: document.getElementById("player-title"), 
+        subtitle: document.getElementById("player-subtitle"),
         seekBar: document.getElementById("seek-bar"), 
+        seekBarMobile: document.getElementById("seek-bar-mobile"),
         playPauseBtn: document.getElementById("play-pause-btn"), 
         currentTime: document.getElementById("current-time"), 
         totalDuration: document.getElementById("total-duration"), 
@@ -27,15 +28,37 @@ export function initializePlayer() {
         shuffleBtn: document.getElementById('shuffle-btn'), 
         repeatBtn: document.getElementById('repeat-btn'), 
         closeBtn: document.getElementById('close-player-btn'), 
-        currentSongId: null 
-    };
-    lyricsModal = { 
-        overlay: document.getElementById('lyrics-modal-overlay'), 
-        content: document.getElementById('lyrics-modal-content'), 
-        closeBtn: document.getElementById('lyrics-modal-close'), 
-        returnBtn: document.getElementById('return-to-active-lyric-btn') 
+        currentSongId: null,
+
+        // Fullscreen player elements
+        fsOverlay: document.getElementById('fullscreen-player-overlay'),
+        fsCover: document.getElementById('fs-cover'),
+        fsTitle: document.getElementById('fs-title'),
+        fsSubtitle: document.getElementById('fs-subtitle'),
+        fsLyricsContent: document.getElementById('fs-lyrics-content'),
+        fsCurrentTime: document.getElementById('fs-current-time'),
+        fsTotalDuration: document.getElementById('fs-total-duration'),
+        fsSeekBar: document.getElementById('fs-seek-bar'),
+        fsPlayPauseBtn: document.getElementById('fs-play-pause-btn'),
+        fsPrevBtn: document.getElementById('fs-prev-btn'),
+        fsNextBtn: document.getElementById('fs-next-btn'),
+        fsShuffleBtn: document.getElementById('fs-shuffle-btn'),
+        fsRepeatBtn: document.getElementById('fs-repeat-btn'),
+        fsCollapseBtn: document.getElementById('fs-collapse-btn'),
     };
     setupPlayerListeners();
+}
+
+export function openFullscreenPlayer() {
+    if (globalPlayer.currentSongId) {
+        globalPlayer.fsOverlay.classList.add('is-open');
+        showTimestampedLyrics(globalPlayer.currentSongId, true); // Load lyrics without opening modal
+    }
+}
+
+function closeFullscreenPlayer() {
+    globalPlayer.fsOverlay.classList.remove('is-open');
+    stopLyricsAnimationLoop();
 }
 
 async function refreshAudioUrlAndPlay(songId) {
@@ -74,17 +97,22 @@ function stopLyricsAnimationLoop() {
 
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); if (globalPlayer.currentSongId) { refreshAudioUrlAndPlay(globalPlayer.currentSongId); } };
-    globalPlayer.playPauseBtn.onclick = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     
+    const togglePlayPause = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
+    globalPlayer.playPauseBtn.onclick = togglePlayPause;
+    globalPlayer.fsPlayPauseBtn.onclick = togglePlayPause;
+
     globalPlayer.audio.onplay = () => { 
         globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`; 
+        globalPlayer.fsPlayPauseBtn.innerHTML = `<i class="fas fa-pause"></i>`;
         updateAllPlayIcons();
-        if (lyricsModal.overlay.style.display === 'flex' && currentLyrics.length > 0) {
+        if (globalPlayer.fsOverlay.classList.contains('is-open') && currentLyrics.length > 0) {
             startLyricsAnimationLoop();
         }
     };
     globalPlayer.audio.onpause = () => { 
         globalPlayer.playPauseBtn.innerHTML = `<i class="fas fa-play"></i>`; 
+        globalPlayer.fsPlayPauseBtn.innerHTML = `<i class="fas fa-play"></i>`;
         updateAllPlayIcons();
         stopLyricsAnimationLoop();
     };
@@ -98,36 +126,48 @@ function setupPlayerListeners() {
         }
     };
 
-    globalPlayer.audio.onloadedmetadata = () => { globalPlayer.seekBar.max = globalPlayer.audio.duration; globalPlayer.totalDuration.textContent = formatTime(globalPlayer.audio.duration); };
-    globalPlayer.audio.ontimeupdate = () => {
-        globalPlayer.seekBar.value = globalPlayer.audio.currentTime;
-        globalPlayer.currentTime.textContent = formatTime(globalPlayer.audio.currentTime);
-        const progressPercent = (globalPlayer.audio.currentTime / globalPlayer.audio.duration) * 100;
-        globalPlayer.seekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
+    globalPlayer.audio.onloadedmetadata = () => { 
+        const duration = globalPlayer.audio.duration;
+        globalPlayer.seekBar.max = duration;
+        globalPlayer.seekBarMobile.max = duration;
+        globalPlayer.fsSeekBar.max = duration;
+        globalPlayer.totalDuration.textContent = formatTime(duration);
+        globalPlayer.fsTotalDuration.textContent = formatTime(duration);
     };
-    globalPlayer.seekBar.addEventListener('input', () => {
-        globalPlayer.audio.currentTime = globalPlayer.seekBar.value;
-        const progressPercent = (globalPlayer.audio.currentTime / globalPlayer.audio.duration) * 100;
+    globalPlayer.audio.ontimeupdate = () => {
+        const currentTime = globalPlayer.audio.currentTime;
+        const duration = globalPlayer.audio.duration;
+        globalPlayer.seekBar.value = currentTime;
+        globalPlayer.seekBarMobile.value = currentTime;
+        globalPlayer.fsSeekBar.value = currentTime;
+        globalPlayer.currentTime.textContent = formatTime(currentTime);
+        globalPlayer.fsCurrentTime.textContent = formatTime(currentTime);
+        const progressPercent = (currentTime / duration) * 100;
         globalPlayer.seekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
-    });
+        globalPlayer.seekBarMobile.style.setProperty('--seek-before-width', `${progressPercent}%`);
+        globalPlayer.fsSeekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
+    };
+    
+    const seek = (value) => {
+        globalPlayer.audio.currentTime = value;
+    };
+    globalPlayer.seekBar.addEventListener('input', (e) => seek(e.target.value));
+    globalPlayer.seekBarMobile.addEventListener('input', (e) => seek(e.target.value));
+    globalPlayer.fsSeekBar.addEventListener('input', (e) => seek(e.target.value));
     
     globalPlayer.nextBtn.onclick = playNext;
+    globalPlayer.fsNextBtn.onclick = playNext;
     globalPlayer.prevBtn.onclick = playPrevious;
-    globalPlayer.shuffleBtn.onclick = () => { isShuffled = !isShuffled; globalPlayer.shuffleBtn.classList.toggle('active', isShuffled); };
-    globalPlayer.repeatBtn.onclick = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); };
-    
-    const closeModal = () => {
-        lyricsModal.overlay.style.display = 'none';
-        lyricsModal.returnBtn.classList.remove('visible');
-        currentLyrics = [];
-        lastActiveLyricIndex = -1;
-        isUserScrollingLyrics = false;
-        clearTimeout(lyricsScrollTimeout);
-        stopLyricsAnimationLoop();
-    };
-    lyricsModal.closeBtn.onclick = closeModal;
-    lyricsModal.overlay.onclick = (e) => { if (e.target === lyricsModal.overlay) closeModal(); };
+    globalPlayer.fsPrevBtn.onclick = playPrevious;
 
+    const toggleShuffle = () => { isShuffled = !isShuffled; globalPlayer.shuffleBtn.classList.toggle('active', isShuffled); globalPlayer.fsShuffleBtn.classList.toggle('active', isShuffled); };
+    globalPlayer.shuffleBtn.onclick = toggleShuffle;
+    globalPlayer.fsShuffleBtn.onclick = toggleShuffle;
+
+    const toggleRepeat = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); };
+    globalPlayer.repeatBtn.onclick = toggleRepeat;
+    globalPlayer.fsRepeatBtn.onclick = toggleRepeat;
+    
     globalPlayer.closeBtn.onclick = () => {
         globalPlayer.audio.pause();
         globalPlayer.audio.src = '';
@@ -136,28 +176,18 @@ function setupPlayerListeners() {
         updateAllPlayIcons();
     };
 
-    lyricsModal.content.addEventListener('scroll', () => {
+    globalPlayer.fsCollapseBtn.onclick = closeFullscreenPlayer;
+
+    globalPlayer.fsLyricsContent.addEventListener('scroll', () => {
         if (currentLyrics.length === 0) return;
         isUserScrollingLyrics = true;
-        lyricsModal.returnBtn.classList.add('visible');
         clearTimeout(lyricsScrollTimeout);
         lyricsScrollTimeout = setTimeout(() => {
             isUserScrollingLyrics = false;
-            lyricsModal.returnBtn.classList.remove('visible');
         }, 4000);
     });
 
-    lyricsModal.returnBtn.addEventListener('click', () => {
-        clearTimeout(lyricsScrollTimeout);
-        isUserScrollingLyrics = false;
-        lyricsModal.returnBtn.classList.remove('visible');
-        const activeElement = document.querySelector(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
-        if (activeElement) {
-            activeElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        }
-    });
-
-    lyricsModal.content.addEventListener('click', (e) => {
+    globalPlayer.fsLyricsContent.addEventListener('click', (e) => {
         const targetSegment = e.target.closest('.lyric-segment');
         if (targetSegment && !targetSegment.classList.contains('lyric-tag')) {
             const seekTime = parseFloat(targetSegment.dataset.startTime);
@@ -177,12 +207,22 @@ export function playSongByIndex(index) {
     currentTrackIndex = index;
     const songData = playlist[currentTrackIndex].songData;
     globalPlayer.currentSongId = songData.id;
+    
+    // Update mini player
     globalPlayer.cover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.title.textContent = songData.title || 'Без названия';
+    globalPlayer.subtitle.textContent = songData.tags || '';
+    
+    // Update fullscreen player
+    globalPlayer.fsCover.src = songData.imageUrl || 'placeholder.png';
+    globalPlayer.fsTitle.textContent = songData.title || 'Без названия';
+    globalPlayer.fsSubtitle.textContent = songData.tags || '';
+
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
-    globalPlayer.container.style.display = 'flex';
+    globalPlayer.container.style.display = 'grid';
     updateAllPlayIcons();
+    showTimestampedLyrics(songData.id, true); // Pre-load lyrics for fullscreen player
 }
 
 function playNext() { 
@@ -223,25 +263,28 @@ export function showSimpleLyrics(songId) {
     if (!songInfo) return;
     const rawText = songInfo.songData.prompt || "Текст для этой песни не найден.";
     
-    lyricsModal.content.innerHTML = `<div class="lyrics-paragraph">${rawText}</div>`;
-    lyricsModal.overlay.style.display = 'flex';
+    globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${rawText}</div>`;
+    openFullscreenPlayer();
     currentLyrics = [];
     stopLyricsAnimationLoop();
 }
 
-export async function showTimestampedLyrics(songId) {
-    lyricsModal.content.innerHTML = '<p>Загрузка караоке...</p>';
-    lyricsModal.overlay.style.display = 'flex';
+export async function showTimestampedLyrics(songId, isPreload = false) {
+    const lyricsContainer = globalPlayer.fsLyricsContent;
+    if (!isPreload) {
+        lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Загрузка караоке...</p>';
+        openFullscreenPlayer();
+    }
+    
     currentLyrics = [];
     lastActiveLyricIndex = -1;
     isUserScrollingLyrics = false;
-    lyricsModal.returnBtn.classList.remove('visible');
     stopLyricsAnimationLoop();
 
     try {
         const songInfo = getSongById(songId);
         if (!songInfo || !songInfo.requestParams || !songInfo.requestParams.taskId) {
-            lyricsModal.content.textContent = "Ошибка: ID задачи для этой песни не найден. Караоке недоступно.";
+            lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Ошибка: ID задачи для этой песни не найден. Караоке недоступно.</p>';
             return;
         }
 
@@ -253,15 +296,15 @@ export async function showTimestampedLyrics(songId) {
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {
-            lyricsModal.content.textContent = "Текст с временными метками недоступен. Попробуйте сгенерировать песню заново.";
+            lyricsContainer.innerHTML = `<p class="lyrics-placeholder">Текст с временными метками недоступен. <br><br> <strong>Обычный текст:</strong><br>${songInfo.songData.prompt || 'Нет данных'}</p>`;
             return;
         }
 
         currentLyrics = lyricsData.alignedWords;
         
-        lyricsModal.content.innerHTML = '';
-        const lyricsContainer = document.createElement('div');
-        lyricsContainer.className = 'lyrics-paragraph';
+        lyricsContainer.innerHTML = '';
+        const paragraph = document.createElement('div');
+        paragraph.className = 'lyrics-paragraph';
 
         currentLyrics.forEach((segment, index) => {
             if (typeof segment.word !== 'string') return;
@@ -275,9 +318,9 @@ export async function showTimestampedLyrics(songId) {
             if (segment.word.startsWith('[') && segment.word.endsWith(']')) {
                 span.classList.add('lyric-tag');
             }
-            lyricsContainer.appendChild(span);
+            paragraph.appendChild(span);
         });
-        lyricsModal.content.appendChild(lyricsContainer);
+        lyricsContainer.appendChild(paragraph);
 
         if (!globalPlayer.audio.paused) {
             startLyricsAnimationLoop();
@@ -285,7 +328,7 @@ export async function showTimestampedLyrics(songId) {
 
     } catch (error) {
         console.error("Критическая ошибка при загрузке караоке:", error);
-        lyricsModal.content.textContent = "Не удалось загрузить караоке из-за ошибки.";
+        lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Не удалось загрузить караоке из-за ошибки.</p>';
     }
 }
 

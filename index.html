@@ -219,8 +219,9 @@
     <div id="global-player">
         <div id="player-song-info">
             <img id="player-cover" src="" alt="cover">
-            <div>
+            <div class="player-text-info">
                 <div id="player-title">Выберите трек</div>
+                <div id="player-subtitle"></div>
             </div>
         </div>
         <div id="player-main">
@@ -231,7 +232,7 @@
                 <button class="player-btn" id="next-btn"><i class="fas fa-step-forward"></i></button>
                 <button class="player-btn" id="repeat-btn"><i class="fas fa-repeat"></i></button>
             </div>
-            <div id="player-timeline">
+            <div id="player-timeline-desktop">
                 <span id="current-time" class="time-display">0:00</span>
                 <input type="range" id="seek-bar" value="0" step="0.1">
                 <span id="total-duration" class="time-display">0:00</span>
@@ -239,6 +240,33 @@
         </div>
         <div id="player-extra-controls">
             <button class="player-btn" id="close-player-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="player-timeline-mobile">
+             <input type="range" id="seek-bar-mobile" value="0" step="0.1">
+        </div>
+    </div>
+
+    <div id="fullscreen-player-overlay">
+        <button id="fs-collapse-btn" class="fab-button"><i class="fas fa-chevron-down"></i></button>
+        <img id="fs-cover" src="" alt="cover">
+        <div id="fs-song-info">
+            <h2 id="fs-title"></h2>
+            <p id="fs-subtitle"></p>
+        </div>
+        <div id="fs-lyrics-content">
+            <p class="lyrics-placeholder">Текст песни загружается...</p>
+        </div>
+        <div id="fs-timeline">
+            <span id="fs-current-time" class="time-display">0:00</span>
+            <input type="range" id="fs-seek-bar" value="0" step="0.1">
+            <span id="fs-total-duration" class="time-display">0:00</span>
+        </div>
+        <div id="fs-controls">
+            <button class="player-btn" id="fs-shuffle-btn"><i class="fas fa-random"></i></button>
+            <button class="player-btn" id="fs-prev-btn"><i class="fas fa-step-backward"></i></button>
+            <button class="player-btn" id="fs-play-pause-btn"><i class="fas fa-play"></i></button>
+            <button class="player-btn" id="fs-next-btn"><i class="fas fa-step-forward"></i></button>
+            <button class="player-btn" id="fs-repeat-btn"><i class="fas fa-repeat"></i></button>
         </div>
     </div>
 

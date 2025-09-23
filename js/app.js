@@ -4,7 +4,7 @@
 
 import { handleApiCall } from './api.js';
 import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
-import { initializePlayer } from './player.js';
+import { initializePlayer, openFullscreenPlayer } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
     showView, 
@@ -75,6 +75,7 @@ function setupEventListeners() {
     const mobileNavViewBtns = document.querySelectorAll('.mobile-nav-btn[data-view]');
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const globalPlayer = document.getElementById('global-player');
 
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);
@@ -105,6 +106,16 @@ function setupEventListeners() {
             const viewName = button.dataset.view;
             showView(viewName);
         });
+    });
+
+    // Open fullscreen player on mini-player click
+    globalPlayer.addEventListener('click', (e) => {
+        if (window.innerWidth > 768) return;
+        // Prevent opening if a button or the seek bar was clicked
+        if (e.target.closest('button') || e.target.closest('input[type="range"]')) {
+            return;
+        }
+        openFullscreenPlayer();
     });
 
     // UI Elements
@@ -316,7 +327,7 @@ function handleExtendSubmit(e) {
         payload.continueAt = document.getElementById('ue-continueAt').value;
         payload.instrumental = isInstrumental;
 
-        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'ue-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
+        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
         for (const key in optionalFields) {
             const element = document.getElementById(optionalFields[key]);
             if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
