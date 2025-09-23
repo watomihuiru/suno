@@ -170,10 +170,10 @@ function addSongToList(songInfo) {
     const menuItems = [ 
         { icon: 'fas fa-clone', text: 'Расширить', action: () => { setupExtendView(songInfo); closeMobileLibrary(); } },
         { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => { setupCoverView(songInfo); closeMobileLibrary(); } },
-        moveMenuItem,
-        { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
+        moveMenuItem,
+        { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, 
         { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } 
     ];
