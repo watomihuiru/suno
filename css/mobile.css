@@ -147,6 +147,7 @@
     }
     #player-song-info {
         min-width: 0;
+        flex-grow: 1;
     }
     #player-cover {
         width: 40px;
@@ -154,6 +155,7 @@
     }
     .player-text-info {
         overflow: hidden;
+        padding-right: 10px;
     }
     #player-title, #player-subtitle {
         white-space: nowrap;
