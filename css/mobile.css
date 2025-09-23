@@ -28,9 +28,6 @@
     body { 
         overflow: auto; 
     }
-    body.library-open {
-        overflow: hidden;
-    }
     .landing-content h1 { 
         font-size: 36px; 
     }
@@ -42,7 +39,7 @@
         height: auto; 
         padding: 15px; 
         padding-top: 70px; 
-        padding-bottom: 80px; 
+        padding-bottom: 150px; 
     }
     .main-content { 
         grid-column: 1 / -1; 
@@ -94,43 +91,9 @@
         display: block; 
     }
     .library-card { 
-        display: flex;
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 100%;
-        z-index: 1200;
-        grid-column: auto;
-        margin: 0;
-        border-radius: 0;
-        padding-top: 60px;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s, visibility 0.3s;
-        transform: none;
-    }
-    .library-card.is-open { 
-        opacity: 1;
-        visibility: visible;
-    }
-    .mobile-only-close-btn {
-        display: block;
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: 28px;
-        line-height: 1;
-        cursor: pointer;
-        z-index: 1201;
-    }
-    body.library-open .mobile-header,
-    body.library-open .mobile-bottom-nav,
-    body.library-open #global-player {
         display: none;
+        grid-column: 1 / -1;
+        margin: 0;
     }
     .mobile-bottom-nav {
         display: flex;

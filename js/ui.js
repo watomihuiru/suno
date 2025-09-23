@@ -24,6 +24,15 @@ export function updateStatus(message, isSuccess = false, isError = false) {
 
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
+
+    // On mobile, ensure the correct container is visible
+    if (window.innerWidth <= 768) {
+        const mainContent = document.querySelector('.main-content');
+        const libraryCard = document.querySelector('.library-card');
+        if (mainContent) mainContent.style.display = 'flex';
+        if (libraryCard) libraryCard.style.display = 'none';
+    }
+
     document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');

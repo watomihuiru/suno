@@ -69,56 +69,41 @@ async function handleLogin() {
 }
 
 function setupEventListeners() {
-    // Mobile Toggles
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const mainContent = document.querySelector('.main-content');
     const libraryCard = document.querySelector('.library-card');
     const mobileLibraryBtn = document.getElementById('mobile-library-btn');
-    const mobileLibraryCloseBtn = document.getElementById('mobile-library-close-btn');
+    const mobileNavViewBtns = document.querySelectorAll('.mobile-nav-btn[data-view]');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
 
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
 
-    const toggleLibrary = () => {
-        const isOpen = libraryCard.classList.toggle('is-open');
-        document.body.classList.toggle('library-open', isOpen);
-        mobileLibraryBtn.classList.toggle('active', isOpen);
+    // Mobile Bottom Nav view switching
+    mobileNavViewBtns.forEach(button => {
+        button.addEventListener('click', () => {
+            const viewName = button.dataset.view;
+            showView(viewName);
+        });
+    });
 
-        if (isOpen) {
-            document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(btn => btn.classList.remove('active'));
-        } else {
-            const currentView = getCurrentViewName();
-            const currentViewButton = document.querySelector(`.mobile-nav-btn[data-view="${currentView}"]`);
-            if (currentViewButton) {
-                currentViewButton.classList.add('active');
-            }
-        }
-    };
-    mobileLibraryBtn.addEventListener('click', toggleLibrary);
-    mobileLibraryCloseBtn.addEventListener('click', toggleLibrary);
+    // Mobile Library Button
+    mobileLibraryBtn.addEventListener('click', () => {
+        if (window.innerWidth > 768) return;
 
-    // Navigation
+        mainContent.style.display = 'none';
+        libraryCard.style.display = 'flex';
+
+        mobileNavViewBtns.forEach(btn => btn.classList.remove('active'));
+        mobileLibraryBtn.classList.add('active');
+    });
+
+    // Desktop Sidebar Navigation
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
         button.addEventListener('click', () => {
             const viewName = button.dataset.view;
             showView(viewName);
-            if (window.innerWidth <= 768) {
-                toggleSidebar();
-            }
-        });
-    });
-
-    // Mobile Bottom Nav view switching
-    document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(button => {
-        button.addEventListener('click', () => {
-            const viewName = button.dataset.view;
-            showView(viewName);
-            if (libraryCard.classList.contains('is-open')) {
-                libraryCard.classList.remove('is-open');
-                document.body.classList.remove('library-open');
-                mobileLibraryBtn.classList.remove('active');
-            }
         });
     });
 
