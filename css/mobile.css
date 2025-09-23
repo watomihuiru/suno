@@ -137,15 +137,15 @@
         left: 15px;
         right: 15px;
         bottom: 70px;
-        padding: 6px 12px;
-        gap: 12px;
+        padding: 4px 12px;
+        gap: 0 12px;
         display: none;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: space-between;
         cursor: pointer;
     }
     #player-song-info {
-        flex-grow: 1;
         min-width: 0;
     }
     #player-cover {
@@ -183,7 +183,7 @@
         display: block;
         width: 100%;
         order: 99;
-        margin-top: 4px;
+        margin-top: 2px;
     }
     #seek-bar-mobile {
         height: 2px;
