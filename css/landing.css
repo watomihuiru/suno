@@ -1,0 +1,44 @@
+#landing-page {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse at top, #1e2a47, var(--bg-page)), radial-gradient(ellipse at bottom, #3a1c4a, var(--bg-page));
+    padding: 20px;
+    animation: fadeIn 1s ease-in-out;
+}
+.landing-content {
+    max-width: 600px;
+}
+.landing-content h1 {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+}
+.landing-content p {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+    line-height: 1.6;
+}
+#start-button {
+    background-color: var(--accent-blue);
+    border: none;
+    border-radius: 8px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+#start-button:hover {
+    background-color: var(--accent-blue-hover);
+    transform: translateY(-2px);
+}
+#start-button:active {
+    transform: translateY(0);
+}

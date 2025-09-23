@@ -1,0 +1,112 @@
+.audio-editor {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.editor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.editor-cover-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+.editor-cover {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    object-fit: cover;
+}
+.editor-play-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+.editor-cover-container:hover .editor-play-icon {
+    opacity: 1;
+}
+.editor-details {
+    flex-grow: 1;
+}
+.editor-title {
+    font-weight: 600;
+    font-size: 16px;
+}
+.editor-time {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.waveform-container {
+    position: relative;
+    height: 60px;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+}
+.waveform-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.waveform-playback-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background-color: rgba(247, 183, 49, 0.5);
+    pointer-events: none;
+    z-index: 2;
+}
+.waveform-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 50%; /* Default position */
+    background-color: rgba(225, 175, 209, 0.25);
+    pointer-events: none;
+    z-index: 1;
+}
+.waveform-handle {
+    position: absolute;
+    top: 0;
+    left: 50%; /* Default position */
+    width: 3px;
+    height: 100%;
+    background-color: white;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 3;
+    cursor: ew-resize;
+}
+.extend-time-label {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 8px;
+}
