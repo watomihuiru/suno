@@ -230,6 +230,8 @@
     font-weight: 700;
     color: rgba(255, 255, 255, 0.4);
     margin-bottom: 20px;
+}
+#fs-lyrics-content.is-scrollable {
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
     mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
 }

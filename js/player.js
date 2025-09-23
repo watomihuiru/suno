@@ -11,6 +11,15 @@ let isUserScrollingLyrics = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
 
+function checkLyricsScrollability() {
+    const lyricsContent = globalPlayer.fsLyricsContent;
+    if (lyricsContent.scrollHeight > lyricsContent.clientHeight) {
+        lyricsContent.classList.add('is-scrollable');
+    } else {
+        lyricsContent.classList.remove('is-scrollable');
+    }
+}
+
 export function initializePlayer() {
     globalPlayer = { 
         container: document.getElementById("global-player"), 
@@ -47,6 +56,7 @@ export function initializePlayer() {
         fsCloseBtn: document.getElementById('fs-close-btn'),
     };
     setupPlayerListeners();
+    window.addEventListener('resize', checkLyricsScrollability);
 }
 
 function openFullscreenPlayer() {
@@ -310,6 +320,7 @@ export function showSimpleLyrics(songId) {
     globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${rawText.replace(/\n/g, '<br>')}</div>`;
     currentLyrics = [];
     stopLyricsAnimationLoop();
+    checkLyricsScrollability();
 }
 
 export async function showTimestampedLyrics(songId) {
@@ -326,6 +337,7 @@ export async function showTimestampedLyrics(songId) {
         const songInfo = getSongById(songId);
         if (!songInfo || !songInfo.requestParams || !songInfo.requestParams.taskId) {
             lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Ошибка: ID задачи для этой песни не найден. Караоке недоступно.</p>';
+            checkLyricsScrollability();
             return;
         }
 
@@ -353,13 +365,15 @@ export async function showTimestampedLyrics(songId) {
         currentLyrics.forEach((segment, index) => {
             const parts = segment.word.split('\n');
             parts.forEach((part, partIndex) => {
-                if (part.trim() !== '') {
+                let cleanedPart = part.replace(/\(\s+/, '(').trim();
+                
+                if (cleanedPart !== '') {
                     const span = document.createElement('span');
-                    span.textContent = part + ' ';
+                    span.textContent = cleanedPart + ' ';
                     span.className = 'lyric-segment';
                     span.dataset.index = index;
                     span.dataset.startTime = segment.startS;
-                    if (part.startsWith('[') && part.endsWith(']')) {
+                    if (cleanedPart.startsWith('[') && cleanedPart.endsWith(']')) {
                         span.classList.add('lyric-tag');
                     }
                     currentLine.appendChild(span);
@@ -367,15 +381,13 @@ export async function showTimestampedLyrics(songId) {
 
                 if (partIndex < parts.length - 1) {
                     currentLine = document.createElement('div');
-                    if (currentLine.innerHTML.trim() === '') {
-                        currentLine.innerHTML = '&nbsp;';
-                    }
                     paragraph.appendChild(currentLine);
                 }
             });
         });
         
         lyricsContainer.appendChild(paragraph);
+        checkLyricsScrollability();
 
         if (!globalPlayer.audio.paused) {
             startLyricsAnimationLoop();
@@ -384,6 +396,7 @@ export async function showTimestampedLyrics(songId) {
     } catch (error) {
         console.error("Критическая ошибка при загрузке караоке:", error);
         lyricsContainer.innerHTML = '<p class="lyrics-placeholder">Не удалось загрузить караоке из-за ошибки.</p>';
+        checkLyricsScrollability();
     }
 }
 
@@ -409,9 +422,11 @@ function updateActiveLyric(currentTime) {
             if (activeElements && activeElements.length > 0) {
                 activeElements.forEach(el => el.classList.add('active'));
                 if (!isUserScrollingLyrics) {
+                    const lyricsContainer = globalPlayer.fsLyricsContent;
                     const parentLine = activeElements[0].parentElement;
                     if (parentLine) {
-                       parentLine.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                       const scrollTop = parentLine.offsetTop - (lyricsContainer.clientHeight / 2) + (parentLine.clientHeight / 2);
+                       lyricsContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
                     }
                 }
             }
