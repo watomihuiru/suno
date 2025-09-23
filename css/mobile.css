@@ -161,6 +161,7 @@
         text-overflow: ellipsis;
     }
     #player-main {
+        flex-grow: 0;
         flex-direction: row;
         max-width: none;
         margin: 0;
