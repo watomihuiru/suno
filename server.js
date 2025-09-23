@@ -109,12 +109,21 @@ app.post('/api/projects', async (req, res) => {
 });
 
 app.delete('/api/projects/:id', async (req, res) => {
+    const client = await pool.connect();
     try {
-        await pool.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
-        res.status(200).json({ message: 'Проект удален' });
+        await client.query('BEGIN');
+        // Перемещаем песни из проекта в "Без проекта"
+        await client.query('UPDATE songs SET project_id = NULL WHERE project_id = $1', [req.params.id]);
+        // Удаляем сам проект
+        await client.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Проект удален, песни перемещены' });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('Ошибка при удалении проекта:', err);
         res.status(500).json({ message: 'Не удалось удалить проект' });
+    } finally {
+        client.release();
     }
 });
 

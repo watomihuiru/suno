@@ -14,7 +14,8 @@ import {
     setupCustomSelect, 
     setupInstrumentalToggle,
     validateField,
-    updateStatus
+    updateStatus,
+    setupConfirmationModal
 } from './ui.js';
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
@@ -103,6 +104,8 @@ function setupEventListeners() {
     projectModal.addEventListener('click', (e) => { if(e.target === projectModal) projectModal.style.display = 'none'; });
     document.getElementById('create-project-submit-btn').addEventListener('click', handleCreateProject);
 
+    // Confirmation Modal
+    setupConfirmationModal();
 
     // Custom Mode Toggles
     document.getElementById("g-customMode").addEventListener('change', () => {

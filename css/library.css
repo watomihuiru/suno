@@ -16,13 +16,14 @@
     background-color: var(--bg-input);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 6px 12px;
+    padding: 6px 28px 6px 12px;
     border-radius: 15px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     white-space: nowrap;
+    position: relative;
 }
 .project-item:hover {
     background-color: var(--border);
@@ -52,6 +53,23 @@
 .add-project-btn:hover {
     background-color: var(--border);
     transform: scale(1.1);
+}
+
+.delete-project-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+    font-size: 12px;
+}
+.project-item:hover .delete-project-icon {
+    opacity: 0.6;
+}
+.delete-project-icon:hover {
+    opacity: 1;
+    color: var(--accent-red);
 }
 
 .tabs { 

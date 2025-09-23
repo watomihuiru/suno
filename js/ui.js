@@ -169,3 +169,41 @@ export function validateField(field) {
     }
     return true;
 }
+
+export function setupConfirmationModal() {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    if (!overlay) return;
+    
+    const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+    
+    const hide = () => {
+        overlay.style.display = 'none';
+    };
+
+    cancelBtn.addEventListener('click', hide);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            hide();
+        }
+    });
+}
+
+export function showConfirmationModal(message, onConfirm) {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const messageEl = document.getElementById('confirm-modal-message');
+    const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+
+    if (!overlay || !messageEl || !confirmBtn) return;
+
+    messageEl.textContent = message;
+
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    newConfirmBtn.addEventListener('click', () => {
+        onConfirm();
+        overlay.style.display = 'none';
+    });
+
+    overlay.style.display = 'flex';
+}

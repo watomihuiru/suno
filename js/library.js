@@ -2,7 +2,7 @@
 // загрузка с сервера, рендеринг списка, добавление, удаление,
 // добавление в избранное и другие действия с песнями.
 import { modelMap } from './config.js';
-import { formatTime, copyToClipboard } from './ui.js';
+import { formatTime, copyToClipboard, showConfirmationModal } from './ui.js';
 import { playSongByIndex, getPlayerState, showSimpleLyrics, showTimestampedLyrics } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
 
@@ -267,12 +267,31 @@ export function setupLibraryTabs() {
 }
 
 // --- Функции для проектов ---
+async function handleDeleteProject(projectId, projectName) {
+    showConfirmationModal(
+        `Вы уверены, что хотите удалить проект "${projectName}"? Все песни из него будут перемещены в "Без проекта".`,
+        async () => {
+            try {
+                const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    activeProjectId = null;
+                    fetchProjects();
+                } else {
+                    const result = await response.json();
+                    console.error('Не удалось удалить проект:', result.message);
+                }
+            } catch (error) {
+                console.error('Ошибка при удалении проекта:', error);
+            }
+        }
+    );
+}
+
 export async function fetchProjects() {
     try {
         const response = await fetch('/api/projects');
         projects = await response.json();
         renderProjects();
-        // Загружаем песни из первого проекта или "Без проекта"
         loadSongsFromServer(activeProjectId);
     } catch (error) {
         console.error('Не удалось загрузить проекты:', error);
@@ -282,7 +301,6 @@ export async function fetchProjects() {
 function renderProjects() {
     projectListContainer.innerHTML = '';
     
-    // Кнопка "Без проекта"
     const uncategorizedBtn = document.createElement('button');
     uncategorizedBtn.className = 'project-item';
     uncategorizedBtn.textContent = 'Без проекта';
@@ -293,24 +311,39 @@ function renderProjects() {
     uncategorizedBtn.onclick = () => {
         activeProjectId = null;
         loadSongsFromServer(null);
-        renderProjects(); // Перерисовываем для обновления активного класса
+        renderProjects();
     };
     projectListContainer.appendChild(uncategorizedBtn);
 
-    // Рендерим остальные проекты
     projects.forEach(project => {
         const projectBtn = document.createElement('button');
         projectBtn.className = 'project-item';
-        projectBtn.textContent = project.name;
         projectBtn.dataset.projectId = project.id;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = project.name;
+        projectBtn.appendChild(nameSpan);
+
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fas fa-times delete-project-icon';
+        projectBtn.appendChild(deleteIcon);
+
         if (activeProjectId === project.id) {
             projectBtn.classList.add('active');
         }
-        projectBtn.onclick = () => {
+
+        projectBtn.addEventListener('click', (e) => {
+            if (e.target === deleteIcon) return;
             activeProjectId = project.id;
             loadSongsFromServer(project.id);
-            renderProjects(); // Перерисовываем
-        };
+            renderProjects();
+        });
+
+        deleteIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleDeleteProject(project.id, project.name);
+        });
+
         projectListContainer.appendChild(projectBtn);
     });
 }
