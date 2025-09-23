@@ -15,7 +15,8 @@ import {
     setupInstrumentalToggle,
     validateField,
     updateStatus,
-    setupConfirmationModal
+    setupConfirmationModal,
+    getCurrentViewName
 } from './ui.js';
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
@@ -73,11 +74,28 @@ function setupEventListeners() {
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const libraryCard = document.querySelector('.library-card');
     const libraryOverlay = document.getElementById('library-overlay');
+    const mobileLibraryBtn = document.getElementById('mobile-library-btn');
+
     const toggleSidebar = () => { sidebar.classList.toggle('is-open'); sidebarOverlay.classList.toggle('is-visible'); };
     document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
-    const toggleLibrary = () => { libraryCard.classList.toggle('is-open'); libraryOverlay.classList.toggle('is-visible'); };
-    document.getElementById('mobile-library-toggle').addEventListener('click', toggleLibrary);
+
+    const toggleLibrary = () => {
+        const isOpen = libraryCard.classList.toggle('is-open');
+        libraryOverlay.classList.toggle('is-visible', isOpen);
+        mobileLibraryBtn.classList.toggle('active', isOpen);
+
+        if (isOpen) {
+            document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(btn => btn.classList.remove('active'));
+        } else {
+            const currentView = getCurrentViewName();
+            const currentViewButton = document.querySelector(`.mobile-nav-btn[data-view="${currentView}"]`);
+            if (currentViewButton) {
+                currentViewButton.classList.add('active');
+            }
+        }
+    };
+    mobileLibraryBtn.addEventListener('click', toggleLibrary);
     libraryOverlay.addEventListener('click', toggleLibrary);
 
     // Navigation
@@ -87,6 +105,19 @@ function setupEventListeners() {
             showView(viewName);
             if (window.innerWidth <= 768) {
                 toggleSidebar();
+            }
+        });
+    });
+
+    // Mobile Bottom Nav view switching
+    document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(button => {
+        button.addEventListener('click', () => {
+            const viewName = button.dataset.view;
+            showView(viewName);
+            if (libraryCard.classList.contains('is-open')) {
+                libraryCard.classList.remove('is-open');
+                libraryOverlay.classList.remove('is-visible');
+                mobileLibraryBtn.classList.remove('active');
             }
         });
     });

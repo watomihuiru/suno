@@ -4,6 +4,9 @@
 #sidebar-overlay, #library-overlay { 
     display: none; 
 }
+.mobile-bottom-nav {
+    display: none;
+}
 
 @media (max-width: 1200px) {
     .page-container { 
@@ -33,7 +36,7 @@
         height: auto; 
         padding: 15px; 
         padding-top: 70px; 
-        padding-bottom: 100px; 
+        padding-bottom: 150px; 
     }
     .main-content { 
         grid-column: 1 / -1; 
@@ -66,14 +69,11 @@
         z-index: 1050; 
     }
     #mobile-menu-toggle, #mobile-library-toggle { 
-        background: none; 
-        border: none; 
-        color: var(--text-primary); 
-        font-size: 20px; 
-        cursor: pointer; 
+        display: none;
     }
     .mobile-header h2 { 
         font-size: 18px; 
+        margin: 0 auto;
     }
     #sidebar-overlay, #library-overlay { 
         position: fixed; 
@@ -106,10 +106,51 @@
         transform: translateX(0); 
     }
     
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 65px;
+        background-color: var(--bg-card);
+        border-top: 1px solid var(--border);
+        z-index: 1050;
+        justify-content: space-around;
+        align-items: flex-start;
+        padding-top: 8px;
+    }
+
+    .mobile-nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        flex-basis: 0;
+        flex-grow: 1;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .mobile-nav-btn i {
+        font-size: 20px;
+        margin-bottom: 2px;
+    }
+
+    .mobile-nav-btn.active {
+        color: var(--accent-blue);
+    }
+
     #global-player {
         left: 15px;
         right: 15px;
-        bottom: 15px;
+        bottom: 80px;
         padding: 8px 12px;
         gap: 10px;
     }

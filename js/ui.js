@@ -4,6 +4,10 @@ import { modelLimits, extendModelLimits } from './config.js';
 
 let currentViewName = 'generate';
 
+export function getCurrentViewName() {
+    return currentViewName;
+}
+
 export function formatTime(seconds) {
     if (isNaN(seconds) || seconds === null || !isFinite(seconds)) return '0:00';
     const m = Math.floor(seconds / 60);
@@ -24,6 +28,20 @@ export function showView(viewName, isSetup = false) {
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
     document.querySelector(`.nav-button[data-view="${viewName}"]`).classList.add('active');
+    
+    // Handle mobile bottom nav active state
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.view === viewName) {
+            btn.classList.add('active');
+        }
+    });
+    // Deactivate library button if a view is selected
+    const mobileLibraryBtn = document.getElementById('mobile-library-btn');
+    if (mobileLibraryBtn) {
+        mobileLibraryBtn.classList.remove('active');
+    }
+
     currentViewName = viewName;
     
     if (!isSetup) {
