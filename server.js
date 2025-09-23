@@ -22,22 +22,44 @@ const pool = new Pool({
 async function setupDatabase() {
     const client = await pool.connect();
     try {
+        // Создаем таблицу для проектов
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS projects (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('Таблица "projects" готова.');
+
+        // Создаем таблицу для песен, если ее нет
         await client.query(`
             CREATE TABLE IF NOT EXISTS songs (
                 id VARCHAR(255) PRIMARY KEY,
                 song_data JSONB NOT NULL,
                 request_params JSONB NOT NULL,
                 is_favorite BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                lyrics_data JSONB
             );
         `);
         console.log('Таблица "songs" готова.');
 
-        await client.query('ALTER TABLE songs ADD COLUMN IF NOT EXISTS lyrics_data JSONB;');
-        console.log('Колонка "lyrics_data" для кэша готова.');
+        // Добавляем колонку project_id в таблицу songs, если ее нет
+        const columns = await client.query(`
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name='songs' AND column_name='project_id'
+        `);
+        if (columns.rows.length === 0) {
+            await client.query(`
+                ALTER TABLE songs 
+                ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
+            `);
+            console.log('Колонка "project_id" добавлена в таблицу "songs".');
+        }
 
     } catch (err) {
-        console.error('Ошибка при настройке таблицы:', err);
+        console.error('Ошибка при настройке базы данных:', err);
     } finally {
         client.release();
     }
@@ -61,11 +83,58 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// --- API для Проектов ---
+app.get('/api/projects', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM projects ORDER BY created_at ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Ошибка при получении проектов:', err);
+        res.status(500).json({ message: 'Не удалось загрузить проекты' });
+    }
+});
+
+app.post('/api/projects', async (req, res) => {
+    const { name } = req.body;
+    if (!name || name.trim().length === 0) {
+        return res.status(400).json({ message: 'Название проекта не может быть пустым' });
+    }
+    try {
+        const result = await pool.query('INSERT INTO projects (name) VALUES ($1) RETURNING *', [name.trim()]);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Ошибка при создании проекта:', err);
+        res.status(500).json({ message: 'Не удалось создать проект' });
+    }
+});
+
+app.delete('/api/projects/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
+        res.status(200).json({ message: 'Проект удален' });
+    } catch (err) {
+        console.error('Ошибка при удалении проекта:', err);
+        res.status(500).json({ message: 'Не удалось удалить проект' });
+    }
+});
+
 
 // --- API для Песен ---
 app.get('/api/songs', async (req, res) => {
+    const { projectId } = req.query;
+    let queryText;
+    const params = [];
+
+    if (projectId && projectId !== 'null') {
+        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE project_id = $1 ORDER BY created_at DESC';
+        params.push(projectId);
+    } else {
+        // Если projectId не указан или 'null', получаем песни без проекта
+        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE project_id IS NULL ORDER BY created_at DESC';
+    }
+
     try {
-        const result = await pool.query('SELECT id, song_data, request_params, is_favorite FROM songs ORDER BY created_at DESC');
+        const result = await pool.query(queryText, params);
         res.json(result.rows.map(row => ({ 
             songData: { ...row.song_data, id: row.id, is_favorite: row.is_favorite }, 
             requestParams: row.request_params 
@@ -73,6 +142,18 @@ app.get('/api/songs', async (req, res) => {
     } catch (err) {
         console.error('Ошибка при получении песен:', err);
         res.status(500).json({ message: 'Не удалось загрузить песни' });
+    }
+});
+
+app.put('/api/songs/:id/move', async (req, res) => {
+    const { projectId } = req.body; // projectId может быть null
+    const { id } = req.params;
+    try {
+        await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2', [projectId, id]);
+        res.status(200).json({ message: 'Песня перемещена' });
+    } catch (err) {
+        console.error('Ошибка при перемещении песни:', err);
+        res.status(500).json({ message: 'Не удалось переместить песню' });
     }
 });
 
@@ -207,7 +288,6 @@ async function proxyRequest(res, method, endpoint, data) {
 }
 
 app.post('/api/generate', (req, res) => { const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' }; proxyRequest(res, 'POST', '/generate', payload); });
-// *** ИЗМЕНЕНИЕ: Удален эндпоинт /api/generate/extend ***
 app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
 app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
 app.post('/api/lyrics', async (req, res) => {

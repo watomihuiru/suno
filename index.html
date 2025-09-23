@@ -193,6 +193,10 @@
             </main>
 
             <div class="card library-card">
+                <div class="library-header">
+                    <div id="project-list"></div>
+                    <button id="add-project-btn" class="add-project-btn"><i class="fas fa-plus"></i></button>
+                </div>
                 <div class="tabs" id="library-tabs">
                      <button class="tab-button active" data-filter="all">Все</button>
                      <button class="tab-button" data-filter="favorites">Избранное</button>
@@ -236,6 +240,16 @@
             <button id="lyrics-modal-close">&times;</button>
             <div id="lyrics-modal-content"></div>
             <button id="return-to-active-lyric-btn" class="fab-button"><i class="fas fa-clock"></i></button>
+        </div>
+    </div>
+
+    <div id="project-modal-overlay" style="display: none;">
+        <div id="project-modal-box">
+            <button id="project-modal-close-btn">&times;</button>
+            <h3>Создать новый проект</h3>
+            <input type="text" id="project-name-input" placeholder="Название проекта...">
+            <button id="create-project-submit-btn">Создать</button>
+            <p id="project-error-message"></p>
         </div>
     </div>
 

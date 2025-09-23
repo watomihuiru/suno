@@ -1,15 +1,22 @@
+// Этот модуль отвечает за управление библиотекой треков:
+// загрузка с сервера, рендеринг списка, добавление, удаление,
+// добавление в избранное и другие действия с песнями.
 import { modelMap } from './config.js';
 import { formatTime, copyToClipboard } from './ui.js';
 import { playSongByIndex, getPlayerState, showSimpleLyrics, showTimestampedLyrics } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
 
 let playlist = [];
+let projects = [];
+let activeProjectId = null; // null означает "Без проекта"
 let currentLibraryTab = 'all';
-let songListContainer, emptyListMessage;
+let songListContainer, emptyListMessage, projectListContainer;
 
 export function initializeLibrary() {
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
+    projectListContainer = document.getElementById('project-list');
+    fetchProjects();
 }
 
 export function getPlaylist() {
@@ -86,6 +93,28 @@ async function toggleFavorite(songId, cardElement) {
     }
 }
 
+async function moveSongToProject(songId, newProjectId, cardElement) {
+    try {
+        await fetch(`/api/songs/${songId}/move`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: newProjectId })
+        });
+        // Визуально удаляем карточку из текущего списка
+        cardElement.style.transition = 'opacity 0.3s ease';
+        cardElement.style.opacity = '0';
+        setTimeout(() => {
+            cardElement.remove();
+            playlist = playlist.filter(p => p.songData.id !== songId);
+            if (playlist.length === 0) {
+                renderLibrary(); // Обновить, чтобы показать сообщение о пустом списке
+            }
+        }, 300);
+    } catch (error) {
+        console.error('Ошибка при перемещении песни:', error);
+    }
+}
+
 function addSongToList(songInfo) {
     if (document.getElementById(`song-${songInfo.songData.id}`)) return;
     emptyListMessage.style.display = 'none';
@@ -130,16 +159,51 @@ function addSongToList(songInfo) {
         }
     };
 
+    const moveSubMenu = document.createElement('ul');
+    moveSubMenu.className = 'move-to-project-submenu';
+    
+    const moveMenuItem = document.createElement('li');
+    moveMenuItem.className = 'menu-item move-to-project-action';
+    moveMenuItem.innerHTML = `<i class="fas fa-folder-plus"></i> Переместить`;
+    moveMenuItem.appendChild(moveSubMenu);
+
     const menuItems = [ 
         { icon: 'fas fa-clone', text: 'Расширить', action: () => { setupExtendView(songInfo); closeMobileLibrary(); } },
         { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => { setupCoverView(songInfo); closeMobileLibrary(); } },
+        moveMenuItem,
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id) },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
         { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, 
         { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } 
     ];
-    menuItems.forEach(item => { const li = document.createElement('li'); li.className = 'menu-item ' + (item.className || ''); li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; li.onclick = item.action; menu.appendChild(li); });
+
+    menuItems.forEach(item => { 
+        if (item.nodeName) { // Если это уже DOM-элемент (наш пункт с подменю)
+            menu.appendChild(item);
+        } else {
+            const li = document.createElement('li'); 
+            li.className = 'menu-item ' + (item.className || ''); 
+            li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; 
+            li.onclick = item.action; 
+            menu.appendChild(li);
+        }
+    });
+
+    // Заполняем подменю перемещения
+    const projectsForMenu = [{ id: null, name: 'Без проекта' }, ...projects];
+    projectsForMenu.forEach(p => {
+        const subItem = document.createElement('li');
+        subItem.className = 'menu-item';
+        subItem.textContent = p.name;
+        subItem.onclick = (e) => {
+            e.stopPropagation();
+            moveSongToProject(songData.id, p.id, card);
+            menu.classList.remove('active');
+        };
+        moveSubMenu.appendChild(subItem);
+    });
+
     songListContainer.appendChild(card);
 
     const styleContent = card.querySelector('.song-style-content');
@@ -169,9 +233,10 @@ export function renderLibrary() {
     }
 }
 
-export async function loadSongsFromServer() {
+export async function loadSongsFromServer(projectId = null) {
     try {
-        const response = await fetch('/api/songs');
+        const url = projectId ? `/api/songs?projectId=${projectId}` : '/api/songs';
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Network response was not ok');
         playlist = await response.json();
         renderLibrary();
@@ -198,5 +263,54 @@ export function setupLibraryTabs() {
             event.currentTarget.classList.add('active');
             renderLibrary();
         });
+    });
+}
+
+// --- Функции для проектов ---
+export async function fetchProjects() {
+    try {
+        const response = await fetch('/api/projects');
+        projects = await response.json();
+        renderProjects();
+        // Загружаем песни из первого проекта или "Без проекта"
+        loadSongsFromServer(activeProjectId);
+    } catch (error) {
+        console.error('Не удалось загрузить проекты:', error);
+    }
+}
+
+function renderProjects() {
+    projectListContainer.innerHTML = '';
+    
+    // Кнопка "Без проекта"
+    const uncategorizedBtn = document.createElement('button');
+    uncategorizedBtn.className = 'project-item';
+    uncategorizedBtn.textContent = 'Без проекта';
+    uncategorizedBtn.dataset.projectId = 'null';
+    if (activeProjectId === null) {
+        uncategorizedBtn.classList.add('active');
+    }
+    uncategorizedBtn.onclick = () => {
+        activeProjectId = null;
+        loadSongsFromServer(null);
+        renderProjects(); // Перерисовываем для обновления активного класса
+    };
+    projectListContainer.appendChild(uncategorizedBtn);
+
+    // Рендерим остальные проекты
+    projects.forEach(project => {
+        const projectBtn = document.createElement('button');
+        projectBtn.className = 'project-item';
+        projectBtn.textContent = project.name;
+        projectBtn.dataset.projectId = project.id;
+        if (activeProjectId === project.id) {
+            projectBtn.classList.add('active');
+        }
+        projectBtn.onclick = () => {
+            activeProjectId = project.id;
+            loadSongsFromServer(project.id);
+            renderProjects(); // Перерисовываем
+        };
+        projectListContainer.appendChild(projectBtn);
     });
 }

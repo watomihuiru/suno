@@ -1,5 +1,9 @@
+// Это главный JS-файл вашего приложения.
+// Он импортирует функции из других модулей и связывает их вместе,
+// инициализирует приложение и устанавливает основные обработчики событий.
+
 import { handleApiCall } from './api.js';
-import { initializeLibrary, loadSongsFromServer, setupLibraryTabs } from './library.js';
+import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
 import { initializePlayer } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
@@ -9,7 +13,8 @@ import {
     updateAllLimits, 
     setupCustomSelect, 
     setupInstrumentalToggle,
-    validateField
+    validateField,
+    updateStatus
 } from './ui.js';
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
@@ -20,7 +25,7 @@ function initializeApp() {
     setupEventListeners();
     
     handleApiCall("/api/chat/credit", { method: "GET" }, true);
-    loadSongsFromServer();
+    // loadSongsFromServer() теперь вызывается внутри fetchProjects()
 }
 
 // --- ЛОГИКА АВТОРИЗАЦИИ ---
@@ -90,6 +95,14 @@ function setupEventListeners() {
     setupCharCounters();
     updateAllLimits();
     setupLibraryTabs();
+
+    // Project Modal
+    const projectModal = document.getElementById('project-modal-overlay');
+    document.getElementById('add-project-btn').addEventListener('click', () => projectModal.style.display = 'flex');
+    document.getElementById('project-modal-close-btn').addEventListener('click', () => projectModal.style.display = 'none');
+    projectModal.addEventListener('click', (e) => { if(e.target === projectModal) projectModal.style.display = 'none'; });
+    document.getElementById('create-project-submit-btn').addEventListener('click', handleCreateProject);
+
 
     // Custom Mode Toggles
     document.getElementById("g-customMode").addEventListener('change', () => {
@@ -334,6 +347,36 @@ async function handleBoostStyle(e) {
     } finally {
         boostButton.disabled = false;
         boostButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+    }
+}
+
+async function handleCreateProject() {
+    const input = document.getElementById('project-name-input');
+    const errorMsg = document.getElementById('project-error-message');
+    const name = input.value.trim();
+
+    if (!name) {
+        errorMsg.textContent = 'Название не может быть пустым.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (response.ok) {
+            input.value = '';
+            errorMsg.textContent = '';
+            document.getElementById('project-modal-overlay').style.display = 'none';
+            fetchProjects(); // Обновляем список проектов на странице
+        } else {
+            const result = await response.json();
+            errorMsg.textContent = result.message || 'Ошибка сервера';
+        }
+    } catch (error) {
+        errorMsg.textContent = 'Сетевая ошибка. Попробуйте снова.';
     }
 }
 
