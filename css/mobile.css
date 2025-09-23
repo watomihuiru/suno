@@ -94,6 +94,7 @@
         display: none;
         grid-column: 1 / -1;
         margin: 0;
+        min-height: calc(100vh - 70px - 150px);
     }
     .mobile-bottom-nav {
         display: flex;
@@ -167,6 +168,7 @@
         flex-direction: row;
         max-width: none;
         margin: 0;
+        padding-right: 8px;
     }
     #player-controls {
         gap: 12px;

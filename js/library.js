@@ -165,8 +165,8 @@ function addSongToList(songInfo) {
     });
 
     const menuItems = [ 
-        { icon: 'fas fa-clone', text: 'Расширить', action: () => { setupExtendView(songInfo); } },
-        { icon: 'fas fa-microphone-alt', text: 'Кавер', action: () => { setupCoverView(songInfo); } },
+        { icon: 'fas fa-outdent', text: 'Расширить', action: () => { setupExtendView(songInfo); } },
+        { icon: 'fas fa-sync', text: 'Кавер', action: () => { setupCoverView(songInfo); } },
         { icon: 'fas fa-file-alt', text: 'Текст', action: () => showSimpleLyrics(songData.id), className: 'hide-on-mobile' },
         { icon: 'fas fa-microphone-alt', text: 'Караоке', action: () => showTimestampedLyrics(songData.id) },
         moveMenuItem,

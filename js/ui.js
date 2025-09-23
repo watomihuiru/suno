@@ -34,6 +34,33 @@ function setActiveMobileNav(viewName) {
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
 
+    const viewBeingLeft = document.getElementById(currentViewName);
+    if (viewBeingLeft) {
+        const formToReset = viewBeingLeft.querySelector('form');
+        if (formToReset) {
+            formToReset.reset();
+            // Вручную обновляем UI элементы, которые не сбрасываются через form.reset()
+            formToReset.querySelectorAll('input[type="range"]').forEach(slider => {
+                const valueSpan = slider.nextElementSibling;
+                if (valueSpan && valueSpan.classList.contains('slider-value')) {
+                    valueSpan.textContent = slider.value;
+                }
+            });
+            formToReset.querySelectorAll('textarea, input[type="text"], input[type="password"]').forEach(input => {
+                const counter = document.getElementById(`${input.id}-counter`);
+                if (counter) {
+                    const limit = input.maxLength > 0 ? input.maxLength : counter.textContent.split('/')[1];
+                    counter.textContent = `0/${limit}`;
+                    counter.classList.remove('limit-exceeded');
+                }
+            });
+            // Вручную вызываем события change для переключателей, чтобы обновить видимость полей
+            formToReset.querySelectorAll('.toggle-switch input[type="checkbox"]').forEach(toggle => {
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+    }
+
     if (window.innerWidth <= 768) {
         document.querySelector('.main-content').style.display = 'flex';
         document.querySelector('.library-card').style.display = 'none';
@@ -48,8 +75,7 @@ export function showView(viewName, isSetup = false) {
     currentViewName = viewName;
     
     if (!isSetup) {
-        const { resetEditViews } = import('./editor.js');
-        resetEditViews();
+        import('./editor.js').then(({ resetEditViews }) => resetEditViews());
     }
 }
 
