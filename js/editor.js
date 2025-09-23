@@ -1,3 +1,5 @@
+// Этот модуль содержит всю логику, связанную с аудио-редактором,
+// который появляется при выборе "Расширить" или "Кавер" для существующего трека.
 import { showView, formatTime } from './ui.js';
 
 let songToEdit = null;
@@ -9,7 +11,7 @@ export function getSongToEdit() {
 
 export function setupExtendView(songInfo) {
     songToEdit = songInfo;
-    showView('upload-extend');
+    showView('upload-extend', true);
     
     document.getElementById('ue-title').value = songInfo.songData.title || '';
     document.getElementById('ue-style').value = songInfo.songData.tags || '';
@@ -23,7 +25,7 @@ export function setupExtendView(songInfo) {
 
 export function setupCoverView(songInfo) {
     songToEdit = songInfo;
-    showView('upload');
+    showView('upload', true);
 
     document.getElementById('uc-title').value = songInfo.songData.title || '';
     document.getElementById('uc-style').value = songInfo.songData.tags || '';

@@ -1,3 +1,5 @@
+// Этот модуль содержит функции для управления общими элементами интерфейса:
+// модальные окна, переключение видов, слайдеры, счетчики символов и т.д.
 import { modelLimits, extendModelLimits } from './config.js';
 
 let currentViewName = 'generate';
@@ -16,16 +18,18 @@ export function updateStatus(message, isSuccess = false, isError = false) {
     }
 }
 
-export function showView(viewName) {
-    if (currentViewName === viewName) return;
+export function showView(viewName, isSetup = false) {
+    if (currentViewName === viewName && !isSetup) return;
     document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
     document.querySelector(`.nav-button[data-view="${viewName}"]`).classList.add('active');
     currentViewName = viewName;
     
-    const { resetEditViews } = import('./editor.js');
-    resetEditViews();
+    if (!isSetup) {
+        const { resetEditViews } = import('./editor.js');
+        resetEditViews();
+    }
 }
 
 export function setupSliderListeners() {
