@@ -22,15 +22,22 @@ export function updateStatus(message, isSuccess = false, isError = false) {
     }
 }
 
+function setActiveMobileNav(viewName) {
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.view === viewName || (viewName === 'library' && btn.id === 'mobile-library-btn')) {
+            btn.classList.add('active');
+        }
+    });
+}
+
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
 
-    // On mobile, ensure the correct container is visible
     if (window.innerWidth <= 768) {
-        const mainContent = document.querySelector('.main-content');
-        const libraryCard = document.querySelector('.library-card');
-        if (mainContent) mainContent.style.display = 'flex';
-        if (libraryCard) libraryCard.style.display = 'none';
+        document.querySelector('.main-content').style.display = 'flex';
+        document.querySelector('.library-card').style.display = 'none';
+        setActiveMobileNav(viewName);
     }
 
     document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
@@ -38,24 +45,19 @@ export function showView(viewName, isSetup = false) {
     document.getElementById(viewName).classList.add('active');
     document.querySelector(`.nav-button[data-view="${viewName}"]`).classList.add('active');
     
-    // Handle mobile bottom nav active state
-    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.view === viewName) {
-            btn.classList.add('active');
-        }
-    });
-    // Deactivate library button if a view is selected
-    const mobileLibraryBtn = document.getElementById('mobile-library-btn');
-    if (mobileLibraryBtn) {
-        mobileLibraryBtn.classList.remove('active');
-    }
-
     currentViewName = viewName;
     
     if (!isSetup) {
         const { resetEditViews } = import('./editor.js');
         resetEditViews();
+    }
+}
+
+export function showLibraryView() {
+    if (window.innerWidth <= 768) {
+        document.querySelector('.main-content').style.display = 'none';
+        document.querySelector('.library-card').style.display = 'flex';
+        setActiveMobileNav('library');
     }
 }
 

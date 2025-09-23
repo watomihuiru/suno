@@ -134,9 +134,9 @@
     }
     
     #global-player {
-        left: 8px;
-        right: 8px;
-        bottom: 80px;
+        left: 15px;
+        right: 15px;
+        bottom: 75px;
         padding: 8px;
         gap: 12px;
         display: none;
@@ -167,6 +167,8 @@
         grid-column: 3 / 4;
         grid-row: 1 / 2;
         flex-direction: row;
+        max-width: none;
+        margin: 0;
     }
     #player-controls {
         gap: 12px;

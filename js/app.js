@@ -8,6 +8,7 @@ import { initializePlayer, openFullscreenPlayer } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
     showView, 
+    showLibraryView,
     setupSliderListeners, 
     setupCharCounters, 
     updateAllLimits, 
@@ -15,8 +16,7 @@ import {
     setupInstrumentalToggle,
     validateField,
     updateStatus,
-    setupConfirmationModal,
-    getCurrentViewName
+    setupConfirmationModal
 } from './ui.js';
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
@@ -69,8 +69,6 @@ async function handleLogin() {
 }
 
 function setupEventListeners() {
-    const mainContent = document.querySelector('.main-content');
-    const libraryCard = document.querySelector('.library-card');
     const mobileLibraryBtn = document.getElementById('mobile-library-btn');
     const mobileNavViewBtns = document.querySelectorAll('.mobile-nav-btn[data-view]');
     const sidebar = document.querySelector('.sidebar');
@@ -91,13 +89,7 @@ function setupEventListeners() {
 
     // Mobile Library Button
     mobileLibraryBtn.addEventListener('click', () => {
-        if (window.innerWidth > 768) return;
-
-        mainContent.style.display = 'none';
-        libraryCard.style.display = 'flex';
-
-        mobileNavViewBtns.forEach(btn => btn.classList.remove('active'));
-        mobileLibraryBtn.classList.add('active');
+        showLibraryView();
     });
 
     // Desktop Sidebar Navigation
@@ -327,7 +319,7 @@ function handleExtendSubmit(e) {
         payload.continueAt = document.getElementById('ue-continueAt').value;
         payload.instrumental = isInstrumental;
 
-        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'uc-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
+        const optionalFields = { negativeTags: 'ue-negativeTags', styleWeight: 'ue-styleWeight', weirdnessConstraint: 'ue-weirdnessConstraint', audioWeight: 'ue-audioWeight' };
         for (const key in optionalFields) {
             const element = document.getElementById(optionalFields[key]);
             if (element.value) { payload[key] = (element.type === 'range') ? parseFloat(element.value) : element.value; }
