@@ -4,7 +4,7 @@
 
 import { handleApiCall } from './api.js';
 import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
-import { initializePlayer, openFullscreenPlayer } from './player.js';
+import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
     showView, 
@@ -107,7 +107,10 @@ function setupEventListeners() {
         if (e.target.closest('button') || e.target.closest('input[type="range"]')) {
             return;
         }
-        openFullscreenPlayer();
+        const { currentSongId } = getPlayerState();
+        if (currentSongId) {
+            showSimpleLyrics(currentSongId);
+        }
     });
 
     // UI Elements

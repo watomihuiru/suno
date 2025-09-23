@@ -205,7 +205,7 @@
     flex-grow: 1;
     width: 100%;
     overflow-y: auto;
-    text-align: center;
+    text-align: left;
     font-size: 26px;
     line-height: 1.6;
     font-weight: 700;
@@ -213,11 +213,6 @@
     margin-bottom: 20px;
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
     mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
-}
-#fs-lyrics-content .lyrics-paragraph {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
 }
 #fs-lyrics-content .lyric-segment {
     transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
@@ -249,10 +244,10 @@
 }
 #fs-controls .player-btn {
     font-size: 24px;
+    color: var(--text-primary);
 }
 #fs-controls #fs-play-pause-btn {
     font-size: 48px;
-    color: var(--text-primary);
 }
 
 @keyframes animateGradient {
