@@ -99,6 +99,43 @@ function stopLyricsAnimationLoop() {
     }
 }
 
+function updatePlayerBackground(imageUrl) {
+    const playerContainer = document.getElementById('global-player');
+    if (!playerContainer || !imageUrl) return;
+
+    playerContainer.style.background = '';
+    playerContainer.style.animation = 'none';
+
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imageUrl;
+
+    img.onload = () => {
+        const colorThief = new ColorThief();
+        try {
+            const palette = colorThief.getPalette(img, 2);
+            if (palette && palette.length >= 2) {
+                const color1 = `rgb(${palette[0].join(',')})`;
+                const color2 = `rgb(${palette[1].join(',')})`;
+                
+                playerContainer.style.background = `linear-gradient(270deg, ${color1}, ${color2})`;
+                playerContainer.style.backgroundSize = '400% 400%';
+                playerContainer.style.animation = 'animateGradient 15s ease infinite';
+            }
+        } catch (e) {
+            console.error("ColorThief error:", e);
+            playerContainer.style.background = '';
+            playerContainer.style.animation = 'none';
+        }
+    };
+
+    img.onerror = (e) => {
+        console.error("Error loading image for color extraction:", e);
+        playerContainer.style.background = '';
+        playerContainer.style.animation = 'none';
+    }
+}
+
 function setupPlayerListeners() {
     globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); if (globalPlayer.currentSongId) { refreshAudioUrlAndPlay(globalPlayer.currentSongId); } };
     
@@ -177,6 +214,8 @@ function setupPlayerListeners() {
         globalPlayer.audio.src = '';
         globalPlayer.currentSongId = null;
         globalPlayer.container.style.display = 'none';
+        globalPlayer.container.style.background = '';
+        globalPlayer.container.style.animation = 'none';
         updateAllPlayIcons();
     };
 
@@ -221,6 +260,10 @@ export function playSongByIndex(index) {
     globalPlayer.fsCover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.fsTitle.textContent = songData.title || 'Без названия';
     globalPlayer.fsSubtitle.textContent = songData.tags || '';
+
+    if (window.innerWidth <= 768) {
+        updatePlayerBackground(songData.imageUrl);
+    }
 
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });

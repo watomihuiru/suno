@@ -12,6 +12,7 @@
     gap: 20px;
     z-index: 100;
     box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    transition: background 0.5s ease-in-out;
 }
 #player-song-info { 
     display: flex; 
@@ -234,4 +235,10 @@
 #fs-controls #fs-play-pause-btn {
     font-size: 48px;
     color: var(--text-primary);
+}
+
+@keyframes animateGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
