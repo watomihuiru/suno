@@ -342,37 +342,37 @@ export async function showTimestampedLyrics(songId) {
         }
 
         currentLyrics = lyricsData.alignedWords;
-        const rawText = songInfo.songData.prompt || '';
-        const lines = rawText.split('\n');
-        let wordDataIndex = 0;
-
+        
         lyricsContainer.innerHTML = '';
         const paragraph = document.createElement('div');
         paragraph.className = 'lyrics-paragraph';
+        
+        let currentLine = document.createElement('div');
+        paragraph.appendChild(currentLine);
 
-        lines.forEach(lineText => {
-            const lineDiv = document.createElement('div');
-            if (lineText.trim() === '') {
-                lineDiv.innerHTML = '&nbsp;';
-            } else {
-                const lineWords = lineText.trim().split(/\s+/);
-                lineWords.forEach(word => {
-                    if (wordDataIndex < currentLyrics.length) {
-                        const segment = currentLyrics[wordDataIndex];
-                        const span = document.createElement('span');
-                        span.textContent = segment.word + ' ';
-                        span.className = 'lyric-segment';
-                        span.dataset.index = wordDataIndex;
-                        span.dataset.startTime = segment.startS;
-                        if (segment.word.startsWith('[') && segment.word.endsWith(']')) {
-                            span.classList.add('lyric-tag');
-                        }
-                        lineDiv.appendChild(span);
-                        wordDataIndex++;
+        currentLyrics.forEach((segment, index) => {
+            const parts = segment.word.split('\n');
+            parts.forEach((part, partIndex) => {
+                if (part.trim() !== '') {
+                    const span = document.createElement('span');
+                    span.textContent = part + ' ';
+                    span.className = 'lyric-segment';
+                    span.dataset.index = index;
+                    span.dataset.startTime = segment.startS;
+                    if (part.startsWith('[') && part.endsWith(']')) {
+                        span.classList.add('lyric-tag');
                     }
-                });
-            }
-            paragraph.appendChild(lineDiv);
+                    currentLine.appendChild(span);
+                }
+
+                if (partIndex < parts.length - 1) {
+                    currentLine = document.createElement('div');
+                    if (currentLine.innerHTML.trim() === '') {
+                        currentLine.innerHTML = '&nbsp;';
+                    }
+                    paragraph.appendChild(currentLine);
+                }
+            });
         });
         
         lyricsContainer.appendChild(paragraph);
@@ -401,16 +401,15 @@ function updateActiveLyric(currentTime) {
 
     if (activeSegmentIndex !== lastActiveLyricIndex) {
         if (lastActiveLyricIndex > -1) {
-            const prevActiveElement = document.querySelector(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
-            if (prevActiveElement) prevActiveElement.classList.remove('active');
+            const prevActiveElements = document.querySelectorAll(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
+            if (prevActiveElements) prevActiveElements.forEach(el => el.classList.remove('active'));
         }
         if (activeSegmentIndex > -1) {
-            const activeElement = document.querySelector(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
-            if (activeElement) {
-                activeElement.classList.add('active');
+            const activeElements = document.querySelectorAll(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
+            if (activeElements && activeElements.length > 0) {
+                activeElements.forEach(el => el.classList.add('active'));
                 if (!isUserScrollingLyrics) {
-                    // Scroll the parent line into view
-                    const parentLine = activeElement.parentElement;
+                    const parentLine = activeElements[0].parentElement;
                     if (parentLine) {
                        parentLine.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                     }
