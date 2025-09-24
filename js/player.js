@@ -7,7 +7,9 @@ let isShuffled = false;
 let isRepeatOne = false;
 let currentLyrics = [];
 let lastActiveLyricIndex = -1;
+let lastActiveLineElement = null;
 let isUserScrollingLyrics = false;
+let isProgrammaticScroll = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
 
@@ -225,6 +227,10 @@ function setupPlayerListeners() {
     globalPlayer.fsCloseBtn.onclick = closeFullscreenPlayer;
 
     globalPlayer.fsLyricsContent.addEventListener('scroll', () => {
+        if (isProgrammaticScroll) {
+            isProgrammaticScroll = false;
+            return;
+        }
         if (currentLyrics.length === 0) return;
         isUserScrollingLyrics = true;
         clearTimeout(lyricsScrollTimeout);
@@ -330,6 +336,7 @@ export async function showTimestampedLyrics(songId) {
     
     currentLyrics = [];
     lastActiveLyricIndex = -1;
+    lastActiveLineElement = null;
     isUserScrollingLyrics = false;
     stopLyricsAnimationLoop();
 
@@ -387,6 +394,7 @@ export async function showTimestampedLyrics(songId) {
         });
         
         lyricsContainer.appendChild(paragraph);
+        lyricsContainer.scrollTop = 0; // Reset scroll on new lyrics
         checkLyricsScrollability();
 
         if (!globalPlayer.audio.paused) {
@@ -421,13 +429,13 @@ function updateActiveLyric(currentTime) {
             const activeElements = document.querySelectorAll(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
             if (activeElements && activeElements.length > 0) {
                 activeElements.forEach(el => el.classList.add('active'));
-                if (!isUserScrollingLyrics) {
-                    const lyricsContainer = globalPlayer.fsLyricsContent;
-                    const parentLine = activeElements[0].parentElement;
-                    if (parentLine) {
-                       const scrollTop = parentLine.offsetTop - (lyricsContainer.clientHeight / 2) + (parentLine.clientHeight / 2);
-                       lyricsContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
-                    }
+                
+                const parentLine = activeElements[0].parentElement;
+
+                if (!isUserScrollingLyrics && parentLine && parentLine !== lastActiveLineElement) {
+                    isProgrammaticScroll = true;
+                    parentLine.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    lastActiveLineElement = parentLine;
                 }
             }
         }
