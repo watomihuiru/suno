@@ -114,10 +114,9 @@
     display: flex; 
     align-items: flex-start; 
     gap: 16px; 
-    position: relative; /* Убедимся, что z-index будет работать */
+    position: relative; 
     animation: fadeIn 0.4s ease-out forwards;
 }
-/* НОВОЕ ПРАВИЛО ДЛЯ РЕШЕНИЯ ПРОБЛЕМЫ */
 .song-card.menu-is-active {
     z-index: 11;
 }
@@ -259,6 +258,12 @@
 .song-menu.active { 
     display: block; 
 }
+/* --- НОВЫЕ СТИЛИ --- */
+.song-menu.opens-up {
+    top: auto;
+    bottom: 100%;
+    margin-bottom: 5px;
+}
 .menu-item { 
     display: flex; 
     align-items: center; 
@@ -312,7 +317,7 @@
 .move-to-project-submenu {
     display: none;
     position: absolute;
-    left: -180px; /* Position to the left of the parent menu */
+    left: -180px; 
     top: 0;
     background-color: #21262d;
     border: 1px solid var(--border);
@@ -323,6 +328,11 @@
     z-index: 11;
     max-height: 200px;
     overflow-y: auto;
+}
+/* --- НОВЫЕ СТИЛИ --- */
+.song-menu.opens-up .move-to-project-submenu {
+    top: auto;
+    bottom: 0;
 }
 .move-to-project-action:hover > .move-to-project-submenu,
 .move-to-project-submenu.is-open {

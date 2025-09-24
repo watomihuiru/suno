@@ -141,7 +141,6 @@ function addSongToList(songInfo) {
                 player.audio.pause();
             }
         } else {
-            // --- ИЗМЕНЕНИЕ ЗДЕСЬ: ИСПОЛЬЗУЕМ ID ВМЕСТО ИНДЕКСА ---
             playSongById(songData.id);
         }
     };
@@ -149,16 +148,33 @@ function addSongToList(songInfo) {
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
     
+    // --- ОБНОВЛЕННЫЙ ОБРАБОТЧИК КЛИКА ПО МЕНЮ ---
     card.querySelector('.menu-trigger').onclick = (e) => {
         e.stopPropagation();
+        const menuTrigger = e.currentTarget;
         const isCurrentlyActive = menu.classList.contains('active');
 
+        // Сначала закрываем все открытые меню
         document.querySelectorAll('.song-menu.active').forEach(m => {
             m.classList.remove('active');
             m.closest('.song-card').classList.remove('menu-is-active');
         });
 
+        // Если кликнутое меню не было активно, то открываем его
         if (!isCurrentlyActive) {
+            // --- ЛОГИКА ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ ---
+            const containerRect = songListContainer.getBoundingClientRect();
+            const triggerRect = menuTrigger.getBoundingClientRect();
+            const spaceBelow = containerRect.bottom - triggerRect.bottom;
+            const menuHeight = 220; // Примерная высота меню в пикселях
+
+            if (spaceBelow < menuHeight) {
+                menu.classList.add('opens-up');
+            } else {
+                menu.classList.remove('opens-up');
+            }
+            // --- КОНЕЦ ЛОГИКИ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ ---
+
             menu.classList.add('active');
             card.classList.add('menu-is-active');
         }
