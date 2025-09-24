@@ -182,7 +182,7 @@
 .fs-controls-wrapper {
     flex-shrink: 0;
     width: 100%;
-    padding: 0 20px 30px;
+    padding: 0 20px 45px;
 }
 #fs-close-btn {
     position: absolute;
@@ -210,7 +210,7 @@
     height: 60vw;
     max-height: 300px;
     border-radius: 12px;
-    margin-top: 60px;
+    margin-top: 40px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     flex-shrink: 0;
 }
@@ -244,7 +244,7 @@
     font-weight: 700;
     color: rgba(255, 255, 255, 0.35);
     margin-bottom: 20px;
-    scroll-padding-top: 20vh;
+    scroll-padding-top: 35vh;
 }
 #fs-lyrics-content.is-scrollable {
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
