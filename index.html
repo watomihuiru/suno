@@ -68,7 +68,20 @@
                     <div class="view-header"><h2>Создать музыку</h2><p>Сгенерируйте трек с нуля по вашему описанию.</p></div>
                     <form id="generate-music-form">
                         <div class="form-grid">
-                            <div class="form-row"><label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label><div class="custom-select-wrapper"><input type="hidden" id="g-model-value" value="V4_5PLUS"><div class="select-button" id="select-model-button">V4.5+</div><div class="select-dropdown" id="select-model-dropdown"><div class="select-option selected" data-value="V4_5PLUS">V4.5+</div><div class="select-option" data-value="V4_5">V4.5</div><div class="select-option" data-value="V4">V4</div><div class="select-option" data-value="V3_5">V3.5</div></div></div></div>
+                            <div class="form-row">
+                                <label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
+                                <div class="custom-select-wrapper">
+                                    <input type="hidden" id="g-model-value" value="V5">
+                                    <div class="select-button" id="select-model-button">V5</div>
+                                    <div class="select-dropdown" id="select-model-dropdown">
+                                        <div class="select-option selected" data-value="V5">V5</div>
+                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option" data-value="V4_5">V4.5</div>
+                                        <div class="select-option" data-value="V4">V4</div>
+                                        <div class="select-option" data-value="V3_5">V3.5</div>
+                                    </div>
+                                </div>
+                            </div>
                             <div id="simple-mode-fields" class="form-grid" style="display: none;"><div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/400</div></div></div>
                             <div id="custom-mode-fields" class="form-grid">
                                 <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"><div class="char-counter" id="g-title-counter">0/80</div></div>
@@ -101,10 +114,11 @@
                              <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="ue-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
                                 <div class="custom-select-wrapper">
-                                    <input type="hidden" id="ue-model-value" value="V4_5PLUS">
-                                    <div class="select-button" id="select-model-button-ue">V4.5+</div>
+                                    <input type="hidden" id="ue-model-value" value="V5">
+                                    <div class="select-button" id="select-model-button-ue">V5</div>
                                     <div class="select-dropdown" id="select-model-dropdown-ue">
-                                        <div class="select-option selected" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option selected" data-value="V5">V5</div>
+                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
                                         <div class="select-option" data-value="V4_5">V4.5</div>
                                         <div class="select-option" data-value="V4">V4</div>
                                         <div class="select-option" data-value="V3_5">V3.5</div>
@@ -145,10 +159,11 @@
                             <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="uc-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
                                 <div class="custom-select-wrapper">
-                                    <input type="hidden" id="uc-model-value" value="V4_5PLUS">
-                                    <div class="select-button" id="select-model-button-uc">V4.5+</div>
+                                    <input type="hidden" id="uc-model-value" value="V5">
+                                    <div class="select-button" id="select-model-button-uc">V5</div>
                                     <div class="select-dropdown" id="select-model-dropdown-uc">
-                                        <div class="select-option selected" data-value="V4_5PLUS">V4.5+</div>
+                                        <div class="select-option selected" data-value="V5">V5</div>
+                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
                                         <div class="select-option" data-value="V4_5">V4.5</div>
                                         <div class="select-option" data-value="V4">V4</div>
                                         <div class="select-option" data-value="V3_5">V3.5</div>
