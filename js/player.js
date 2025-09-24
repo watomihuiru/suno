@@ -7,7 +7,7 @@ let isShuffled = false;
 let isRepeatOne = false;
 let currentLyrics = [];
 let lastActiveLyricIndex = -1;
-let lastActiveLineElement = null;
+let lastActiveElement = null; // Изменено: храним сам элемент, а не его родителя
 let isUserScrollingLyrics = false;
 let isProgrammaticScroll = false;
 let lyricsScrollTimeout;
@@ -336,7 +336,7 @@ export async function showTimestampedLyrics(songId) {
     
     currentLyrics = [];
     lastActiveLyricIndex = -1;
-    lastActiveLineElement = null;
+    lastActiveElement = null; // Изменено: сбрасываем сохраненный элемент
     isUserScrollingLyrics = false;
     stopLyricsAnimationLoop();
 
@@ -421,22 +421,30 @@ function updateActiveLyric(currentTime) {
     }
 
     if (activeSegmentIndex !== lastActiveLyricIndex) {
+        // Снимаем подсветку с предыдущих слов
         if (lastActiveLyricIndex > -1) {
             const prevActiveElements = document.querySelectorAll(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
             if (prevActiveElements) prevActiveElements.forEach(el => el.classList.remove('active'));
         }
+        
+        // Находим и подсвечиваем новые слова
         if (activeSegmentIndex > -1) {
             const activeElements = document.querySelectorAll(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
             if (activeElements && activeElements.length > 0) {
                 activeElements.forEach(el => el.classList.add('active'));
                 
-                const parentLine = activeElements[0].parentElement;
+                const newFirstActiveElement = activeElements[0];
 
-                if (!isUserScrollingLyrics && parentLine && parentLine !== lastActiveLineElement) {
+                // --- НОВАЯ ЛОГИКА ПРОКРУТКИ ---
+                // Проверяем, изменилась ли вертикальная позиция слова
+                if (!isUserScrollingLyrics && (!lastActiveElement || newFirstActiveElement.offsetTop !== lastActiveElement.offsetTop)) {
                     isProgrammaticScroll = true;
-                    parentLine.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    lastActiveLineElement = parentLine;
+                    // Прокручиваем к родительскому элементу (строке) для лучшего вида
+                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
+                
+                // Запоминаем текущий активный элемент для следующего сравнения
+                lastActiveElement = newFirstActiveElement;
             }
         }
         lastActiveLyricIndex = activeSegmentIndex;
