@@ -210,6 +210,7 @@
     height: 60vw;
     max-height: 300px;
     border-radius: 12px;
+    margin: 40px auto 0 auto;
     margin-top: 40px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     flex-shrink: 0;
