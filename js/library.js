@@ -3,7 +3,7 @@
 // добавление в избранное и другие действия с песнями.
 import { modelMap } from './config.js';
 import { formatTime, copyToClipboard, showConfirmationModal } from './ui.js';
-import { playSongByIndex, getPlayerState, showSimpleLyrics, showTimestampedLyrics } from './player.js';
+import { playSongById, getPlayerState, showSimpleLyrics, showTimestampedLyrics } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
 
 let playlist = [];
@@ -131,7 +131,6 @@ function addSongToList(songInfo) {
     if (!playlist.some(p => p.songData.id === songData.id)) {
         playlist.unshift(songInfo);
     }
-    const songIndex = playlist.findIndex(p => p.songData.id === songData.id);
     
     card.querySelector('.song-cover').onclick = () => {
         const { player, currentSongId } = getPlayerState();
@@ -142,25 +141,23 @@ function addSongToList(songInfo) {
                 player.audio.pause();
             }
         } else {
-            playSongByIndex(songIndex);
+            // --- ИЗМЕНЕНИЕ ЗДЕСЬ: ИСПОЛЬЗУЕМ ID ВМЕСТО ИНДЕКСА ---
+            playSongById(songData.id);
         }
     };
 
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
     
-    // --- ИЗМЕНЕННАЯ ЛОГИКА ОБРАБОТЧИКА МЕНЮ ---
     card.querySelector('.menu-trigger').onclick = (e) => {
         e.stopPropagation();
         const isCurrentlyActive = menu.classList.contains('active');
 
-        // Сначала закрываем все открытые меню и сбрасываем z-index их карточек
         document.querySelectorAll('.song-menu.active').forEach(m => {
             m.classList.remove('active');
             m.closest('.song-card').classList.remove('menu-is-active');
         });
 
-        // Если меню, по которому кликнули, не было активно, открываем его
         if (!isCurrentlyActive) {
             menu.classList.add('active');
             card.classList.add('menu-is-active');
@@ -193,7 +190,7 @@ function addSongToList(songInfo) {
     ];
 
     menuItems.forEach(item => { 
-        if (item.nodeName) { // Если это уже DOM-элемент (наш пункт с подменю)
+        if (item.nodeName) {
             menu.appendChild(item);
         } else {
             const li = document.createElement('li'); 
@@ -204,7 +201,6 @@ function addSongToList(songInfo) {
         }
     });
 
-    // Заполняем подменю перемещения
     const projectsForMenu = [{ id: null, name: 'Без проекта' }, ...projects];
     projectsForMenu.forEach(p => {
         const subItem = document.createElement('li');
@@ -280,7 +276,6 @@ export function setupLibraryTabs() {
     });
 }
 
-// --- Функции для проектов ---
 async function handleDeleteProject(projectId, projectName) {
     showConfirmationModal(
         `Вы уверены, что хотите удалить проект "${projectName}"? Все песни из него будут перемещены в "Без проекта".`,

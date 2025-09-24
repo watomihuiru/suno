@@ -284,6 +284,17 @@ export function playSongByIndex(index) {
     }
 }
 
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ИСПРАВЛЕНИЯ БАГА ---
+export function playSongById(songId) {
+    const playlist = getPlaylist();
+    const songIndex = playlist.findIndex(p => p.songData.id === songId);
+    if (songIndex !== -1) {
+        playSongByIndex(songIndex);
+    } else {
+        console.error(`Песня с ID ${songId} не найдена в плейлисте.`);
+    }
+}
+
 function playNext() { 
     const playlist = getPlaylist();
     if (playlist.length === 0) return; 
