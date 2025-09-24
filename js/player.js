@@ -434,7 +434,7 @@ function updateActiveLyric(currentTime) {
 
                 if (!isUserScrollingLyrics && parentLine && parentLine !== lastActiveLineElement) {
                     isProgrammaticScroll = true;
-                    parentLine.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    parentLine.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     lastActiveLineElement = parentLine;
                 }
             }
