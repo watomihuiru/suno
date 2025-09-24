@@ -114,8 +114,12 @@
     display: flex; 
     align-items: flex-start; 
     gap: 16px; 
-    position: relative; 
+    position: relative; /* Убедимся, что z-index будет работать */
     animation: fadeIn 0.4s ease-out forwards;
+}
+/* НОВОЕ ПРАВИЛО ДЛЯ РЕШЕНИЯ ПРОБЛЕМЫ */
+.song-card.menu-is-active {
+    z-index: 11;
 }
 .song-card.placeholder { 
     opacity: 0.6; 

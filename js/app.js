@@ -164,10 +164,14 @@ function setupEventListeners() {
     // Style Boost
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
-    // Global Click Listener (for closing menus)
+    // --- ИЗМЕНЕННЫЙ ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КЛИКОВ ---
     window.addEventListener("click", () => { 
         document.querySelectorAll('.select-dropdown.open').forEach(d => d.classList.remove('open'));
-        document.querySelectorAll('.song-menu.active').forEach(menu => menu.classList.remove('active')); 
+        // При клике вне меню, закрываем его и убираем z-index с карточки
+        document.querySelectorAll('.song-menu.active').forEach(menu => {
+            menu.classList.remove('active');
+            menu.closest('.song-card').classList.remove('menu-is-active');
+        }); 
         document.querySelectorAll('.move-to-project-submenu.is-open').forEach(menu => menu.classList.remove('is-open'));
     });
 }

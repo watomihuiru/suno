@@ -148,7 +148,24 @@ function addSongToList(songInfo) {
 
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
-    card.querySelector('.menu-trigger').onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.song-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active') }); menu.classList.toggle('active'); };
+    
+    // --- ИЗМЕНЕННАЯ ЛОГИКА ОБРАБОТЧИКА МЕНЮ ---
+    card.querySelector('.menu-trigger').onclick = (e) => {
+        e.stopPropagation();
+        const isCurrentlyActive = menu.classList.contains('active');
+
+        // Сначала закрываем все открытые меню и сбрасываем z-index их карточек
+        document.querySelectorAll('.song-menu.active').forEach(m => {
+            m.classList.remove('active');
+            m.closest('.song-card').classList.remove('menu-is-active');
+        });
+
+        // Если меню, по которому кликнули, не было активно, открываем его
+        if (!isCurrentlyActive) {
+            menu.classList.add('active');
+            card.classList.add('menu-is-active');
+        }
+    };
     
     const moveSubMenu = document.createElement('ul');
     moveSubMenu.className = 'move-to-project-submenu';
