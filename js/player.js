@@ -440,7 +440,7 @@ function updateActiveLyric(currentTime) {
                 if (!isUserScrollingLyrics && (!lastActiveElement || newFirstActiveElement.offsetTop !== lastActiveElement.offsetTop)) {
                     isProgrammaticScroll = true;
                     // Прокручиваем к родительскому элементу (строке) для лучшего вида
-                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 
                 // Запоминаем текущий активный элемент для следующего сравнения
