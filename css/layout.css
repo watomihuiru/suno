@@ -69,6 +69,7 @@
     font-weight: 500; 
     color: var(--text-secondary); 
     margin-bottom: 16px; 
+    animation: fadeIn 0.3s;
 }
 .status-message.success { 
     border-left: 4px solid var(--accent-green); 

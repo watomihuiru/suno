@@ -3,6 +3,8 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -10,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
+const server = createServer(app); // Создаем HTTP сервер для Express
 
 const SUNO_API_TOKEN = process.env.SUNO_API_TOKEN;
 const SUNO_API_BASE_URL = 'https://api.kie.ai/api/v1';
@@ -330,50 +333,99 @@ app.post('/api/lyrics', async (req, res) => {
 });
 app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
 
-app.get('/api/task-status/:taskId', async (req, res) => {
-    const { taskId } = req.params;
-    const endpoint = `/generate/record-info?taskId=${taskId}`;
-    try {
-        const response = await axios.get(`${SUNO_API_BASE_URL}${endpoint}`, { headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` } });
-        const taskData = response.data.data;
-        const successStatuses = ['success', 'completed', 'text_success', 'first_success'];
-
-        if (taskData && successStatuses.includes(taskData.status.toLowerCase())) {
-            if (taskData.response && Array.isArray(taskData.response.sunoData)) {
-                for (const song of taskData.response.sunoData) {
-                    if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
-
-                    let paramsToSave = taskData.param;
-                    if (typeof paramsToSave === 'string') {
-                        try { paramsToSave = JSON.parse(paramsToSave); } catch (e) { console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}.`); }
-                    }
-
-                    const finalRequestParams = (typeof paramsToSave === 'object' && paramsToSave !== null)
-                        ? { ...paramsToSave, taskId: taskData.taskId }
-                        : { rawParam: paramsToSave, taskId: taskData.taskId };
-
-                    await pool.query(
-                        `INSERT INTO songs (id, song_data, request_params) 
-                         VALUES ($1, $2, $3) 
-                         ON CONFLICT (id) DO UPDATE SET 
-                            song_data = EXCLUDED.song_data, 
-                            request_params = EXCLUDED.request_params`,
-                        [song.id, song, finalRequestParams]
-                    );
-                }
-            }
-        }
-        res.json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const details = error.response ? error.response.data : { message: "Ошибка сети." };
-        res.status(status).json({ message: "Не удалось получить статус задачи", details });
-    }
-});
+// Удаляем старый GET-эндпоинт /api/task-status/:taskId
+// Его логика теперь будет внутри WebSocket-обработчика
 
 app.get('/api/chat/credit', (req, res) => proxyRequest(res, 'GET', '/chat/credit', null));
 
-app.listen(port, async () => {
+// --- WebSocket сервер для отслеживания статуса задач ---
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+    console.log('Клиент подключился по WebSocket');
+    let trackingInterval;
+
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.type === 'trackTask' && data.taskId) {
+                const { taskId } = data;
+                console.log(`Начинаем отслеживать taskId: ${taskId}`);
+
+                // Очищаем предыдущий интервал, если он был
+                if (trackingInterval) clearInterval(trackingInterval);
+
+                trackingInterval = setInterval(async () => {
+                    try {
+                        const response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info?taskId=${taskId}`, {
+                            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+                        });
+                        
+                        const taskData = response.data.data;
+                        const statusLowerCase = taskData.status.toLowerCase();
+                        const successStatuses = ["success", "completed"];
+                        const pendingStatuses = ["pending", "running", "submitted", "queued", "text_success", "first_success"];
+
+                        // Отправляем статус клиенту
+                        if (ws.readyState === ws.OPEN) {
+                            ws.send(JSON.stringify(response.data));
+                        }
+
+                        if (successStatuses.includes(statusLowerCase)) {
+                            console.log(`Задача ${taskId} успешно завершена. Останавливаем отслеживание.`);
+                            clearInterval(trackingInterval);
+                            
+                            // Сохранение в БД
+                            if (taskData.response && Array.isArray(taskData.response.sunoData)) {
+                                for (const song of taskData.response.sunoData) {
+                                    if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
+                                    let paramsToSave = taskData.param;
+                                    if (typeof paramsToSave === 'string') {
+                                        try { paramsToSave = JSON.parse(paramsToSave); } catch (e) { console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}.`); }
+                                    }
+                                    const finalRequestParams = (typeof paramsToSave === 'object' && paramsToSave !== null)
+                                        ? { ...paramsToSave, taskId: taskData.taskId }
+                                        : { rawParam: paramsToSave, taskId: taskData.taskId };
+                                    await pool.query(
+                                        `INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params`,
+                                        [song.id, song, finalRequestParams]
+                                    );
+                                }
+                            }
+                        } else if (!pendingStatuses.includes(statusLowerCase)) {
+                            console.log(`Задача ${taskId} завершилась с неопределенным статусом: ${statusLowerCase}. Останавливаем отслеживание.`);
+                            clearInterval(trackingInterval);
+                        }
+                    } catch (error) {
+                        console.error(`Ошибка при проверке статуса задачи ${taskId}:`, error.message);
+                        clearInterval(trackingInterval);
+                        if (ws.readyState === ws.OPEN) {
+                            ws.send(JSON.stringify({ error: true, message: `Ошибка проверки статуса: ${error.message}` }));
+                        }
+                    }
+                }, 5000); // Проверяем каждые 5 секунд
+            }
+        } catch (e) {
+            console.error('Ошибка обработки WebSocket сообщения:', e);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('Клиент отключился');
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+            console.log('Отслеживание остановлено из-за отключения клиента.');
+        }
+    });
+
+    ws.on('error', (error) => {
+        console.error('WebSocket ошибка:', error);
+        if (trackingInterval) clearInterval(trackingInterval);
+    });
+});
+
+
+server.listen(port, async () => {
     await setupDatabase();
     console.log(`Сервер запущен! Откройте в браузере http://localhost:${port}`);
 });

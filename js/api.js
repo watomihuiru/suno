@@ -1,7 +1,7 @@
 import { updateStatus } from './ui.js';
 import { loadSongsFromServer } from './library.js';
 
-let pollingInterval;
+let taskWebSocket = null;
 
 export async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false) {
     const responseOutput = document.getElementById("response-output");
@@ -9,7 +9,10 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
         updateStatus('Ожидание запуска задачи...');
         responseOutput.textContent = "Выполняется запрос...";
     }
-    if (pollingInterval && !isCreditCheck) clearInterval(pollingInterval);
+    if (taskWebSocket && !isCreditCheck) {
+        taskWebSocket.close();
+        taskWebSocket = null;
+    }
 
     try {
         const response = await fetch(endpoint, options);
@@ -22,7 +25,7 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
                 document.getElementById("credits-container").style.display = 'inline-flex';
             }
             if (isGeneration && result.data && result.data.taskId) {
-                startPolling(result.data.taskId);
+                startTaskTracking(result.data.taskId);
             } else if (isGeneration) {
                 updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true);
             }
@@ -36,48 +39,69 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
     }
 }
 
-async function startPolling(taskId) {
-    if (pollingInterval) clearInterval(pollingInterval);
+async function startTaskTracking(taskId) {
+    if (taskWebSocket) {
+        taskWebSocket.close();
+    }
     
     const { createPlaceholderCard } = await import('./library.js');
     createPlaceholderCard(taskId);
     
     updateStatus(`⏳ Задача ${taskId.slice(0, 8)}... в очереди.`);
 
-    pollingInterval = setInterval(async () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    taskWebSocket = new WebSocket(wsUrl);
+
+    taskWebSocket.onopen = () => {
+        console.log('WebSocket соединение установлено.');
+        taskWebSocket.send(JSON.stringify({ type: 'trackTask', taskId: taskId }));
+    };
+
+    taskWebSocket.onmessage = async (event) => {
         try {
-            const response = await fetch(`/api/task-status/${taskId}`);
-            const result = await response.json();
+            const result = JSON.parse(event.data);
             document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
 
-            if (!response.ok || !result.data) {
-                throw new Error(result.message || "Некорректный ответ от API");
+            if (result.error) {
+                throw new Error(result.message || "Сервер вернул ошибку WebSocket");
+            }
+            
+            if (!result.data) {
+                 throw new Error(result.message || "Некорректный ответ от API");
             }
 
             const taskData = result.data;
             const statusLowerCase = taskData.status.toLowerCase();
-            const successStatuses = ["success", "completed", "text_success", "first_success"];
-            const pendingStatuses = ["pending", "running", "submitted", "queued"];
+            const successStatuses = ["success", "completed"];
+            const pendingStatuses = ["pending", "running", "submitted", "queued", "text_success", "first_success"];
 
             if (successStatuses.includes(statusLowerCase)) {
-                if (statusLowerCase === 'success' || statusLowerCase === 'completed') {
-                    clearInterval(pollingInterval);
-                    updateStatus("✅ Задача выполнена!", true);
-                    document.getElementById(`placeholder-${taskId}`)?.remove();
-                    await loadSongsFromServer();
-                    await handleApiCall("/api/chat/credit", { method: "GET" }, true);
-                } else {
-                    updateStatus(`⏳ Статус: ${taskData.status}...`);
-                }
+                taskWebSocket.close();
+                updateStatus("✅ Задача выполнена!", true);
+                document.getElementById(`placeholder-${taskId}`)?.remove();
+                await loadSongsFromServer();
+                await handleApiCall("/api/chat/credit", { method: "GET" }, true);
             } else if (pendingStatuses.includes(statusLowerCase)) {
                 updateStatus(`⏳ Статус: ${taskData.status}...`);
             } else {
                 throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.status}`);
             }
         } catch (error) {
-            clearInterval(pollingInterval);
+            taskWebSocket.close();
             updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true);
             document.getElementById(`placeholder-${taskId}`)?.remove();
         }
-    }, 10000);
+    };
+
+    taskWebSocket.onerror = (error) => {
+        console.error('WebSocket ошибка:', error);
+        updateStatus(`🚫 Ошибка WebSocket соединения.`, false, true);
+        document.getElementById(`placeholder-${taskId}`)?.remove();
+    };
+
+    taskWebSocket.onclose = () => {
+        console.log('WebSocket соединение закрыто.');
+        taskWebSocket = null;
+    };
 }

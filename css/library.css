@@ -115,6 +115,7 @@
     align-items: flex-start; 
     gap: 16px; 
     position: relative; 
+    animation: fadeIn 0.4s ease-out forwards;
 }
 .song-card.placeholder { 
     opacity: 0.6; 
