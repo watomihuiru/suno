@@ -1,4 +1,3 @@
-
 import { updateStatus, formatTime } from './ui.js';
 import { getPlaylist, getSongById } from './library.js';
 
@@ -335,13 +334,14 @@ export function showSimpleLyrics(songId) {
     if (!songInfo) return;
     const rawText = songInfo.songData.prompt || "Текст для этой песни не найден.";
     
-    // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
-    // Заменяем теги в скобках на один перенос строки
-    let processedText = rawText.replace(/\s*(\[.*?\]|\(.*?\))\s*/g, '\n');
-    // Сжимаем 3+ переноса строки в 2, чтобы избежать слишком больших разрывов
-    processedText = processedText.replace(/\n{3,}/g, '\n\n');
-    // Убираем переносы в начале и конце текста
-    processedText = processedText.trim();
+    // --- НОВЫЕ ИЗМЕНЕНИЯ ---
+    let processedText = rawText
+        // Заменяем теги, окруженные пробелами/переводами, на двойной перевод строки (создает пустую строку)
+        .replace(/\s*(\[.*?\]|\(.*?\))\s*/g, '\n\n') 
+        // Схлопываем больше 2-х переводов строки в 2, чтобы не было слишком много пустых строк
+        .replace(/\n{3,}/g, '\n\n')
+        // Убираем любые пустые строки в самом начале текста
+        .trim();
     
     globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${processedText.replace(/\n/g, '<br>')}</div>`;
     currentLyrics = [];
@@ -356,7 +356,7 @@ export async function showTimestampedLyrics(songId) {
     
     currentLyrics = [];
     lastActiveLyricIndex = -1;
-    lastActiveElement = null; // Изменено: сбрасываем сохраненный элемент
+    lastActiveElement = null;
     isUserScrollingLyrics = false;
     stopLyricsAnimationLoop();
 
@@ -385,77 +385,86 @@ export async function showTimestampedLyrics(songId) {
 
         // --- НОВАЯ ЛОГИКА ОБРАБОТКИ И ОТОБРАЖЕНИЯ ТЕКСТА ---
         
-        // 1. Сборка строк с обработкой тегов
         let lines = [[]];
         let currentLineArray = lines[0];
-        let isInParenTag = false;
 
+        const isTagOnly = (str) => {
+            const cleaned = str.replace(/(\[.*?\]|\(.*?\))/g, '').trim();
+            return str.trim() !== '' && cleaned === '';
+        };
+        
+        let openParenBuffer = ''; 
+        
         currentLyrics.forEach((segment, index) => {
-            let textToProcess = segment.word;
-            textToProcess = textToProcess.replace(/\[.*?\]/g, ''); // Удаляем [теги]
+            let currentText = openParenBuffer + segment.word;
+            openParenBuffer = '';
 
-            let processedTextForSegment = '';
-            let buffer = textToProcess;
-            
-            if (isInParenTag) {
-                let closingParenIndex = buffer.indexOf(')');
-                if (closingParenIndex !== -1) {
-                    isInParenTag = false;
-                    buffer = buffer.substring(closingParenIndex + 1);
-                } else {
-                    buffer = '';
-                }
+            const openParens = (currentText.match(/\(/g) || []).length;
+            const closeParens = (currentText.match(/\)/g) || []).length;
+            if (openParens > closeParens) {
+                const lastOpenParen = currentText.lastIndexOf('(');
+                openParenBuffer = currentText.substring(lastOpenParen);
+                currentText = currentText.substring(0, lastOpenParen);
             }
-            
-            let parenParts = buffer.split('(');
-            processedTextForSegment += parenParts[0];
+        
+            const textParts = currentText.split('\n');
 
-            for(let i = 1; i < parenParts.length; i++) {
-                let chunk = parenParts[i];
-                let closingParenIndex = chunk.indexOf(')');
-                if (closingParenIndex !== -1) {
-                    processedTextForSegment += chunk.substring(closingParenIndex + 1);
+            textParts.forEach((part, partIndex) => {
+                if (isTagOnly(part)) {
+                    if (currentLineArray.length > 0) {
+                        lines.push([]);
+                    }
+                    lines.push([]);
+                    currentLineArray = lines[lines.length-1];
                 } else {
-                    isInParenTag = true;
-                    break;
+                    const content = part.replace(/(\[.*?\]|\(.*?\))/g, ' ').trim();
+                    if (content) {
+                        currentLineArray.push({
+                            text: content,
+                            index: index,
+                            startTime: segment.startS
+                        });
+                    }
                 }
-            }
 
-            const parts = processedTextForSegment.split('\n');
-            parts.forEach((part, partIndex) => {
-                if (part.trim() !== '') {
-                    currentLineArray.push({
-                        text: part.trim(),
-                        index: index,
-                        startTime: segment.startS
-                    });
-                }
-                if (partIndex < parts.length - 1) {
+                if (partIndex < textParts.length - 1) {
                     lines.push([]);
                     currentLineArray = lines[lines.length - 1];
                 }
             });
         });
-        
-        // 2. Удаление пустых строк в начале
-        while (lines.length > 0 && lines[0].length === 0) {
-            lines.shift();
+
+        let finalLines = [];
+        let lastWasEmpty = true; 
+        for (const line of lines) {
+            if (line.length > 0) {
+                finalLines.push(line);
+                lastWasEmpty = false;
+            } else {
+                if (!lastWasEmpty) {
+                    finalLines.push([]);
+                }
+                lastWasEmpty = true;
+            }
         }
         
-        // 3. Отображение
         const paragraph = document.createElement('div');
         paragraph.className = 'lyrics-paragraph';
 
-        lines.forEach(lineContent => {
+        finalLines.forEach(lineContent => {
             const lineDiv = document.createElement('div');
-            lineContent.forEach(seg => {
-                const span = document.createElement('span');
-                span.textContent = seg.text + ' ';
-                span.className = 'lyric-segment';
-                span.dataset.index = seg.index;
-                span.dataset.startTime = seg.startTime;
-                lineDiv.appendChild(span);
-            });
+            if(lineContent.length === 0) {
+                lineDiv.innerHTML = '&nbsp;'; 
+            } else {
+                lineContent.forEach(seg => {
+                    const span = document.createElement('span');
+                    span.textContent = seg.text + ' ';
+                    span.className = 'lyric-segment';
+                    span.dataset.index = seg.index;
+                    span.dataset.startTime = seg.startTime;
+                    lineDiv.appendChild(span);
+                });
+            }
             paragraph.appendChild(lineDiv);
         });
         
@@ -463,8 +472,6 @@ export async function showTimestampedLyrics(songId) {
         lyricsContainer.scrollTop = 0;
         checkLyricsScrollability();
         
-        // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
-
         if (!globalPlayer.audio.paused) {
             startLyricsAnimationLoop();
         }
@@ -489,13 +496,11 @@ function updateActiveLyric(currentTime) {
     }
 
     if (activeSegmentIndex !== lastActiveLyricIndex) {
-        // Снимаем подсветку с предыдущих слов
         if (lastActiveLyricIndex > -1) {
             const prevActiveElements = document.querySelectorAll(`.lyric-segment[data-index="${lastActiveLyricIndex}"]`);
             if (prevActiveElements) prevActiveElements.forEach(el => el.classList.remove('active'));
         }
         
-        // Находим и подсвечиваем новые слова
         if (activeSegmentIndex > -1) {
             const activeElements = document.querySelectorAll(`.lyric-segment[data-index="${activeSegmentIndex}"]`);
             if (activeElements && activeElements.length > 0) {
@@ -503,15 +508,11 @@ function updateActiveLyric(currentTime) {
                 
                 const newFirstActiveElement = activeElements[0];
 
-                // --- НОВАЯ ЛОГИКА ПРОКРУТКИ ---
-                // Проверяем, изменилась ли вертикальная позиция слова
                 if (!isUserScrollingLyrics && (!lastActiveElement || newFirstActiveElement.offsetTop !== lastActiveElement.offsetTop)) {
                     isProgrammaticScroll = true;
-                    // Прокручиваем к родительскому элементу (строке) для лучшего вида
                     newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 
-                // Запоминаем текущий активный элемент для следующего сравнения
                 lastActiveElement = newFirstActiveElement;
             }
         }
