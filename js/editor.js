@@ -61,6 +61,7 @@ function renderAudioEditor(mode, songInfo, container) {
     const { songData } = songInfo;
     const isExtend = mode === 'extend';
 
+    // --- ОБНОВЛЕННЫЙ HTML-ШАБЛОН ---
     container.innerHTML = `
         <div class="editor-info">
             <div class="editor-cover-container">
@@ -73,17 +74,20 @@ function renderAudioEditor(mode, songInfo, container) {
             </div>
         </div>
         <div class="waveform-container">
-            <canvas class="waveform-canvas"></canvas>
-            ${isExtend ? '<div class="waveform-playback-progress"></div>' : ''}
+            ${isExtend ? '<canvas class="waveform-canvas-played"></canvas><canvas class="waveform-canvas-unplayed"></canvas>' : '<canvas class="waveform-canvas-played"></canvas>'}
             ${isExtend ? '<div class="waveform-progress"></div><div class="waveform-handle"></div>' : ''}
         </div>
         ${isExtend ? '<div class="extend-time-label">Расширить с 0:00</div>' : ''}
     `;
 
-    const canvas = container.querySelector('.waveform-canvas');
-    drawSimulatedWaveform(canvas, isExtend ? '#8B949E' : '#E1AFD1');
-    
     if (isExtend) {
+        const canvasPlayed = container.querySelector('.waveform-canvas-played');
+        const canvasUnplayed = container.querySelector('.waveform-canvas-unplayed');
+        
+        // Рисуем на обоих canvas, но разными цветами
+        drawSimulatedWaveform(canvasPlayed, '#E6EDF3'); // "Проигранный" цвет (белый)
+        drawSimulatedWaveform(canvasUnplayed, '#8B949E'); // "Непроигранный" цвет (серый)
+
         const updateExtendUI = (percent) => {
             const { duration } = songInfo.songData;
             const handle = container.querySelector('.waveform-handle');
@@ -95,9 +99,6 @@ function renderAudioEditor(mode, songInfo, container) {
             const currentTime = duration * percent;
 
             handle.style.left = `${percent * 100}%`;
-            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-            // Раньше: progress.style.width = `${percent * 100}%`;
-            // Теперь: управляем левым краем, а правый край зафиксирован в CSS
             progress.style.left = `${percent * 100}%`;
             
             timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
@@ -106,10 +107,15 @@ function renderAudioEditor(mode, songInfo, container) {
 
         initExtendHandle(songInfo, container, updateExtendUI);
         initEditorPlayer(songInfo, container, updateExtendUI);
+    } else {
+        // Для режима "Кавер" просто рисуем одну волну
+        const canvas = container.querySelector('.waveform-canvas-played');
+        drawSimulatedWaveform(canvas, '#E1AFD1'); // Розовый цвет
     }
 }
 
 function drawSimulatedWaveform(canvas, color) {
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
@@ -136,8 +142,9 @@ function initEditorPlayer(songInfo, container, updateExtendUI) {
     const coverContainer = container.querySelector('.editor-cover-container');
     const playIcon = container.querySelector('.editor-play-icon i');
     const timeDisplay = container.querySelector('.editor-time');
-    const playbackProgress = container.querySelector('.waveform-playback-progress');
     const waveformContainer = container.querySelector('.waveform-container');
+    // --- ПОЛУЧАЕМ ВЕРХНИЙ СЛОЙ CANVAS ---
+    const canvasUnplayed = container.querySelector('.waveform-canvas-unplayed');
 
     if (editorAudio) {
         editorAudio.pause();
@@ -161,7 +168,10 @@ function initEditorPlayer(songInfo, container, updateExtendUI) {
     editorAudio.addEventListener('pause', updatePlayIcon);
     editorAudio.addEventListener('ended', () => {
         updatePlayIcon();
-        playbackProgress.style.width = '0%';
+        // Сбрасываем "обрезку" верхнего слоя
+        if (canvasUnplayed) {
+            canvasUnplayed.style.clipPath = 'inset(0 0 0 0)';
+        }
         timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
         editorAudio.currentTime = 0;
     });
@@ -170,7 +180,13 @@ function initEditorPlayer(songInfo, container, updateExtendUI) {
         const { currentTime, duration } = editorAudio;
         if (isNaN(duration) || duration === 0) return;
         const progressPercent = (currentTime / duration) * 100;
-        playbackProgress.style.width = `${progressPercent}%`;
+        
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: УПРАВЛЯЕМ CLIP-PATH ---
+        // Обрезаем левую часть серого графика, проявляя белый под ним
+        if (canvasUnplayed) {
+            canvasUnplayed.style.clipPath = `inset(0 0 0 ${progressPercent}%)`;
+        }
+        
         timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
     });
     

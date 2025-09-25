@@ -62,40 +62,44 @@
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
+    background-color: var(--bg-input); /* Фон для контейнера */
 }
-.waveform-canvas {
+
+/* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
+
+/* Удаляем старый .waveform-playback-progress */
+
+/* Стили для canvas-слоев */
+.waveform-canvas-played, .waveform-canvas-unplayed {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: block;
 }
-.waveform-playback-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0;
-    /* Был желтым, стал розовым для консистентности */
-    background-color: rgba(225, 175, 209, 0.25);
-    pointer-events: none;
+.waveform-canvas-unplayed {
+    /* Этот слой будет "обрезаться", открывая нижний */
+    clip-path: inset(0 0 0 0); /* Начальное состояние - виден полностью */
     z-index: 2;
 }
+
 .waveform-progress {
     position: absolute;
     top: 0;
     height: 100%;
-    /* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
-    right: 0; /* Привязываем к правому краю */
-    left: 50%; /* Начальная позиция левого края */
-    width: auto; /* Ширина теперь автоматическая */
-    /* Был розовым, стал желтым, как на скриншоте */
-    background-color: rgba(247, 183, 49, 0.5); 
+    right: 0; 
+    left: 50%; 
+    width: auto; 
+    /* Меняем цвет на синеватый */
+    background-color: rgba(56, 130, 246, 0.4); 
     pointer-events: none;
     z-index: 1;
 }
 .waveform-handle {
     position: absolute;
     top: 0;
-    left: 50%; /* Default position */
+    left: 50%; 
     width: 3px;
     height: 100%;
     background-color: white;
