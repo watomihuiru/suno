@@ -286,6 +286,9 @@
 }
 #fs-controls .player-btn {
     font-size: 24px;
+    color: var(--text-secondary); /* --- ИЗМЕНЕНИЕ --- */
+}
+#fs-controls .player-btn:hover { /* --- ДОБАВЛЕНО --- */
     color: var(--text-primary);
 }
 #fs-controls .player-btn.active {
@@ -293,6 +296,7 @@
 }
 #fs-controls #fs-play-pause-btn {
     font-size: 48px;
+    color: var(--text-primary); /* --- ИЗМЕНЕНИЕ --- */
 }
 
 @keyframes animateGradient {
