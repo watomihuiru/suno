@@ -82,7 +82,8 @@ async function startTaskTracking(taskId) {
             if (successStatuses.includes(statusLowerCase)) {
                 taskWebSocket.close();
                 updateStatus("✅ Задача выполнена!", true);
-                document.getElementById(`placeholder-${taskId}`)?.remove();
+                document.getElementById(`placeholder-${taskId}-1`)?.remove();
+                document.getElementById(`placeholder-${taskId}-2`)?.remove();
                 await loadSongsFromServer();
                 await handleApiCall("/api/chat/credit", { method: "GET" }, true);
             } else if (pendingStatuses.includes(statusLowerCase)) {
@@ -93,14 +94,16 @@ async function startTaskTracking(taskId) {
         } catch (error) {
             taskWebSocket.close();
             updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true);
-            document.getElementById(`placeholder-${taskId}`)?.remove();
+            document.getElementById(`placeholder-${taskId}-1`)?.remove();
+            document.getElementById(`placeholder-${taskId}-2`)?.remove();
         }
     };
 
     taskWebSocket.onerror = (error) => {
         console.error('WebSocket ошибка:', error);
         updateStatus(`🚫 Ошибка WebSocket соединения.`, false, true);
-        document.getElementById(`placeholder-${taskId}`)?.remove();
+        document.getElementById(`placeholder-${taskId}-1`)?.remove();
+        document.getElementById(`placeholder-${taskId}-2`)?.remove();
     };
 
     taskWebSocket.onclose = () => {

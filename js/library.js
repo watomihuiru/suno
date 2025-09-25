@@ -3,7 +3,7 @@
 // добавление в избранное и другие действия с песнями.
 import { modelMap } from './config.js';
 import { formatTime, copyToClipboard, showConfirmationModal } from './ui.js';
-import { playSongById, getPlayerState, showSimpleLyrics, showTimestampedLyrics } from './player.js';
+import { playSongById, getPlayerState, showSimpleLyrics, showTimestampedLyrics, updateAllPlayIcons } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
 
 let playlist = [];
@@ -273,11 +273,14 @@ export async function loadSongsFromServer(projectId = null) {
 }
 
 export function createPlaceholderCard(taskId) {
-    const card = document.createElement('div');
-    card.className = 'song-card placeholder';
-    card.id = `placeholder-${taskId}`;
-    card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
-    songListContainer.prepend(card);
+    for (let i = 1; i <= 2; i++) {
+        const card = document.createElement('div');
+        card.className = 'song-card placeholder';
+        card.id = `placeholder-${taskId}-${i}`;
+        card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
+        songListContainer.prepend(card);
+    }
+    updateAllPlayIcons();
 }
 
 export function setupLibraryTabs() {
