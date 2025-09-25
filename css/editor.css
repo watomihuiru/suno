@@ -65,7 +65,7 @@
     background-color: var(--bg-input); 
 }
 
-/* --- ИЗМЕНЕНИЯ В ПОРЯДКЕ СЛОЕВ (Z-INDEX) --- */
+/* --- ИЗМЕНЕН ПОРЯДОК СЛОЕВ (Z-INDEX) --- */
 
 .waveform-canvas-base, .waveform-canvas-top {
     position: absolute;
@@ -74,13 +74,14 @@
     width: 100%;
     height: 100%;
     display: block;
+    pointer-events: none; /* Canvas не должен перехватывать клики */
 }
 .waveform-canvas-base {
-    z-index: 2; /* Базовый (белый) слой */
+    z-index: 2; /* Базовый (белый/проигранный) слой */
 }
 .waveform-canvas-top {
     clip-path: inset(0 0 0 0); 
-    z-index: 3; /* Верхний (серый) слой, который обрезается */
+    z-index: 3; /* Верхний (серый/непроигранный) слой, который обрезается */
 }
 
 .waveform-progress {
@@ -102,9 +103,10 @@
     height: 100%;
     background-color: white;
     transform: translateX(-50%);
-    pointer-events: none;
     z-index: 4; /* Самый верхний слой */
     cursor: ew-resize;
+    /* Ручка должна перехватывать события мыши */
+    pointer-events: auto; 
 }
 .extend-time-label {
     background-color: var(--bg-card);

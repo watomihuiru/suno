@@ -57,11 +57,12 @@ export function resetEditViews() {
     document.getElementById('uc-audio-editor').innerHTML = '';
 }
 
+// --- НОВАЯ ЛОГИКА ОТРИСОВКИ И ВЗАИМОДЕЙСТВИЯ ---
+
 function renderAudioEditor(mode, songInfo, container) {
     const { songData } = songInfo;
     const isExtend = mode === 'extend';
 
-    // --- ОБНОВЛЕННЫЙ HTML-ШАБЛОН С НОВЫМИ КЛАССАМИ ---
     container.innerHTML = `
         <div class="editor-info">
             <div class="editor-cover-container">
@@ -80,12 +81,16 @@ function renderAudioEditor(mode, songInfo, container) {
         ${isExtend ? '<div class="extend-time-label">Расширить с 0:00</div>' : ''}
     `;
 
+    const canvasBase = container.querySelector('.waveform-canvas-base');
+    const canvasTop = container.querySelector('.waveform-canvas-top');
+
+    // 1. Генерируем данные для волны ОДИН РАЗ
+    const waveData = generateSimulatedWaveformData(canvasBase);
+
     if (isExtend) {
-        const canvasBase = container.querySelector('.waveform-canvas-base');
-        const canvasTop = container.querySelector('.waveform-canvas-top');
-        
-        drawSimulatedWaveform(canvasBase, '#E6EDF3'); // "Проигранный" цвет (белый)
-        drawSimulatedWaveform(canvasTop, '#8B949E'); // "Непроигранный" цвет (серый)
+        // 2. Рисуем два идентичных графика разными цветами
+        drawWaveformFromData(canvasBase, waveData, '#E6EDF3'); // "Проигранный" цвет (белый)
+        drawWaveformFromData(canvasTop, waveData, '#8B949E'); // "Непроигранный" цвет (серый)
 
         const updateExtendUI = (percent) => {
             const { duration } = songInfo.songData;
@@ -105,37 +110,49 @@ function renderAudioEditor(mode, songInfo, container) {
         };
 
         initExtendHandle(songInfo, container, updateExtendUI);
-        initEditorPlayer(songInfo, container, updateExtendUI);
+        initEditorPlayer(songInfo, container);
     } else {
-        const canvas = container.querySelector('.waveform-canvas-base');
-        drawSimulatedWaveform(canvas, '#E1AFD1'); 
+        drawWaveformFromData(canvasBase, waveData, '#E1AFD1'); 
     }
 }
 
-function drawSimulatedWaveform(canvas, color) {
+function generateSimulatedWaveformData(canvas) {
+    if (!canvas) return [];
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = rect.width * dpr;
+    const height = rect.height * dpr;
+    const barWidth = 2 * dpr;
+    const gap = 1 * dpr;
+    const numBars = Math.floor(width / (barWidth + gap));
+    
+    const data = [];
+    for (let i = 0; i < numBars; i++) {
+        data.push(Math.random() * height * 0.8 + height * 0.1);
+    }
+    return data;
+}
+
+function drawWaveformFromData(canvas, data, color) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const width = canvas.width / dpr;
-    const height = canvas.height / dpr;
-    const barWidth = 2;
-    const gap = 1;
-    const numBars = Math.floor(width / (barWidth + gap));
+    
+    const height = canvas.height;
+    const barWidth = 2 * dpr;
+    const gap = 1 * dpr;
     
     ctx.fillStyle = color;
-    for (let i = 0; i < numBars; i++) {
-        const barHeight = Math.random() * height * 0.8 + height * 0.1;
+    data.forEach((barHeight, i) => {
         const y = (height - barHeight) / 2;
         ctx.fillRect(i * (barWidth + gap), y, barWidth, barHeight);
-    }
+    });
 }
 
-function initEditorPlayer(songInfo, container, updateExtendUI) {
+function initEditorPlayer(songInfo, container) {
     const { songData } = songInfo;
     const coverContainer = container.querySelector('.editor-cover-container');
     const playIcon = container.querySelector('.editor-play-icon i');
@@ -154,20 +171,15 @@ function initEditorPlayer(songInfo, container, updateExtendUI) {
     };
 
     coverContainer.addEventListener('click', () => {
-        if (editorAudio.paused) {
-            editorAudio.play();
-        } else {
-            editorAudio.pause();
-        }
+        if (editorAudio.paused) editorAudio.play();
+        else editorAudio.pause();
     });
 
     editorAudio.addEventListener('play', updatePlayIcon);
     editorAudio.addEventListener('pause', updatePlayIcon);
     editorAudio.addEventListener('ended', () => {
         updatePlayIcon();
-        if (canvasTop) {
-            canvasTop.style.clipPath = 'inset(0 0 0 0)';
-        }
+        if (canvasTop) canvasTop.style.clipPath = 'inset(0 0 0 0)';
         timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
         editorAudio.currentTime = 0;
     });
@@ -177,46 +189,17 @@ function initEditorPlayer(songInfo, container, updateExtendUI) {
         if (isNaN(duration) || duration === 0) return;
         const progressPercent = (currentTime / duration) * 100;
         
-        if (canvasTop) {
-            canvasTop.style.clipPath = `inset(0 0 0 ${progressPercent}%)`;
-        }
-        
+        if (canvasTop) canvasTop.style.clipPath = `inset(0 0 0 ${progressPercent}%)`;
         timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
     });
     
-    const seek = (e) => {
+    // Логика перемотки по клику
+    waveformContainer.addEventListener('click', (e) => {
         if (!editorAudio.duration) return;
         const rect = waveformContainer.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percent = Math.max(0, Math.min(1, x / rect.width));
         editorAudio.currentTime = editorAudio.duration * percent;
-        
-        // --- ДОБАВЛЕНО: МГНОВЕННОЕ ОБНОВЛЕНИЕ ВИЗУАЛИЗАЦИИ ПРИ КЛИКЕ ---
-        if (canvasTop) {
-            canvasTop.style.clipPath = `inset(0 0 0 ${percent * 100}%)`;
-        }
-        
-        if (updateExtendUI) {
-            updateExtendUI(percent);
-        }
-    };
-
-    let isSeeking = false;
-    waveformContainer.addEventListener('mousedown', (e) => {
-        // Эта проверка гарантирует, что перемотка не сработает, если вы начали тащить за ручку
-        if (e.target.classList.contains('waveform-handle')) {
-            return;
-        }
-        isSeeking = true;
-        seek(e);
-    });
-    document.addEventListener('mousemove', (e) => {
-        if (isSeeking) {
-            seek(e);
-        }
-    });
-    document.addEventListener('mouseup', () => {
-        isSeeking = false;
     });
 }
 
@@ -227,29 +210,31 @@ function initExtendHandle(songInfo, container, updateUI) {
 
     let isDragging = false;
 
-    const updatePositionFromDrag = (clientX) => {
+    const onDrag = (clientX) => {
         const rect = waveformContainer.getBoundingClientRect();
-        let x = clientX - rect.left;
+        const x = clientX - rect.left;
         const percent = Math.max(0, Math.min(1, x / rect.width));
         
         updateUI(percent);
 
+        // Обновляем позицию плеера во время перетаскивания для превью
         if (editorAudio && editorAudio.duration) {
             editorAudio.currentTime = duration * percent;
         }
     };
     
+    // Устанавливаем ручку в конец по умолчанию
     updateUI(1);
 
     handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Предотвращаем клик по контейнеру
         isDragging = true;
         document.body.style.cursor = 'ew-resize';
     });
 
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            updatePositionFromDrag(e.clientX);
+            onDrag(e.clientX);
         }
     });
 
