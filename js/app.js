@@ -164,10 +164,8 @@ function setupEventListeners() {
     // Style Boost
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
-    // --- ИЗМЕНЕННЫЙ ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КЛИКОВ ---
     window.addEventListener("click", () => { 
         document.querySelectorAll('.select-dropdown.open').forEach(d => d.classList.remove('open'));
-        // При клике вне меню, закрываем его и убираем z-index с карточки
         document.querySelectorAll('.song-menu.active').forEach(menu => {
             menu.classList.remove('active');
             menu.closest('.song-card').classList.remove('menu-is-active');
@@ -448,4 +446,17 @@ document.addEventListener("DOMContentLoaded", () => {
             handleLogin(); 
         } 
     });
+
+    // --- РЕГИСТРАЦИЯ SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker зарегистрирован: ', registration);
+                })
+                .catch(registrationError => {
+                    console.log('Ошибка регистрации Service Worker: ', registrationError);
+                });
+        });
+    }
 });
