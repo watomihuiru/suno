@@ -62,15 +62,12 @@
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
-    background-color: var(--bg-input); /* Фон для контейнера */
+    background-color: var(--bg-input); 
 }
 
-/* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
+/* --- ИЗМЕНЕНИЯ В ПОРЯДКЕ СЛОЕВ (Z-INDEX) --- */
 
-/* Удаляем старый .waveform-playback-progress */
-
-/* Стили для canvas-слоев */
-.waveform-canvas-played, .waveform-canvas-unplayed {
+.waveform-canvas-base, .waveform-canvas-top {
     position: absolute;
     top: 0;
     left: 0;
@@ -78,10 +75,12 @@
     height: 100%;
     display: block;
 }
-.waveform-canvas-unplayed {
-    /* Этот слой будет "обрезаться", открывая нижний */
-    clip-path: inset(0 0 0 0); /* Начальное состояние - виден полностью */
-    z-index: 2;
+.waveform-canvas-base {
+    z-index: 2; /* Базовый (белый) слой */
+}
+.waveform-canvas-top {
+    clip-path: inset(0 0 0 0); 
+    z-index: 3; /* Верхний (серый) слой, который обрезается */
 }
 
 .waveform-progress {
@@ -91,10 +90,9 @@
     right: 0; 
     left: 50%; 
     width: auto; 
-    /* Меняем цвет на синеватый */
     background-color: rgba(56, 130, 246, 0.4); 
     pointer-events: none;
-    z-index: 1;
+    z-index: 1; /* Самый нижний слой, под графиками */
 }
 .waveform-handle {
     position: absolute;
@@ -105,7 +103,7 @@
     background-color: white;
     transform: translateX(-50%);
     pointer-events: none;
-    z-index: 3;
+    z-index: 4; /* Самый верхний слой */
     cursor: ew-resize;
 }
 .extend-time-label {
