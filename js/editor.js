@@ -95,7 +95,11 @@ function renderAudioEditor(mode, songInfo, container) {
             const currentTime = duration * percent;
 
             handle.style.left = `${percent * 100}%`;
-            progress.style.width = `${percent * 100}%`;
+            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+            // Раньше: progress.style.width = `${percent * 100}%`;
+            // Теперь: управляем левым краем, а правый край зафиксирован в CSS
+            progress.style.left = `${percent * 100}%`;
+            
             timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
             continueAtInput.value = Math.round(currentTime);
         };

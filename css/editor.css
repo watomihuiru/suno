@@ -74,17 +74,21 @@
     left: 0;
     height: 100%;
     width: 0;
-    background-color: rgba(247, 183, 49, 0.5);
+    /* Был желтым, стал розовым для консистентности */
+    background-color: rgba(225, 175, 209, 0.25);
     pointer-events: none;
     z-index: 2;
 }
 .waveform-progress {
     position: absolute;
     top: 0;
-    left: 0;
     height: 100%;
-    width: 50%; /* Default position */
-    background-color: rgba(225, 175, 209, 0.25);
+    /* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
+    right: 0; /* Привязываем к правому краю */
+    left: 50%; /* Начальная позиция левого края */
+    width: auto; /* Ширина теперь автоматическая */
+    /* Был розовым, стал желтым, как на скриншоте */
+    background-color: rgba(247, 183, 49, 0.5); 
     pointer-events: none;
     z-index: 1;
 }
