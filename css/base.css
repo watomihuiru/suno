@@ -1,8 +1,8 @@
 :root {
-    --bg-page: #0E1117; --bg-card: #161B22; --bg-input: #0E1117;
-    --border: #30363D; --text-primary: #E6EDF3; --text-secondary: #8B949E;
-    --accent-blue: #3882F6; --accent-blue-hover: #58A6FF; --accent-blue-active: #2188ff;
-    --accent-green: #238636; --accent-red: #da3633; --accent-yellow: #f7b731;
+    --bg-page: #0E1117; --bg-card: #121820; --bg-input: #0E1117;
+    --border: #2A3138; --text-primary: #E6EDF3; --text-secondary: #8B949E;
+    --accent-blue: #4C8CF5; --accent-blue-hover: #6AA4FF; --accent-blue-active: #2A7BFF;
+    --accent-green: #2EA043; --accent-red: #F85149; --accent-yellow: #f7b731;
     --accent-pink: #E1AFD1;
     --sidebar-width: 240px;
 }
@@ -15,13 +15,15 @@ body {
     overflow: hidden;
 }
 .card { 
-    background-color: var(--bg-card); 
+    background-color: rgba(18, 24, 32, 0.85); 
     border: 1px solid var(--border); 
-    border-radius: 8px; 
+    border-radius: 14px; 
     padding: 24px; 
     display: flex; 
     flex-direction: column; 
     min-height: 0; 
+    backdrop-filter: blur(6px); 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 hr.divider { 
     border: none; 

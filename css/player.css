@@ -3,15 +3,16 @@
     bottom: 30px;
     left: calc(var(--sidebar-width) + 30px + 24px);
     right: 30px;
-    background-color: #1c2128;
+    background-color: rgba(18, 24, 32, 0.9);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 8px 20px;
     display: none;
     align-items: center;
     gap: 20px;
     z-index: 100;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
 }
 #player-song-info { 
     display: flex; 
@@ -54,10 +55,13 @@
     color: var(--text-secondary); 
     cursor: pointer; 
     font-size: 18px; 
-    transition: color 0.2s; 
+    transition: color 0.2s, transform 0.1s; 
 }
 .player-btn:hover { 
     color: var(--text-primary); 
+}
+.player-btn:active {
+    transform: scale(0.96);
 }
 .player-btn#play-pause-btn { 
     font-size: 28px; 
@@ -66,6 +70,9 @@
 .player-btn.active { 
     color: var(--accent-blue); 
 }
+/* Explicit states for clarity */
+#shuffle-btn.active i, #fs-shuffle-btn.active i { color: var(--accent-blue); }
+#repeat-btn.active i, #fs-repeat-btn.active i { color: var(--accent-blue); }
 #player-timeline-desktop { 
     display: flex; 
     align-items: center; 

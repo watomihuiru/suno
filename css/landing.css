@@ -5,9 +5,20 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    background: radial-gradient(ellipse at top, #1e2a47, var(--bg-page)), radial-gradient(ellipse at bottom, #3a1c4a, var(--bg-page));
+    background: radial-gradient(ellipse at top, #1b2a45, var(--bg-page)), radial-gradient(ellipse at bottom, #2c1b3b, var(--bg-page));
     padding: 20px;
     animation: fadeIn 1s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+#landing-page::after {
+    content: '';
+    position: absolute;
+    inset: -20% -10% -10% -20%;
+    background: conic-gradient(from 0deg at 50% 50%, rgba(74, 118, 255, 0.25), rgba(255, 99, 195, 0.12), rgba(74, 118, 255, 0.25));
+    filter: blur(80px) saturate(120%);
+    animation: rotateGlow 22s linear infinite;
+    pointer-events: none;
 }
 .landing-content {
     max-width: 600px;
@@ -25,20 +36,26 @@
     line-height: 1.6;
 }
 #start-button {
-    background-color: var(--accent-blue);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-active));
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 14px 32px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: transform 0.15s ease, filter 0.2s ease;
+    box-shadow: 0 10px 25px rgba(56, 130, 246, 0.35);
 }
 #start-button:hover {
-    background-color: var(--accent-blue-hover);
     transform: translateY(-2px);
+    filter: brightness(1.05);
 }
 #start-button:active {
     transform: translateY(0);
+}
+
+@keyframes rotateGlow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
