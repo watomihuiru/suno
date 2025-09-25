@@ -334,13 +334,9 @@ export function showSimpleLyrics(songId) {
     if (!songInfo) return;
     const rawText = songInfo.songData.prompt || "Текст для этой песни не найден.";
     
-    // --- НОВЫЕ ИЗМЕНЕНИЯ ---
     let processedText = rawText
-        // Заменяем теги, окруженные пробелами/переводами, на двойной перевод строки (создает пустую строку)
         .replace(/\s*(\[.*?\]|\(.*?\))\s*/g, '\n\n') 
-        // Схлопываем больше 2-х переводов строки в 2, чтобы не было слишком много пустых строк
         .replace(/\n{3,}/g, '\n\n')
-        // Убираем любые пустые строки в самом начале текста
         .trim();
     
     globalPlayer.fsLyricsContent.innerHTML = `<div class="lyrics-paragraph">${processedText.replace(/\n/g, '<br>')}</div>`;
@@ -376,15 +372,13 @@ export async function showTimestampedLyrics(songId) {
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {
-            showSimpleLyrics(songId); // Fallback to simple lyrics
+            showSimpleLyrics(songId);
             return;
         }
 
         currentLyrics = lyricsData.alignedWords;
-        lyricsContainer.innerHTML = ''; // Очищаем 'Загрузка...'
+        lyricsContainer.innerHTML = '';
 
-        // --- НОВАЯ ЛОГИКА ОБРАБОТКИ И ОТОБРАЖЕНИЯ ТЕКСТА ---
-        
         let lines = [[]];
         let currentLineArray = lines[0];
 
@@ -395,7 +389,7 @@ export async function showTimestampedLyrics(songId) {
         
         let openParenBuffer = ''; 
         
-        currentLyrics.forEach((segment, index) => {
+        currentLyrics.forEach((segment) => {
             let currentText = openParenBuffer + segment.word;
             openParenBuffer = '';
 
@@ -421,7 +415,7 @@ export async function showTimestampedLyrics(songId) {
                     if (content) {
                         currentLineArray.push({
                             text: content,
-                            index: index,
+                            index: currentLyrics.indexOf(segment),
                             startTime: segment.startS
                         });
                     }
@@ -448,6 +442,11 @@ export async function showTimestampedLyrics(songId) {
             }
         }
         
+        // --- НОВОЕ ИЗМЕНЕНИЕ: УДАЛЯЕМ ПОСЛЕДНЮЮ ПУСТУЮ СТРОКУ ---
+        if (finalLines.length > 0 && finalLines[finalLines.length - 1].length === 0) {
+            finalLines.pop();
+        }
+
         const paragraph = document.createElement('div');
         paragraph.className = 'lyrics-paragraph';
 
