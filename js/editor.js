@@ -57,8 +57,6 @@ export function resetEditViews() {
     document.getElementById('uc-audio-editor').innerHTML = '';
 }
 
-// --- НОВАЯ ЛОГИКА ОТРИСОВКИ И ВЗАИМОДЕЙСТВИЯ ---
-
 function renderAudioEditor(mode, songInfo, container) {
     const { songData } = songInfo;
     const isExtend = mode === 'extend';
@@ -84,13 +82,11 @@ function renderAudioEditor(mode, songInfo, container) {
     const canvasBase = container.querySelector('.waveform-canvas-base');
     const canvasTop = container.querySelector('.waveform-canvas-top');
 
-    // 1. Генерируем данные для волны ОДИН РАЗ
     const waveData = generateSimulatedWaveformData(canvasBase);
 
     if (isExtend) {
-        // 2. Рисуем два идентичных графика разными цветами
-        drawWaveformFromData(canvasBase, waveData, '#E6EDF3'); // "Проигранный" цвет (белый)
-        drawWaveformFromData(canvasTop, waveData, '#8B949E'); // "Непроигранный" цвет (серый)
+        drawWaveformFromData(canvasBase, waveData, '#E6EDF3'); 
+        drawWaveformFromData(canvasTop, waveData, '#8B949E'); 
 
         const updateExtendUI = (percent) => {
             const { duration } = songInfo.songData;
@@ -112,7 +108,8 @@ function renderAudioEditor(mode, songInfo, container) {
         initExtendHandle(songInfo, container, updateExtendUI);
         initEditorPlayer(songInfo, container);
     } else {
-        drawWaveformFromData(canvasBase, waveData, '#E1AFD1'); 
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: МЕНЯЕМ ЦВЕТ НА БЕЛЫЙ ---
+        drawWaveformFromData(canvasBase, waveData, '#E6EDF3'); 
     }
 }
 
@@ -193,7 +190,6 @@ function initEditorPlayer(songInfo, container) {
         timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
     });
     
-    // Логика перемотки по клику
     waveformContainer.addEventListener('click', (e) => {
         if (!editorAudio.duration) return;
         const rect = waveformContainer.getBoundingClientRect();
@@ -217,17 +213,15 @@ function initExtendHandle(songInfo, container, updateUI) {
         
         updateUI(percent);
 
-        // Обновляем позицию плеера во время перетаскивания для превью
         if (editorAudio && editorAudio.duration) {
             editorAudio.currentTime = duration * percent;
         }
     };
     
-    // Устанавливаем ручку в конец по умолчанию
     updateUI(1);
 
     handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation(); // Предотвращаем клик по контейнеру
+        e.stopPropagation(); 
         isDragging = true;
         document.body.style.cursor = 'ew-resize';
     });

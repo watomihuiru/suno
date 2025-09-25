@@ -21,8 +21,11 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
         if (response.ok) {
             if (!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2);
             if (isCreditCheck && result.data !== undefined) {
+                // --- ИЗМЕНЕНИЕ ЗДЕСЬ: ОБНОВЛЯЕМ ОБА СЧЕТЧИКА ---
                 document.getElementById("credits-value").textContent = result.data;
                 document.getElementById("credits-container").style.display = 'inline-flex';
+                document.getElementById("mobile-credits-value").textContent = result.data;
+                document.getElementById("mobile-credits-container").style.display = 'inline-flex';
             }
             if (isGeneration && result.data && result.data.taskId) {
                 startTaskTracking(result.data.taskId);

@@ -76,7 +76,12 @@
     }
     .mobile-header h2 { 
         font-size: 18px; 
-        margin: 0 auto;
+        /* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
+        margin: 0; /* Убираем авто-центрирование */
+        flex-grow: 1; /* Позволяем заголовку занимать доступное место */
+    }
+    #mobile-credits-container {
+        flex-shrink: 0; /* Запрещаем сжиматься */
     }
     #sidebar-overlay, #library-overlay { 
         position: fixed; 
