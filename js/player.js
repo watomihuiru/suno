@@ -374,9 +374,7 @@ export async function showTimestampedLyrics(songId) {
 
         currentLyrics = lyricsData.alignedWords;
         lyricsContainer.innerHTML = '';
-
-        // --- НОВАЯ УЛУЧШЕННАЯ ЛОГИКА ОБРАБОТКИ ТЕГОВ ---
-
+        
         const parsedSegments = [];
         let isInSquareTag = false;
         let isInParenTag = false;
@@ -392,7 +390,7 @@ export async function showTimestampedLyrics(songId) {
                         isInSquareTag = false;
                         currentPart = currentPart.substring(endBracketIndex + 1);
                     } else {
-                        currentPart = ''; // Весь сегмент - часть тега, игнорируем
+                        currentPart = '';
                     }
                 } else if (isInParenTag) {
                     const endParenIndex = currentPart.indexOf(')');
@@ -434,15 +432,13 @@ export async function showTimestampedLyrics(songId) {
                  parsedSegments.push({
                     text: partsToRender.join(''),
                     index: index,
-                    startTime: segment.startTime
+                    startTime: segment.startS // ИСПРАВЛЕНИЕ: Использовать startS
                 });
             } else if (parsedSegments.length > 0 && !parsedSegments[parsedSegments.length-1].isBreak) {
-                 // Добавляем разрыв только если предыдущий не был разрывом
                  parsedSegments.push({ isBreak: true });
             }
         });
-
-        // Строим HTML
+        
         const paragraph = document.createElement('div');
         paragraph.className = 'lyrics-paragraph';
         let currentLineDiv = document.createElement('div');
@@ -450,17 +446,13 @@ export async function showTimestampedLyrics(songId) {
 
         parsedSegments.forEach(seg => {
             if (seg.isBreak) {
-                // Если строка не пустая, создаем новую
                 if (currentLineDiv.hasChildNodes()) {
                     currentLineDiv = document.createElement('div');
                     paragraph.appendChild(currentLineDiv);
                 }
-                 // Добавляем пустую строку-разделитель
                 const breakDiv = document.createElement('div');
                 breakDiv.innerHTML = '&nbsp;';
                 paragraph.appendChild(breakDiv);
-
-                // Создаем новую строку для текста после разрыва
                 currentLineDiv = document.createElement('div');
                 paragraph.appendChild(currentLineDiv);
             } else {
@@ -472,7 +464,7 @@ export async function showTimestampedLyrics(songId) {
                         span.textContent = cleanedPart + ' ';
                         span.className = 'lyric-segment';
                         span.dataset.index = seg.index;
-                        span.dataset.startTime = seg.startTime;
+                        span.dataset.startTime = seg.startTime; // ИСПРАВЛЕНИЕ: startTime теперь корректно
                         currentLineDiv.appendChild(span);
                     }
                     if (i < textParts.length - 1 && currentLineDiv.hasChildNodes()) {
@@ -483,7 +475,6 @@ export async function showTimestampedLyrics(songId) {
             }
         });
         
-        // Очистка пустых div в конце
         while (paragraph.lastChild && !paragraph.lastChild.hasChildNodes() && paragraph.lastChild.textContent.trim() === '') {
             paragraph.removeChild(paragraph.lastChild);
         }
