@@ -22,6 +22,15 @@ import {
 // --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ КОЛЛБЭКА GOOGLE ---
 window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
 
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ СКРИПТА GOOGLE ---
+function loadGoogleGSI() {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
 // --- ФУНКЦИИ УПРАВЛЕНИЯ ИНТЕРФЕЙСОМ ---
 function loadUserProfile() {
     const token = sessionStorage.getItem('authToken');
@@ -433,28 +442,26 @@ async function handleCreateProject() {
     }
 }
 
-// --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+// --- ЗАПУСК ПРИЛОЖЕНИЯ (ФИНАЛЬНАЯ ВЕРСИЯ) ---
 async function verifyUserSession() {
     const token = sessionStorage.getItem('authToken');
     if (!token) {
-        return false; // Нет токена, пользователь не вошел в систему
+        return false;
     }
-
     try {
         const response = await fetch('/api/auth/verify', {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (response.ok) {
-            return true; // Токен валиден
+            return true;
         } else {
             sessionStorage.removeItem('authToken');
-            return false; // Токен невалиден (просрочен, подделан)
+            return false;
         }
     } catch (error) {
         console.error("Ошибка проверки сессии:", error);
-        return false; // Ошибка сети, считаем, что пользователь не вошел
+        return false;
     }
 }
 
@@ -468,7 +475,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    // 1. Всегда привязываем обработчики событий для входа
     if (sunoCard) {
         sunoCard.addEventListener('click', showLogin);
     }
@@ -481,14 +487,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (e.key === 'Enter') handleLogin(); 
     });
 
-    // 2. ЖДЕМ проверки сессии
     const isLoggedIn = await verifyUserSession();
 
-    // 3. И ТОЛЬКО ПОТОМ решаем, что показать
     if (isLoggedIn) {
         showApp();
     } else {
+        // Если пользователь не вошел, показываем главную страницу
         landingPage.style.display = 'block';
         appContainer.style.display = 'none';
+        // И ТОЛЬКО ТЕПЕРЬ загружаем скрипт Google
+        loadGoogleGSI();
     }
 });
