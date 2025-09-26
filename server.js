@@ -83,6 +83,13 @@ async function setupDatabase() {
 
 // --- MIDDLEWARE ---
 app.use(express.json());
+
+// ИСПРАВЛЕНИЕ: Добавлен заголовок для исправления ошибки Cross-Origin
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+});
+
 app.use(express.static(__dirname));
 
 const authMiddleware = (req, res, next) => {

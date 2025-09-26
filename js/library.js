@@ -12,6 +12,19 @@ let activeProjectId = null; // null означает "Без проекта"
 let currentLibraryTab = 'all';
 let songListContainer, emptyListMessage, projectListContainer;
 
+// --- НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ---
+// Создадим функцию для получения заголовков авторизации, чтобы не повторять код
+function getAuthHeaders() {
+    const token = sessionStorage.getItem('authToken');
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
 export function initializeLibrary() {
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
@@ -58,7 +71,11 @@ async function downloadSong(event, url, filename) {
 
 async function deleteSong(songId, cardElement) {
     try {
-        await fetch(`/api/songs/${songId}`, { method: 'DELETE' });
+        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
+        await fetch(`/api/songs/${songId}`, { 
+            method: 'DELETE',
+            headers: getAuthHeaders() 
+        });
         cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
         cardElement.style.opacity = '0';
         cardElement.style.transform = 'translateX(-20px)';
@@ -81,7 +98,12 @@ async function toggleFavorite(songId, cardElement) {
     if (!songInfo) return;
     const newStatus = !songInfo.songData.is_favorite;
     try {
-        await fetch(`/api/songs/${songId}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_favorite: newStatus }) });
+        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
+        await fetch(`/api/songs/${songId}/favorite`, { 
+            method: 'PUT', 
+            headers: getAuthHeaders(), 
+            body: JSON.stringify({ is_favorite: newStatus }) 
+        });
         songInfo.songData.is_favorite = newStatus;
         cardElement.classList.toggle('is-favorite', newStatus);
         const favButton = cardElement.querySelector('.favorite-action');
@@ -95,9 +117,10 @@ async function toggleFavorite(songId, cardElement) {
 
 async function moveSongToProject(songId, newProjectId, cardElement) {
     try {
+        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         await fetch(`/api/songs/${songId}/move`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ projectId: newProjectId })
         });
         // Визуально удаляем карточку из текущего списка
@@ -148,33 +171,27 @@ function addSongToList(songInfo) {
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
     const menu = card.querySelector('.song-menu');
     
-    // --- ОБНОВЛЕННЫЙ ОБРАБОТЧИК КЛИКА ПО МЕНЮ ---
     card.querySelector('.menu-trigger').onclick = (e) => {
         e.stopPropagation();
         const menuTrigger = e.currentTarget;
         const isCurrentlyActive = menu.classList.contains('active');
 
-        // Сначала закрываем все открытые меню
         document.querySelectorAll('.song-menu.active').forEach(m => {
             m.classList.remove('active');
             m.closest('.song-card').classList.remove('menu-is-active');
         });
 
-        // Если кликнутое меню не было активно, то открываем его
         if (!isCurrentlyActive) {
-            // --- ЛОГИКА ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ ---
             const containerRect = songListContainer.getBoundingClientRect();
             const triggerRect = menuTrigger.getBoundingClientRect();
             const spaceBelow = containerRect.bottom - triggerRect.bottom;
-            const menuHeight = 220; // Примерная высота меню в пикселях
+            const menuHeight = 220;
 
             if (spaceBelow < menuHeight) {
                 menu.classList.add('opens-up');
             } else {
                 menu.classList.remove('opens-up');
             }
-            // --- КОНЕЦ ЛОГИКИ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ ---
-
             menu.classList.add('active');
             card.classList.add('menu-is-active');
         }
@@ -202,7 +219,7 @@ function addSongToList(songInfo) {
         moveMenuItem,
         { icon: 'fas fa-download', text: 'Скачать', action: (e) => downloadSong(e, downloadUrl, filename) }, 
         { icon: songData.is_favorite ? 'fas fa-heart' : 'far fa-heart', text: songData.is_favorite ? 'Убрать из избранного' : 'В избранное', action: () => toggleFavorite(songData.id, card), className: 'favorite-action' }, 
-        { icon: 'fas fa-trash', text: 'Удалить', action: () => deleteSong(songData.id, card), className: 'delete' } 
+        { icon: 'fas fa-trash', text: 'Удалить', action: () => showConfirmationModal(`Вы уверены, что хотите удалить песню "${songData.title}"?`, () => deleteSong(songData.id, card)), className: 'delete' } 
     ];
 
     menuItems.forEach(item => { 
@@ -262,7 +279,8 @@ export function renderLibrary() {
 export async function loadSongsFromServer(projectId = null) {
     try {
         const url = projectId ? `/api/songs?projectId=${projectId}` : '/api/songs';
-        const response = await fetch(url);
+        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
+        const response = await fetch(url, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error('Network response was not ok');
         playlist = await response.json();
         renderLibrary();
@@ -300,7 +318,11 @@ async function handleDeleteProject(projectId, projectName) {
         `Вы уверены, что хотите удалить проект "${projectName}"? Все песни из него будут перемещены в "Без проекта".`,
         async () => {
             try {
-                const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+                // ИСПРАВЛЕНО: Добавлены заголовки авторизации
+                const response = await fetch(`/api/projects/${projectId}`, { 
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
                 if (response.ok) {
                     activeProjectId = null;
                     fetchProjects();
@@ -317,7 +339,17 @@ async function handleDeleteProject(projectId, projectName) {
 
 export async function fetchProjects() {
     try {
-        const response = await fetch('/api/projects');
+        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
+        const response = await fetch('/api/projects', { headers: getAuthHeaders() });
+        if (!response.ok) {
+            // Если токен невалиден, разлогиниваем пользователя
+            if (response.status === 401) {
+                sessionStorage.removeItem('authToken');
+                window.location.reload();
+                return;
+            }
+            throw new Error('Server responded with an error');
+        }
         projects = await response.json();
         renderProjects();
         loadSongsFromServer(activeProjectId);
