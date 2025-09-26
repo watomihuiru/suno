@@ -1,16 +1,29 @@
 #landing-page {
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: block;
     text-align: center;
     background: radial-gradient(ellipse at top, #1e2a47, var(--bg-page)), radial-gradient(ellipse at bottom, #3a1c4a, var(--bg-page));
-    padding: 20px;
+    padding: 60px 20px;
     animation: fadeIn 1s ease-in-out;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
 }
 .landing-content {
-    max-width: 600px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+.logo-placeholder {
+    width: 60px;
+    height: 60px;
+    background-color: var(--accent-blue);
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 20px;
 }
 .landing-content h1 {
     font-size: 48px;
@@ -21,24 +34,79 @@
 .landing-content p {
     font-size: 18px;
     color: var(--text-secondary);
-    margin-bottom: 32px;
+    margin-bottom: 48px;
     line-height: 1.6;
 }
-#start-button {
-    background-color: var(--accent-blue);
-    border: none;
-    border-radius: 8px;
-    padding: 14px 32px;
-    font-size: 16px;
-    font-weight: 600;
-    color: white;
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 60px;
+}
+.dashboard-card {
+    background-color: rgba(22, 27, 34, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: left;
+    transition: transform 0.2s, border-color 0.2s;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    position: relative;
 }
-#start-button:hover {
-    background-color: var(--accent-blue-hover);
-    transform: translateY(-2px);
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-blue);
 }
-#start-button:active {
-    transform: translateY(0);
+.dashboard-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+.dashboard-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+}
+.dashboard-card.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+.dashboard-card.disabled:hover {
+    transform: none;
+    border-color: var(--border);
+}
+.dashboard-card.disabled span {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: var(--border);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.faq-section {
+    max-width: 800px;
+    margin: 60px auto 0;
+    text-align: left;
+    border-top: 1px solid var(--border);
+    padding-top: 40px;
+}
+.faq-section h2 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 40px;
+}
+.faq-item {
+    margin-bottom: 24px;
+}
+.faq-item h4 {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+.faq-item p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0;
 }

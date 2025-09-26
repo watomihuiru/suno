@@ -1,7 +1,7 @@
 {
-  "name": "Suno Playground",
-  "short_name": "SunoPlay",
-  "description": "Веб-интерфейс для работы с Suno API",
+  "name": "AI Creative Hub",
+  "short_name": "AI Hub",
+  "description": "Креативная студия с нейросетями для генерации контента",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0E1117",

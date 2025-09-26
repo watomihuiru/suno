@@ -411,7 +411,6 @@ async function handleCreateProject() {
 // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
 document.addEventListener("DOMContentLoaded", () => {
     const loginOverlay = document.getElementById('login-overlay');
-    const startButton = document.getElementById('start-button');
     const loginCloseButton = document.getElementById('login-close-button');
 
     const showLogin = () => loginOverlay.style.display = 'flex';
@@ -428,10 +427,13 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.style.overflow = '';
         initializeApp();
     } else {
-        document.getElementById('landing-page').style.display = 'flex';
+        document.getElementById('landing-page').style.display = 'block';
         document.getElementById('app-container').style.display = 'none';
         
-        startButton.addEventListener('click', showLogin);
+        const sunoCard = document.getElementById('suno-card');
+        if (sunoCard) {
+            sunoCard.addEventListener('click', showLogin);
+        }
         loginCloseButton.addEventListener('click', hideLogin);
         loginOverlay.addEventListener('click', (e) => {
             if (e.target === loginOverlay) {

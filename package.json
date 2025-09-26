@@ -1,7 +1,7 @@
 {
-  "name": "suno-studio",
+  "name": "ai-creative-hub",
   "version": "1.0.0",
-  "description": "Веб-интерфейс для работы с Suno API",
+  "description": "Креативная студия с нейросетями для генерации контента",
   "main": "server.js",
   "type": "module",
   "scripts": {
