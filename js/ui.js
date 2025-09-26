@@ -109,54 +109,6 @@ export function showView(viewName, isSetup = false) {
     }
 }
 
-export function showView(viewName, isSetup = false) {
-    if (currentViewName === viewName && !isSetup) return;
-
-    const viewBeingLeft = document.getElementById(currentViewName);
-    if (viewBeingLeft && !isSetup) {
-        const formToReset = viewBeingLeft.querySelector('form');
-        if (formToReset) {
-            formToReset.reset();
-            formToReset.querySelectorAll('input[type="range"]').forEach(slider => {
-                const valueSpan = slider.nextElementSibling;
-                if (valueSpan) valueSpan.textContent = slider.defaultValue;
-            });
-            formToReset.querySelectorAll('textarea, input[type="text"], input[type="password"]').forEach(input => {
-                const counter = document.getElementById(`${input.id}-counter`);
-                if (counter) counter.textContent = `0/${input.maxLength || '...'}`;
-            });
-            formToReset.querySelectorAll('.toggle-switch input[type="checkbox"]').forEach(toggle => {
-                toggle.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        }
-    }
-
-    if (window.innerWidth <= 768) {
-        document.querySelector('.main-content').style.display = 'flex';
-        document.querySelector('.library-card').style.display = 'none';
-        setActiveMobileNav(viewName);
-    }
-
-    document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
-    document.getElementById(viewName).classList.add('active');
-    
-    document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
-    const activeButton = document.querySelector(`.nav-button[data-view="${viewName}"]`);
-    if (activeButton) {
-        activeButton.classList.add('active');
-    }
-    
-    currentViewName = viewName;
-    
-    if (viewName === 'profile') {
-        loadAndDisplayProfileData();
-    }
-    
-    if (!isSetup) {
-        import('./editor.js').then(({ resetEditViews }) => resetEditViews());
-    }
-}
-
 export function showLibraryView() {
     if (window.innerWidth <= 768) {
         document.querySelector('.main-content').style.display = 'none';
