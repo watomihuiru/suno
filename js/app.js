@@ -1,3 +1,7 @@
+// Это главный JS-файл вашего приложения.
+// Он импортирует функции из других модулей и связывает их вместе,
+// инициализирует приложение и устанавливает основные обработчики событий.
+
 import { handleApiCall } from './api.js';
 import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
 import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
@@ -24,6 +28,7 @@ function loadUserProfile() {
     if (!token) return;
 
     try {
+        // Декодируем токен на клиенте, чтобы мгновенно показать имя и аватар
         const payload = JSON.parse(atob(token.split('.')[1]));
         document.getElementById('profile-avatar').src = payload.picture || 'https://via.placeholder.com/40';
         document.getElementById('profile-name').textContent = payload.name || 'Профиль';
@@ -463,32 +468,24 @@ async function verifyUserSession() {
 document.addEventListener("DOMContentLoaded", () => {
     const loginOverlay = document.getElementById('login-overlay');
     const loginCloseButton = document.getElementById('login-close-button');
+    const sunoCard = document.getElementById('suno-card');
 
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    verifyUserSession().then(() => {
-        if (document.getElementById('landing-page').style.display === 'block') {
-            const sunoCard = document.getElementById('suno-card');
-            if (sunoCard) {
-                sunoCard.addEventListener('click', showLogin);
-            }
-            loginCloseButton.addEventListener('click', hideLogin);
-            loginOverlay.addEventListener('click', (e) => {
-                if (e.target === loginOverlay) hideLogin();
-            });
-            document.getElementById('access-key-button').addEventListener('click', handleLogin);
-            document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
-                if (e.key === 'Enter') handleLogin(); 
-            });
-        }
+    // Сначала привязываем все обработчики событий для входа
+    if (sunoCard) {
+        sunoCard.addEventListener('click', showLogin);
+    }
+    loginCloseButton.addEventListener('click', hideLogin);
+    loginOverlay.addEventListener('click', (e) => {
+        if (e.target === loginOverlay) hideLogin();
+    });
+    document.getElementById('access-key-button').addEventListener('click', handleLogin);
+    document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter') handleLogin(); 
     });
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('Service Worker зарегистрирован:', reg))
-                .catch(err => console.log('Ошибка регистрации Service Worker:', err));
-        });
-    }
+    // Затем проверяем сессию, чтобы решить, что показать пользователю
+    verifyUserSession();
 });
