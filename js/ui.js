@@ -1,5 +1,3 @@
-// Этот модуль содержит функции для управления общими элементами интерфейса:
-// модальные окна, переключение видов, слайдеры, счетчики символов и т.д.
 import { modelLimits, extendModelLimits } from './config.js';
 
 let currentViewName = 'generate';
@@ -31,30 +29,54 @@ function setActiveMobileNav(viewName) {
     });
 }
 
+async function loadAndDisplayProfileData() {
+    const balanceEl = document.getElementById('profile-balance');
+    const historyEl = document.getElementById('transaction-history');
+    balanceEl.textContent = '...';
+    historyEl.innerHTML = '<p>Загрузка...</p>';
+
+    try {
+        const token = sessionStorage.getItem('authToken');
+        const response = await fetch('/api/user/profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Не удалось загрузить профиль');
+        
+        const data = await response.json();
+        
+        balanceEl.textContent = `${data.credits} кредитов`;
+        
+        if (data.transactions && data.transactions.length > 0) {
+            historyEl.innerHTML = '<ul>' + data.transactions.map(tx => 
+                `<li><span>${tx.date}</span><span>${tx.description}</span><span>${tx.amount}</span></li>`
+            ).join('') + '</ul>';
+        } else {
+            historyEl.innerHTML = '<p>История транзакций пуста.</p>';
+        }
+
+    } catch (error) {
+        console.error(error);
+        balanceEl.textContent = 'Ошибка';
+        historyEl.innerHTML = '<p>Не удалось загрузить историю.</p>';
+    }
+}
+
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
 
     const viewBeingLeft = document.getElementById(currentViewName);
-    if (viewBeingLeft) {
+    if (viewBeingLeft && !isSetup) {
         const formToReset = viewBeingLeft.querySelector('form');
         if (formToReset) {
             formToReset.reset();
-            // Вручную обновляем UI элементы, которые не сбрасываются через form.reset()
             formToReset.querySelectorAll('input[type="range"]').forEach(slider => {
                 const valueSpan = slider.nextElementSibling;
-                if (valueSpan && valueSpan.classList.contains('slider-value')) {
-                    valueSpan.textContent = slider.value;
-                }
+                if (valueSpan) valueSpan.textContent = slider.defaultValue;
             });
             formToReset.querySelectorAll('textarea, input[type="text"], input[type="password"]').forEach(input => {
                 const counter = document.getElementById(`${input.id}-counter`);
-                if (counter) {
-                    const limit = input.maxLength > 0 ? input.maxLength : counter.textContent.split('/')[1];
-                    counter.textContent = `0/${limit}`;
-                    counter.classList.remove('limit-exceeded');
-                }
+                if (counter) counter.textContent = `0/${input.maxLength || '...'}`;
             });
-            // Вручную вызываем события change для переключателей, чтобы обновить видимость полей
             formToReset.querySelectorAll('.toggle-switch input[type="checkbox"]').forEach(toggle => {
                 toggle.dispatchEvent(new Event('change', { bubbles: true }));
             });
@@ -68,11 +90,67 @@ export function showView(viewName, isSetup = false) {
     }
 
     document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
-    document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
-    document.querySelector(`.nav-button[data-view="${viewName}"]`).classList.add('active');
+    
+    document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
+    const activeButton = document.querySelector(`.nav-button[data-view="${viewName}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
     
     currentViewName = viewName;
+    
+    if (viewName === 'profile') {
+        loadAndDisplayProfileData();
+    }
+    
+    if (!isSetup) {
+        import('./editor.js').then(({ resetEditViews }) => resetEditViews());
+    }
+}
+
+export function showView(viewName, isSetup = false) {
+    if (currentViewName === viewName && !isSetup) return;
+
+    const viewBeingLeft = document.getElementById(currentViewName);
+    if (viewBeingLeft && !isSetup) {
+        const formToReset = viewBeingLeft.querySelector('form');
+        if (formToReset) {
+            formToReset.reset();
+            formToReset.querySelectorAll('input[type="range"]').forEach(slider => {
+                const valueSpan = slider.nextElementSibling;
+                if (valueSpan) valueSpan.textContent = slider.defaultValue;
+            });
+            formToReset.querySelectorAll('textarea, input[type="text"], input[type="password"]').forEach(input => {
+                const counter = document.getElementById(`${input.id}-counter`);
+                if (counter) counter.textContent = `0/${input.maxLength || '...'}`;
+            });
+            formToReset.querySelectorAll('.toggle-switch input[type="checkbox"]').forEach(toggle => {
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+    }
+
+    if (window.innerWidth <= 768) {
+        document.querySelector('.main-content').style.display = 'flex';
+        document.querySelector('.library-card').style.display = 'none';
+        setActiveMobileNav(viewName);
+    }
+
+    document.querySelectorAll('.main-content .view-content').forEach(view => view.classList.remove('active'));
+    document.getElementById(viewName).classList.add('active');
+    
+    document.querySelectorAll('.sidebar-nav .nav-button').forEach(btn => btn.classList.remove('active'));
+    const activeButton = document.querySelector(`.nav-button[data-view="${viewName}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+    
+    currentViewName = viewName;
+    
+    if (viewName === 'profile') {
+        loadAndDisplayProfileData();
+    }
     
     if (!isSetup) {
         import('./editor.js').then(({ resetEditViews }) => resetEditViews());

@@ -1,7 +1,3 @@
-// Это главный JS-файл вашего приложения.
-// Он импортирует функции из других модулей и связывает их вместе,
-// инициализирует приложение и устанавливает основные обработчики событий.
-
 import { handleApiCall } from './api.js';
 import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
 import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
@@ -22,22 +18,20 @@ import {
 // --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ КОЛЛБЭКА GOOGLE ---
 window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
 
-// --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
-function initializeApp() {
-    initializeLibrary();
-    initializePlayer();
-    
-    setupEventListeners();
-    
+// --- ФУНКЦИИ УПРАВЛЕНИЯ ИНТЕРФЕЙСОМ ---
+function loadUserProfile() {
     const token = sessionStorage.getItem('authToken');
-    handleApiCall("/api/chat/credit", { 
-        method: "GET",
-        headers: { 'Authorization': `Bearer ${token}` }
-    }, true);
-    // loadSongsFromServer() теперь вызывается внутри fetchProjects()
+    if (!token) return;
+
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        document.getElementById('profile-avatar').src = payload.picture || 'https://via.placeholder.com/40';
+        document.getElementById('profile-name').textContent = payload.name || 'Профиль';
+    } catch (e) {
+        console.error('Не удалось декодировать токен:', e);
+    }
 }
 
-// --- ЛОГИКА АВТОРИЗАЦИИ ---
 function showApp() {
     document.getElementById('landing-page').style.display = 'none';
     const appContainer = document.getElementById('app-container');
@@ -50,6 +44,16 @@ function showApp() {
     initializeApp();
 }
 
+// --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
+function initializeApp() {
+    loadUserProfile();
+    initializeLibrary();
+    initializePlayer();
+    setupEventListeners();
+    handleApiCall("/api/chat/credit", { method: "GET" }, true);
+}
+
+// --- ЛОГИКА АВТОРИЗАЦИИ ---
 async function handleGoogleCredentialResponse(response) {
     const loginError = document.getElementById('login-error-message');
     try {
@@ -112,57 +116,44 @@ function setupEventListeners() {
     document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
 
-    // Mobile Bottom Nav view switching
     mobileNavViewBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const viewName = button.dataset.view;
-            showView(viewName);
-        });
+        button.addEventListener('click', () => showView(button.dataset.view));
     });
 
-    // Mobile Library Button
-    mobileLibraryBtn.addEventListener('click', () => {
-        showLibraryView();
+    mobileLibraryBtn.addEventListener('click', showLibraryView);
+
+    document.getElementById('profile-container').addEventListener('click', () => {
+        showView('profile');
     });
 
-    // Desktop Sidebar Navigation
     document.querySelectorAll('.sidebar-nav .nav-button').forEach(button => {
         button.addEventListener('click', () => {
             const viewName = button.dataset.view;
-            showView(viewName);
+            if (viewName) {
+                showView(viewName);
+            }
         });
     });
 
-    // Open fullscreen player on mini-player click
     globalPlayer.addEventListener('click', (e) => {
-        if (window.innerWidth > 768) return;
-        // Prevent opening if a button or the seek bar was clicked
-        if (e.target.closest('button') || e.target.closest('input[type="range"]')) {
-            return;
-        }
+        if (window.innerWidth > 768 || e.target.closest('button') || e.target.closest('input[type="range"]')) return;
         const { currentSongId } = getPlayerState();
-        if (currentSongId) {
-            showSimpleLyrics(currentSongId);
-        }
+        if (currentSongId) showSimpleLyrics(currentSongId);
     });
 
-    // UI Elements
     setupSliderListeners();
     setupCharCounters();
     updateAllLimits();
     setupLibraryTabs();
 
-    // Project Modal
     const projectModal = document.getElementById('project-modal-overlay');
     document.getElementById('add-project-btn').addEventListener('click', () => projectModal.style.display = 'flex');
     document.getElementById('project-modal-close-btn').addEventListener('click', () => projectModal.style.display = 'none');
     projectModal.addEventListener('click', (e) => { if(e.target === projectModal) projectModal.style.display = 'none'; });
     document.getElementById('create-project-submit-btn').addEventListener('click', handleCreateProject);
 
-    // Confirmation Modal
     setupConfirmationModal();
 
-    // Custom Mode Toggles
     document.getElementById("g-customMode").addEventListener('change', () => {
         const isCustom = document.getElementById('g-customMode').checked;
         document.getElementById('simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
@@ -179,22 +170,18 @@ function setupEventListeners() {
         document.getElementById('ue-custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
     });
 
-    // Instrumental Toggles
     setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
     setupInstrumentalToggle('ue-instrumental', 'ue-prompt-group', 'ue-vocalGender-group');
     
-    // Custom Selects
     setupCustomSelect('select-model-button', 'select-model-dropdown', 'g-model-value');
     setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
     setupCustomSelect('select-model-button-ue', 'select-model-dropdown-ue', 'ue-model-value');
 
-    // Form Submissions
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
     document.getElementById("upload-extend-form").addEventListener("submit", handleExtendSubmit);
     
-    // Style Boost
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
     window.addEventListener("click", () => { 
@@ -442,7 +429,6 @@ async function handleCreateProject() {
 }
 
 // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
-
 async function verifyUserSession() {
     const token = sessionStorage.getItem('authToken');
     const landingPage = document.getElementById('landing-page');
@@ -482,8 +468,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const hideLogin = () => loginOverlay.style.display = 'none';
 
     verifyUserSession().then(() => {
-        // Эта логика для настройки кнопок входа сработает только если
-        // verifyUserSession не показал основное приложение.
         if (document.getElementById('landing-page').style.display === 'block') {
             const sunoCard = document.getElementById('suno-card');
             if (sunoCard) {
@@ -491,30 +475,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             loginCloseButton.addEventListener('click', hideLogin);
             loginOverlay.addEventListener('click', (e) => {
-                if (e.target === loginOverlay) {
-                    hideLogin();
-                }
+                if (e.target === loginOverlay) hideLogin();
             });
-
             document.getElementById('access-key-button').addEventListener('click', handleLogin);
             document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
-                if (e.key === 'Enter') { 
-                    handleLogin(); 
-                } 
+                if (e.key === 'Enter') handleLogin(); 
             });
         }
     });
 
-    // --- РЕГИСТРАЦИЯ SERVICE WORKER ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('Service Worker зарегистрирован: ', registration);
-                })
-                .catch(registrationError => {
-                    console.log('Ошибка регистрации Service Worker: ', registrationError);
-                });
+                .then(reg => console.log('Service Worker зарегистрирован:', reg))
+                .catch(err => console.log('Ошибка регистрации Service Worker:', err));
         });
     }
 });

@@ -1,0 +1,45 @@
+.profile-page-content {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.balance-card {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.balance-info span {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.balance-info h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    margin-top: 4px;
+}
+
+#top-up-button {
+    width: auto;
+    padding: 10px 24px;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+.transaction-history {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 150px;
+}
+
+.transaction-history p {
+    color: var(--text-secondary);
+}

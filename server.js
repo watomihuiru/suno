@@ -21,7 +21,7 @@ const SUNO_API_TOKEN = process.env.SUNO_API_TOKEN;
 const SUNO_API_BASE_URL = 'https://api.kie.ai/api/v1';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const JWT_SECRET = process.env.JWT_SECRET;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL; // Email админа для предоставления безлимитных кредитов
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const pool = new Pool({
@@ -101,33 +101,27 @@ const authMiddleware = (req, res, next) => {
 };
 
 
-// --- ROUTES ---
+// --- AUTH ROUTES ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// New route to verify a session token
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
-    // If authMiddleware passes, the token is valid.
-    // We just send back a confirmation.
     res.json({ success: true, user: req.user });
 });
 
-// Legacy password login (for admin or fallback)
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     const correctPassword = process.env.SITE_ACCESS_KEY;
 
     if (password && password === correctPassword) {
-        // This is a simplified login, in a real scenario you'd link this to an admin user
-        const adminToken = jwt.sign({ id: 0, email: 'admin@local', isAdmin: true }, JWT_SECRET, { expiresIn: '1d' });
+        const adminToken = jwt.sign({ id: 0, email: 'admin@local', isAdmin: true, name: 'Admin', picture: '' }, JWT_SECRET, { expiresIn: '1d' });
         res.json({ success: true, token: adminToken });
     } else {
         res.status(401).json({ success: false, message: 'Неверный ключ' });
     }
 });
 
-// Google Auth Route
 app.post('/api/auth/google', async (req, res) => {
     const { token } = req.body;
     try {
@@ -142,21 +136,25 @@ app.post('/api/auth/google', async (req, res) => {
         let user;
 
         if (userResult.rows.length === 0) {
-            // New user
             const isAdmin = (email === ADMIN_EMAIL);
-            const initialCredits = isAdmin ? 999999 : 0; // Admin gets "unlimited" credits
+            const initialCredits = isAdmin ? 999999 : 0;
             const newUserResult = await pool.query(
                 'INSERT INTO users (google_id, email, name, picture_url, is_admin, credits) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
                 [google_id, email, name, picture_url, isAdmin, initialCredits]
             );
             user = newUserResult.rows[0];
         } else {
-            // Existing user
             user = userResult.rows[0];
         }
 
         const sessionToken = jwt.sign(
-            { id: user.id, email: user.email, isAdmin: user.is_admin },
+            { 
+                id: user.id, 
+                email: user.email, 
+                isAdmin: user.is_admin,
+                name: user.name,
+                picture: user.picture_url
+            },
             JWT_SECRET,
             { expiresIn: '1d' }
         );
@@ -166,6 +164,28 @@ app.post('/api/auth/google', async (req, res) => {
     } catch (error) {
         console.error("Ошибка аутентификации Google:", error);
         res.status(401).json({ success: false, message: 'Не удалось войти через Google' });
+    }
+});
+
+// --- USER PROFILE ROUTE ---
+app.get('/api/user/profile', authMiddleware, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT name, email, picture_url, credits, is_admin FROM users WHERE id = $1', [req.user.id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
+        const user = userResult.rows[0];
+        const transactions = []; // Placeholder for future implementation
+        res.json({
+            name: user.name,
+            email: user.email,
+            picture: user.picture_url,
+            credits: user.is_admin ? '∞' : user.credits,
+            transactions
+        });
+    } catch (error) {
+        console.error('Ошибка при получении профиля:', error);
+        res.status(500).json({ message: 'Не удалось загрузить данные профиля' });
     }
 });
 
@@ -199,7 +219,6 @@ app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // Check if the project belongs to the user
         const projectCheck = await client.query('SELECT id FROM projects WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         if (projectCheck.rows.length === 0) {
             return res.status(403).json({ message: 'Доступ запрещен' });
@@ -247,7 +266,6 @@ app.put('/api/songs/:id/move', authMiddleware, async (req, res) => {
     const { projectId } = req.body;
     const { id } = req.params;
     try {
-        // Ensure the user owns the song before moving
         await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2 AND user_id = $3', [projectId, id, req.user.id]);
         res.status(200).json({ message: 'Песня перемещена' });
     } catch (err) {
@@ -276,7 +294,7 @@ app.put('/api/songs/:id/favorite', authMiddleware, async (req, res) => {
     }
 });
 
-// --- PUBLIC Stream Route (no auth needed to play a song link) ---
+// --- PUBLIC Stream Route ---
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -357,7 +375,6 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ message: 'ID песни не предоставлен' });
     try {
-        // Check if user owns the song
         const songCheck = await pool.query('SELECT id FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
         if (songCheck.rows.length === 0) {
             return res.status(403).json({ message: 'Доступ запрещен' });
@@ -446,7 +463,6 @@ wss.on('connection', (ws, req) => {
     let trackingInterval;
     let userId = null;
 
-    // Simple token verification for WebSocket
     const token = req.url.split('?token=')[1];
     if (token) {
         try {

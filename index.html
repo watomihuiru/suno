@@ -78,13 +78,8 @@
         <div id="login-box">
             <button id="login-close-button">&times;</button>
             <h3>Вход в AI Creative Hub</h3>
-            
-            <!-- 
-              !!! ВАЖНО !!!
-              ЗАМЕНИТЕ "ВАШ_СКОПИРОВАННЫЙ_CLIENT_ID_ЗДЕСЬ" НА ВАШ РЕАЛЬНЫЙ CLIENT ID
-            -->
             <div id="g_id_onload"
-                 data-client_id="301140605717-sc4tr9ju4t8bju6l4l282rj0hsj1vclg.apps.googleusercontent.com"
+                 data-client_id="ВАШ_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                  data-callback="handleGoogleCredentialResponse"
                  data-auto_prompt="false">
             </div>
@@ -113,7 +108,7 @@
             <h2>AI Creative Hub</h2>
             <div id="mobile-credits-container" class="credits-display" style="display: none;">
                 <span class="credits-value" id="mobile-credits-value">...</span>
-                <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22-.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
+                <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
             </div>
         </header>
 
@@ -124,16 +119,31 @@
                 </div>
                 <nav class="sidebar-nav">
                     <ul>
-                        <li><button class="nav-button active" data-view="generate"><i class="fas fa-magic"></i><span>Создать</span></button></li>
-                        <li><button class="nav-button" data-view="upload-extend"><i class="fas fa-angles-right"></i><span>Расширить</span></button></li>
-                        <li><button class="nav-button" data-view="upload"><i class="fas fa-sync"></i><span>Кавер</span></button></li>
+                        <li>
+                            <details open>
+                                <summary class="nav-category"><i class="fas fa-music"></i><span>Suno</span></summary>
+                                <ul class="nav-submenu">
+                                    <li><button class="nav-button active" data-view="generate"><i class="fas fa-magic"></i><span>Создать</span></button></li>
+                                    <li><button class="nav-button" data-view="upload-extend"><i class="fas fa-angles-right"></i><span>Расширить</span></button></li>
+                                    <li><button class="nav-button" data-view="upload"><i class="fas fa-sync"></i><span>Кавер</span></button></li>
+                                </ul>
+                            </details>
+                        </li>
+                        <li><button class="nav-button" disabled><i class="fas fa-image"></i><span>Midjourney</span></button></li>
+                        <li><button class="nav-button" disabled><i class="fas fa-film"></i><span>Runway</span></button></li>
+                        <li><button class="nav-button" disabled><i class="fas fa-video"></i><span>Veo 3</span></button></li>
+                        <li><button class="nav-button" disabled><i class="far fa-image"></i><span>4o Image</span></button></li>
+                        <hr class="divider">
                         <li><button class="nav-button" data-view="logs" id="logs-nav-button"><i class="fas fa-file-alt"></i><span>Логи</span><span id="logs-notification-dot" class="notification-dot"></span></button></li>
                     </ul>
                 </nav>
                 <div class="sidebar-footer">
-                    <div id="credits-container" class="credits-display" style="display: none;">
-                        <span class="credits-value" id="credits-value">...</span>
-                        <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22-.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
+                    <div id="profile-container" class="profile-container" data-view="profile">
+                        <img id="profile-avatar" src="" alt="avatar" class="profile-avatar">
+                        <div class="profile-info">
+                            <span id="profile-name" class="profile-name">Загрузка...</span>
+                            <span class="profile-action">Перейти в профиль</span>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -279,6 +289,23 @@
                         <div id="status-container"><p class="status-message">Ожидание запуска задачи...</p></div>
                         <h4>Ответ API</h4>
                         <pre id="response-output">Ожидание вызова API...</pre>
+                    </div>
+                </div>
+
+                <div id="profile" class="view-content">
+                    <div class="view-header"><h2>Профиль и баланс</h2><p>Управляйте своим аккаунтом и пополняйте баланс.</p></div>
+                    <div class="profile-page-content">
+                        <div class="balance-card">
+                            <div class="balance-info">
+                                <span>Ваш баланс</span>
+                                <h3 id="profile-balance">... кредитов</h3>
+                            </div>
+                            <button id="top-up-button" class="submit-button">Пополнить</button>
+                        </div>
+                        <h4>История транзакций</h4>
+                        <div id="transaction-history" class="transaction-history">
+                            <p>Здесь будет отображаться история ваших пополнений и списаний.</p>
+                        </div>
                     </div>
                 </div>
             </main>
