@@ -442,6 +442,38 @@ async function handleCreateProject() {
 }
 
 // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+
+async function verifyUserSession() {
+    const token = sessionStorage.getItem('authToken');
+    const landingPage = document.getElementById('landing-page');
+    const appContainer = document.getElementById('app-container');
+
+    if (!token) {
+        landingPage.style.display = 'block';
+        appContainer.style.display = 'none';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/verify', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            showApp();
+        } else {
+            sessionStorage.removeItem('authToken');
+            landingPage.style.display = 'block';
+            appContainer.style.display = 'none';
+        }
+    } catch (error) {
+        console.error("Ошибка проверки сессии:", error);
+        landingPage.style.display = 'block';
+        appContainer.style.display = 'none';
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const loginOverlay = document.getElementById('login-overlay');
     const loginCloseButton = document.getElementById('login-close-button');
@@ -449,31 +481,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    const token = sessionStorage.getItem('authToken');
-    if (token) {
-        // В идеале, здесь нужна проверка токена на сервере, но для простоты пока так
-        showApp();
-    } else {
-        document.getElementById('landing-page').style.display = 'block';
-        document.getElementById('app-container').style.display = 'none';
-        
-        const sunoCard = document.getElementById('suno-card');
-        if (sunoCard) {
-            sunoCard.addEventListener('click', showLogin);
-        }
-        loginCloseButton.addEventListener('click', hideLogin);
-        loginOverlay.addEventListener('click', (e) => {
-            if (e.target === loginOverlay) {
-                hideLogin();
+    verifyUserSession().then(() => {
+        // Эта логика для настройки кнопок входа сработает только если
+        // verifyUserSession не показал основное приложение.
+        if (document.getElementById('landing-page').style.display === 'block') {
+            const sunoCard = document.getElementById('suno-card');
+            if (sunoCard) {
+                sunoCard.addEventListener('click', showLogin);
             }
-        });
-    }
+            loginCloseButton.addEventListener('click', hideLogin);
+            loginOverlay.addEventListener('click', (e) => {
+                if (e.target === loginOverlay) {
+                    hideLogin();
+                }
+            });
 
-    document.getElementById('access-key-button').addEventListener('click', handleLogin);
-    document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
-        if (e.key === 'Enter') { 
-            handleLogin(); 
-        } 
+            document.getElementById('access-key-button').addEventListener('click', handleLogin);
+            document.getElementById('access-key-input').addEventListener('keydown', (e) => { 
+                if (e.key === 'Enter') { 
+                    handleLogin(); 
+                } 
+            });
+        }
     });
 
     // --- РЕГИСТРАЦИЯ SERVICE WORKER ---

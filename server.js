@@ -106,6 +106,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// New route to verify a session token
+app.get('/api/auth/verify', authMiddleware, (req, res) => {
+    // If authMiddleware passes, the token is valid.
+    // We just send back a confirmation.
+    res.json({ success: true, user: req.user });
+});
+
 // Legacy password login (for admin or fallback)
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
