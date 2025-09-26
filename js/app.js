@@ -436,13 +436,8 @@ async function handleCreateProject() {
 // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
 async function verifyUserSession() {
     const token = sessionStorage.getItem('authToken');
-    const landingPage = document.getElementById('landing-page');
-    const appContainer = document.getElementById('app-container');
-
     if (!token) {
-        landingPage.style.display = 'block';
-        appContainer.style.display = 'none';
-        return;
+        return false; // Нет токена, пользователь не вошел в систему
     }
 
     try {
@@ -452,28 +447,28 @@ async function verifyUserSession() {
         });
 
         if (response.ok) {
-            showApp();
+            return true; // Токен валиден
         } else {
             sessionStorage.removeItem('authToken');
-            landingPage.style.display = 'block';
-            appContainer.style.display = 'none';
+            return false; // Токен невалиден (просрочен, подделан)
         }
     } catch (error) {
         console.error("Ошибка проверки сессии:", error);
-        landingPage.style.display = 'block';
-        appContainer.style.display = 'none';
+        return false; // Ошибка сети, считаем, что пользователь не вошел
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const loginOverlay = document.getElementById('login-overlay');
     const loginCloseButton = document.getElementById('login-close-button');
     const sunoCard = document.getElementById('suno-card');
+    const landingPage = document.getElementById('landing-page');
+    const appContainer = document.getElementById('app-container');
 
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    // Сначала привязываем все обработчики событий для входа
+    // 1. Всегда привязываем обработчики событий для входа
     if (sunoCard) {
         sunoCard.addEventListener('click', showLogin);
     }
@@ -486,6 +481,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') handleLogin(); 
     });
 
-    // Затем проверяем сессию, чтобы решить, что показать пользователю
-    verifyUserSession();
+    // 2. Проверяем сессию
+    const isLoggedIn = await verifyUserSession();
+
+    // 3. На основе проверки решаем, что показать
+    if (isLoggedIn) {
+        showApp();
+    } else {
+        landingPage.style.display = 'block';
+        appContainer.style.display = 'none';
+    }
 });
