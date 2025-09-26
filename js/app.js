@@ -481,10 +481,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (e.key === 'Enter') handleLogin(); 
     });
 
-    // 2. Проверяем сессию
+    // 2. ЖДЕМ проверки сессии
     const isLoggedIn = await verifyUserSession();
 
-    // 3. На основе проверки решаем, что показать
+    // 3. И ТОЛЬКО ПОТОМ решаем, что показать
     if (isLoggedIn) {
         showApp();
     } else {
