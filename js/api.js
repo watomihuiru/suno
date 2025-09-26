@@ -1,13 +1,21 @@
+// --- ФАЙЛ api.js ---
+
 import { updateStatus } from './ui.js';
 import { loadSongsFromServer } from './library.js';
 
 let taskWebSocket = null;
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ
 export async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false) {
+    // Находим элемент здесь один раз
     const responseOutput = document.getElementById("response-output");
+
     if (!isCreditCheck) {
         updateStatus('Ожидание запуска задачи...');
-        responseOutput.textContent = "Выполняется запрос...";
+        // ДОБАВЛЕНА ПРОВЕРКА: Обновляем текстовое поле, только если оно существует
+        if (responseOutput) {
+            responseOutput.textContent = "Выполняется запрос...";
+        }
     }
     if (taskWebSocket && !isCreditCheck) {
         taskWebSocket.close();
@@ -35,10 +43,13 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
         const result = await response.json();
 
         if (response.ok) {
-            if (!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2);
+            // ДОБАВЛЕНА ПРОВЕРКА
+            if (!isCreditCheck && responseOutput) {
+                responseOutput.textContent = JSON.stringify(result, null, 2);
+            }
             if (isCreditCheck && result.data !== undefined) {
+                // Эти элементы существуют на всех страницах, здесь проверка не нужна
                 document.getElementById("credits-value").textContent = result.data;
-                document.getElementById("credits-container").style.display = 'inline-flex';
                 document.getElementById("mobile-credits-value").textContent = result.data;
                 document.getElementById("mobile-credits-container").style.display = 'inline-flex';
             }
@@ -48,14 +59,21 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
                 updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true);
             }
         } else {
-            if (!isCreditCheck) responseOutput.textContent = `🚫 Ошибка ${response.status}:\n\n${JSON.stringify(result, null, 2)}`;
+            // ДОБАВЛЕНА ПРОВЕРКА
+            if (!isCreditCheck && responseOutput) {
+                responseOutput.textContent = `🚫 Ошибка ${response.status}:\n\n${JSON.stringify(result, null, 2)}`;
+            }
             updateStatus(`🚫 Ошибка запуска: ${result.message || 'Сервер вернул ошибку.'}`, false, true);
         }
     } catch (error) {
-        if (!isCreditCheck) responseOutput.textContent = "💥 Сетевая ошибка:\n\n" + error.message;
+        // ДОБАВЛЕНА ПРОВЕРКА
+        if (!isCreditCheck && responseOutput) {
+            responseOutput.textContent = "💥 Сетевая ошибка:\n\n" + error.message;
+        }
         updateStatus(`💥 Критическая ошибка: ${error.message}`, false, true);
     }
 }
+
 
 async function startTaskTracking(taskId) {
     if (taskWebSocket) {
@@ -78,9 +96,13 @@ async function startTaskTracking(taskId) {
     };
 
     taskWebSocket.onmessage = async (event) => {
+        const responseOutput = document.getElementById("response-output"); // Находим элемент
         try {
             const result = JSON.parse(event.data);
-            document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
+            // ДОБАВЛЕНА ПРОВЕРКА
+            if (responseOutput) {
+                responseOutput.textContent = JSON.stringify(result, null, 2);
+            }
 
             if (result.error) {
                 throw new Error(result.message || "Сервер вернул ошибку WebSocket");
