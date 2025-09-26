@@ -19,6 +19,9 @@ import {
     setupConfirmationModal
 } from './ui.js';
 
+// --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ КОЛЛБЭКА GOOGLE ---
+window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
+
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
 function initializeApp() {
     initializeLibrary();
@@ -26,17 +29,53 @@ function initializeApp() {
     
     setupEventListeners();
     
-    handleApiCall("/api/chat/credit", { method: "GET" }, true);
+    const token = sessionStorage.getItem('authToken');
+    handleApiCall("/api/chat/credit", { 
+        method: "GET",
+        headers: { 'Authorization': `Bearer ${token}` }
+    }, true);
     // loadSongsFromServer() теперь вызывается внутри fetchProjects()
 }
 
 // --- ЛОГИКА АВТОРИЗАЦИИ ---
+function showApp() {
+    document.getElementById('landing-page').style.display = 'none';
+    const appContainer = document.getElementById('app-container');
+    const appTemplate = document.getElementById('app-template');
+    if (appContainer.children.length === 0) {
+        appContainer.appendChild(appTemplate.content.cloneNode(true));
+    }
+    appContainer.style.display = 'block';
+    document.body.style.overflow = '';
+    initializeApp();
+}
+
+async function handleGoogleCredentialResponse(response) {
+    const loginError = document.getElementById('login-error-message');
+    try {
+        const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: response.credential })
+        });
+        const result = await res.json();
+        if (res.ok && result.success) {
+            sessionStorage.setItem('authToken', result.token);
+            document.getElementById('login-overlay').style.display = 'none';
+            showApp();
+        } else {
+            loginError.textContent = result.message || 'Ошибка входа через Google';
+        }
+    } catch (error) {
+        console.error('Ошибка при входе через Google:', error);
+        loginError.textContent = 'Сетевая ошибка. Попробуйте снова.';
+    }
+}
+
 async function handleLogin() {
     const loginElements = { 
         overlay: document.getElementById('login-overlay'), 
-        container: document.getElementById('app-container'), 
         input: document.getElementById('access-key-input'), 
-        button: document.getElementById('access-key-button'), 
         error: document.getElementById('login-error-message') 
     };
 
@@ -47,18 +86,12 @@ async function handleLogin() {
             body: JSON.stringify({ password: loginElements.input.value })
         });
 
-        if (response.ok) {
-            sessionStorage.setItem('is-authenticated', 'true');
+        const result = await response.json();
+        if (response.ok && result.success) {
+            sessionStorage.setItem('authToken', result.token);
             loginElements.overlay.style.display = 'none';
-            document.getElementById('landing-page').style.display = 'none';
-            const appTemplate = document.getElementById('app-template');
-            loginElements.container.innerHTML = ''; 
-            loginElements.container.appendChild(appTemplate.content.cloneNode(true));
-            loginElements.container.style.display = 'block';
-            document.body.style.overflow = ''; // Возвращаем стандартный overflow
-            initializeApp();
+            showApp();
         } else {
-            const result = await response.json();
             loginElements.error.textContent = result.message || 'Неверный ключ'; 
             loginElements.input.value = '';
         }
@@ -416,16 +449,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    if (sessionStorage.getItem('is-authenticated') === 'true') {
-        document.getElementById('landing-page').style.display = 'none';
-        const appTemplate = document.getElementById('app-template');
-        const appContainer = document.getElementById('app-container');
-        if (appContainer.children.length === 0) { 
-            appContainer.appendChild(appTemplate.content.cloneNode(true)); 
-        }
-        appContainer.style.display = 'block';
-        document.body.style.overflow = '';
-        initializeApp();
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+        // В идеале, здесь нужна проверка токена на сервере, но для простоты пока так
+        showApp();
     } else {
         document.getElementById('landing-page').style.display = 'block';
         document.getElementById('app-container').style.display = 'none';

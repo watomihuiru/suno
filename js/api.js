@@ -14,14 +14,29 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
         taskWebSocket = null;
     }
 
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`
+        };
+    }
+
     try {
         const response = await fetch(endpoint, options);
+
+        if (response.status === 401) {
+            console.error("Ошибка авторизации. Токен недействителен или отсутствует.");
+            sessionStorage.removeItem('authToken');
+            window.location.reload();
+            return;
+        }
+
         const result = await response.json();
 
         if (response.ok) {
             if (!isCreditCheck) responseOutput.textContent = JSON.stringify(result, null, 2);
             if (isCreditCheck && result.data !== undefined) {
-                // --- ИЗМЕНЕНИЕ ЗДЕСЬ: ОБНОВЛЯЕМ ОБА СЧЕТЧИКА ---
                 document.getElementById("credits-value").textContent = result.data;
                 document.getElementById("credits-container").style.display = 'inline-flex';
                 document.getElementById("mobile-credits-value").textContent = result.data;
@@ -52,8 +67,9 @@ async function startTaskTracking(taskId) {
     
     updateStatus(`⏳ Задача ${taskId.slice(0, 8)}... в очереди.`);
 
+    const token = sessionStorage.getItem('authToken');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
+    const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
     taskWebSocket = new WebSocket(wsUrl);
 
     taskWebSocket.onopen = () => {
@@ -85,7 +101,11 @@ async function startTaskTracking(taskId) {
                 document.getElementById(`placeholder-${taskId}-1`)?.remove();
                 document.getElementById(`placeholder-${taskId}-2`)?.remove();
                 await loadSongsFromServer();
-                await handleApiCall("/api/chat/credit", { method: "GET" }, true);
+                const token = sessionStorage.getItem('authToken');
+                await handleApiCall("/api/chat/credit", { 
+                    method: "GET",
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }, true);
             } else if (pendingStatuses.includes(statusLowerCase)) {
                 updateStatus(`⏳ Статус: ${taskData.status}...`);
             } else {

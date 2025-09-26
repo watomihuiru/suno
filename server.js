@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -12,30 +14,52 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
-const server = createServer(app); // Создаем HTTP сервер для Express
+const server = createServer(app);
 
+// --- CONFIGURATION ---
 const SUNO_API_TOKEN = process.env.SUNO_API_TOKEN;
 const SUNO_API_BASE_URL = 'https://api.kie.ai/api/v1';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL; // Email админа для предоставления безлимитных кредитов
 
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
+// --- DATABASE SETUP ---
 async function setupDatabase() {
     const client = await pool.connect();
     try {
-        // Создаем таблицу для проектов
+        // 1. Users Table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                google_id VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255),
+                picture_url TEXT,
+                credits INTEGER DEFAULT 0,
+                is_admin BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('Таблица "users" готова.');
+
+        // 2. Projects Table
         await client.query(`
             CREATE TABLE IF NOT EXISTS projects (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
         console.log('Таблица "projects" готова.');
 
-        // Создаем таблицу для песен, если ее нет
+        // 3. Songs Table
         await client.query(`
             CREATE TABLE IF NOT EXISTS songs (
                 id VARCHAR(255) PRIMARY KEY,
@@ -43,23 +67,12 @@ async function setupDatabase() {
                 request_params JSONB NOT NULL,
                 is_favorite BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                lyrics_data JSONB
+                lyrics_data JSONB,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL
             );
         `);
         console.log('Таблица "songs" готова.');
-
-        // Добавляем колонку project_id в таблицу songs, если ее нет
-        const columns = await client.query(`
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name='songs' AND column_name='project_id'
-        `);
-        if (columns.rows.length === 0) {
-            await client.query(`
-                ALTER TABLE songs 
-                ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
-            `);
-            console.log('Колонка "project_id" добавлена в таблицу "songs".');
-        }
 
     } catch (err) {
         console.error('Ошибка при настройке базы данных:', err);
@@ -68,28 +81,92 @@ async function setupDatabase() {
     }
 }
 
+// --- MIDDLEWARE ---
 app.use(express.json());
 app.use(express.static(__dirname));
 
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Отсутствует токен авторизации' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Неверный или просроченный токен' });
+    }
+};
+
+
+// --- ROUTES ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Legacy password login (for admin or fallback)
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     const correctPassword = process.env.SITE_ACCESS_KEY;
 
     if (password && password === correctPassword) {
-        res.json({ success: true });
+        // This is a simplified login, in a real scenario you'd link this to an admin user
+        const adminToken = jwt.sign({ id: 0, email: 'admin@local', isAdmin: true }, JWT_SECRET, { expiresIn: '1d' });
+        res.json({ success: true, token: adminToken });
     } else {
         res.status(401).json({ success: false, message: 'Неверный ключ' });
     }
 });
 
-// --- API для Проектов ---
-app.get('/api/projects', async (req, res) => {
+// Google Auth Route
+app.post('/api/auth/google', async (req, res) => {
+    const { token } = req.body;
     try {
-        const result = await pool.query('SELECT * FROM projects ORDER BY created_at ASC');
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { sub: google_id, email, name, picture: picture_url } = payload;
+
+        let userResult = await pool.query('SELECT * FROM users WHERE google_id = $1', [google_id]);
+        let user;
+
+        if (userResult.rows.length === 0) {
+            // New user
+            const isAdmin = (email === ADMIN_EMAIL);
+            const initialCredits = isAdmin ? 999999 : 0; // Admin gets "unlimited" credits
+            const newUserResult = await pool.query(
+                'INSERT INTO users (google_id, email, name, picture_url, is_admin, credits) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+                [google_id, email, name, picture_url, isAdmin, initialCredits]
+            );
+            user = newUserResult.rows[0];
+        } else {
+            // Existing user
+            user = userResult.rows[0];
+        }
+
+        const sessionToken = jwt.sign(
+            { id: user.id, email: user.email, isAdmin: user.is_admin },
+            JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.json({ success: true, token: sessionToken });
+
+    } catch (error) {
+        console.error("Ошибка аутентификации Google:", error);
+        res.status(401).json({ success: false, message: 'Не удалось войти через Google' });
+    }
+});
+
+
+// --- PROTECTED API for Projects ---
+app.get('/api/projects', authMiddleware, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at ASC', [req.user.id]);
         res.json(result.rows);
     } catch (err) {
         console.error('Ошибка при получении проектов:', err);
@@ -97,13 +174,13 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', authMiddleware, async (req, res) => {
     const { name } = req.body;
     if (!name || name.trim().length === 0) {
         return res.status(400).json({ message: 'Название проекта не может быть пустым' });
     }
     try {
-        const result = await pool.query('INSERT INTO projects (name) VALUES ($1) RETURNING *', [name.trim()]);
+        const result = await pool.query('INSERT INTO projects (name, user_id) VALUES ($1, $2) RETURNING *', [name.trim(), req.user.id]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error('Ошибка при создании проекта:', err);
@@ -111,14 +188,17 @@ app.post('/api/projects', async (req, res) => {
     }
 });
 
-app.delete('/api/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // Перемещаем песни из проекта в "Без проекта"
-        await client.query('UPDATE songs SET project_id = NULL WHERE project_id = $1', [req.params.id]);
-        // Удаляем сам проект
-        await client.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
+        // Check if the project belongs to the user
+        const projectCheck = await client.query('SELECT id FROM projects WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        if (projectCheck.rows.length === 0) {
+            return res.status(403).json({ message: 'Доступ запрещен' });
+        }
+        await client.query('UPDATE songs SET project_id = NULL WHERE project_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        await client.query('DELETE FROM projects WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         await client.query('COMMIT');
         res.status(200).json({ message: 'Проект удален, песни перемещены' });
     } catch (err) {
@@ -131,18 +211,17 @@ app.delete('/api/projects/:id', async (req, res) => {
 });
 
 
-// --- API для Песен ---
-app.get('/api/songs', async (req, res) => {
+// --- PROTECTED API for Songs ---
+app.get('/api/songs', authMiddleware, async (req, res) => {
     const { projectId } = req.query;
     let queryText;
-    const params = [];
+    const params = [req.user.id];
 
     if (projectId && projectId !== 'null') {
-        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE project_id = $1 ORDER BY created_at DESC';
+        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE user_id = $1 AND project_id = $2 ORDER BY created_at DESC';
         params.push(projectId);
     } else {
-        // Если projectId не указан или 'null', получаем песни без проекта
-        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE project_id IS NULL ORDER BY created_at DESC';
+        queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE user_id = $1 AND project_id IS NULL ORDER BY created_at DESC';
     }
 
     try {
@@ -157,11 +236,12 @@ app.get('/api/songs', async (req, res) => {
     }
 });
 
-app.put('/api/songs/:id/move', async (req, res) => {
-    const { projectId } = req.body; // projectId может быть null
+app.put('/api/songs/:id/move', authMiddleware, async (req, res) => {
+    const { projectId } = req.body;
     const { id } = req.params;
     try {
-        await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2', [projectId, id]);
+        // Ensure the user owns the song before moving
+        await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2 AND user_id = $3', [projectId, id, req.user.id]);
         res.status(200).json({ message: 'Песня перемещена' });
     } catch (err) {
         console.error('Ошибка при перемещении песни:', err);
@@ -169,9 +249,9 @@ app.put('/api/songs/:id/move', async (req, res) => {
     }
 });
 
-app.delete('/api/songs/:id', async (req, res) => {
+app.delete('/api/songs/:id', authMiddleware, async (req, res) => {
     try {
-        await pool.query('DELETE FROM songs WHERE id = $1', [req.params.id]);
+        await pool.query('DELETE FROM songs WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         res.status(200).json({ message: 'Песня удалена' });
     } catch (err) {
         console.error('Ошибка при удалении песни:', err);
@@ -179,9 +259,9 @@ app.delete('/api/songs/:id', async (req, res) => {
     }
 });
 
-app.put('/api/songs/:id/favorite', async (req, res) => {
+app.put('/api/songs/:id/favorite', authMiddleware, async (req, res) => {
     try {
-        await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2', [req.body.is_favorite, req.params.id]);
+        await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2 AND user_id = $3', [req.body.is_favorite, req.params.id, req.user.id]);
         res.status(200).json({ message: 'Статус избранного обновлен' });
     } catch (err) {
         console.error('Ошибка при обновлении избранного:', err);
@@ -189,6 +269,7 @@ app.put('/api/songs/:id/favorite', async (req, res) => {
     }
 });
 
+// --- PUBLIC Stream Route (no auth needed to play a song link) ---
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -264,11 +345,17 @@ app.get('/api/stream/:id', async (req, res) => {
     }
 });
 
-
-app.post('/api/refresh-url', async (req, res) => {
+// --- PROTECTED Suno Proxy & Other Routes ---
+app.post('/api/refresh-url', authMiddleware, async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ message: 'ID песни не предоставлен' });
     try {
+        // Check if user owns the song
+        const songCheck = await pool.query('SELECT id FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (songCheck.rows.length === 0) {
+            return res.status(403).json({ message: 'Доступ запрещен' });
+        }
+
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { musicId: id }, {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
@@ -286,10 +373,15 @@ app.post('/api/refresh-url', async (req, res) => {
     }
 });
 
-// --- Прокси для Suno API ---
-async function proxyRequest(res, method, endpoint, data) {
+async function proxySunoRequest(req, res, endpoint, method = 'POST') {
+    // TODO: Add credit deduction logic here
     try {
-        const response = await axios({ method, url: `${SUNO_API_BASE_URL}${endpoint}`, headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}`, 'Content-Type': 'application/json' }, data });
+        const response = await axios({
+            method,
+            url: `${SUNO_API_BASE_URL}${endpoint}`,
+            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}`, 'Content-Type': 'application/json' },
+            data: req.body
+        });
         res.json(response.data);
     } catch (error) {
         const status = error.response ? error.response.status : 500;
@@ -299,60 +391,78 @@ async function proxyRequest(res, method, endpoint, data) {
     }
 }
 
-app.post('/api/generate', (req, res) => { const payload = { ...req.body, callBackUrl: 'https://api.example.com/callback' }; proxyRequest(res, 'POST', '/generate', payload); });
-app.post('/api/generate/upload-cover', (req, res) => proxyRequest(res, 'POST', '/generate/upload-cover', req.body));
-app.post('/api/generate/upload-extend', (req, res) => proxyRequest(res, 'POST', '/generate/upload-extend', req.body));
-app.post('/api/lyrics', async (req, res) => {
-    const { taskId, audioId } = req.body;
+app.post('/api/generate', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate'));
+app.post('/api/generate/upload-cover', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-cover'));
+app.post('/api/generate/upload-extend', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-extend'));
+app.post('/api/boost-style', authMiddleware, (req, res) => proxySunoRequest(req, res, '/style/generate'));
 
+app.post('/api/lyrics', authMiddleware, async (req, res) => {
+    const { taskId, audioId } = req.body;
     try {
-        const dbCheck = await pool.query('SELECT lyrics_data FROM songs WHERE id = $1', [audioId]);
+        const dbCheck = await pool.query('SELECT lyrics_data FROM songs WHERE id = $1 AND user_id = $2', [audioId, req.user.id]);
         if (dbCheck.rows.length > 0 && dbCheck.rows[0].lyrics_data) {
-            console.log(`[Lyrics] Отдаем кэшированный текст для ${audioId}`);
             return res.json({ data: dbCheck.rows[0].lyrics_data, source: 'cache' });
         }
-
-        console.log(`[Lyrics] Кэш не найден для ${audioId}. Запрашиваем API...`);
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/generate/get-timestamped-lyrics`, { taskId, audioId }, {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
-
         if (sunoResponse.data && sunoResponse.data.data && Array.isArray(sunoResponse.data.data.alignedWords)) {
-            console.log(`[Lyrics] Получен успешный ответ от API для ${audioId}. Сохраняем в кэш.`);
-            await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2', [sunoResponse.data.data, audioId]);
+            await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2 AND user_id = $3', [sunoResponse.data.data, audioId, req.user.id]);
         }
-
         res.json(sunoResponse.data);
-
     } catch (error) {
         const status = error.response ? error.response.status : 500;
         const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
-        console.error(`[Lyrics] Ошибка при получении текста для ${audioId}:`, details);
         res.status(status).json({ message: `Ошибка при запросе текста`, details });
     }
 });
-app.post('/api/boost-style', (req, res) => proxyRequest(res, 'POST', '/style/generate', req.body));
 
-// Удаляем старый GET-эндпоинт /api/task-status/:taskId
-// Его логика теперь будет внутри WebSocket-обработчика
+app.get('/api/chat/credit', authMiddleware, async (req, res) => {
+    try {
+        const user = await pool.query('SELECT credits, is_admin FROM users WHERE id = $1', [req.user.id]);
+        if (user.rows.length > 0) {
+            const credits = user.rows[0].is_admin ? '∞' : user.rows[0].credits;
+            res.json({ data: credits });
+        } else {
+            res.status(404).json({ message: 'Пользователь не найден' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
 
-app.get('/api/chat/credit', (req, res) => proxyRequest(res, 'GET', '/chat/credit', null));
-
-// --- WebSocket сервер для отслеживания статуса задач ---
+// --- WebSocket Server ---
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
     console.log('Клиент подключился по WebSocket');
     let trackingInterval;
+    let userId = null;
+
+    // Simple token verification for WebSocket
+    const token = req.url.split('?token=')[1];
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            userId = decoded.id;
+            console.log(`WebSocket авторизован для пользователя ${userId}`);
+        } catch (e) {
+            console.log('Неверный токен WebSocket, соединение будет закрыто.');
+            ws.close();
+            return;
+        }
+    } else {
+        console.log('Отсутствует токен WebSocket, соединение будет закрыто.');
+        ws.close();
+        return;
+    }
 
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
-            if (data.type === 'trackTask' && data.taskId) {
+            if (data.type === 'trackTask' && data.taskId && userId) {
                 const { taskId } = data;
-                console.log(`Начинаем отслеживать taskId: ${taskId}`);
-
-                // Очищаем предыдущий интервал, если он был
+                console.log(`[User ${userId}] Начинаем отслеживать taskId: ${taskId}`);
                 if (trackingInterval) clearInterval(trackingInterval);
 
                 trackingInterval = setInterval(async () => {
@@ -362,69 +472,50 @@ wss.on('connection', (ws) => {
                         });
                         
                         const taskData = response.data.data;
+                        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+
                         const statusLowerCase = taskData.status.toLowerCase();
-                        const successStatuses = ["success", "completed"];
-                        const pendingStatuses = ["pending", "running", "submitted", "queued", "text_success", "first_success"];
-
-                        // Отправляем статус клиенту
-                        if (ws.readyState === ws.OPEN) {
-                            ws.send(JSON.stringify(response.data));
-                        }
-
-                        if (successStatuses.includes(statusLowerCase)) {
+                        if (["success", "completed"].includes(statusLowerCase)) {
                             console.log(`Задача ${taskId} успешно завершена. Останавливаем отслеживание.`);
                             clearInterval(trackingInterval);
                             
-                            // Сохранение в БД
                             if (taskData.response && Array.isArray(taskData.response.sunoData)) {
                                 for (const song of taskData.response.sunoData) {
                                     if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
                                     let paramsToSave = taskData.param;
-                                    if (typeof paramsToSave === 'string') {
-                                        try { paramsToSave = JSON.parse(paramsToSave); } catch (e) { console.warn(`Не удалось распарсить taskData.param для taskId ${taskId}.`); }
-                                    }
-                                    const finalRequestParams = (typeof paramsToSave === 'object' && paramsToSave !== null)
-                                        ? { ...paramsToSave, taskId: taskData.taskId }
-                                        : { rawParam: paramsToSave, taskId: taskData.taskId };
+                                    try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
+                                    
                                     await pool.query(
-                                        `INSERT INTO songs (id, song_data, request_params) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params`,
-                                        [song.id, song, finalRequestParams]
+                                        `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
+                                        [song.id, song, { ...paramsToSave, taskId }, userId]
                                     );
                                 }
                             }
-                        } else if (!pendingStatuses.includes(statusLowerCase)) {
-                            console.log(`Задача ${taskId} завершилась с неопределенным статусом: ${statusLowerCase}. Останавливаем отслеживание.`);
+                        } else if (!["pending", "running", "submitted", "queued", "text_success", "first_success"].includes(statusLowerCase)) {
+                            console.log(`Задача ${taskId} завершилась со статусом: ${statusLowerCase}. Останавливаем отслеживание.`);
                             clearInterval(trackingInterval);
                         }
                     } catch (error) {
                         console.error(`Ошибка при проверке статуса задачи ${taskId}:`, error.message);
                         clearInterval(trackingInterval);
-                        if (ws.readyState === ws.OPEN) {
-                            ws.send(JSON.stringify({ error: true, message: `Ошибка проверки статуса: ${error.message}` }));
-                        }
+                        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ error: true, message: `Ошибка проверки статуса: ${error.message}` }));
                     }
-                }, 5000); // Проверяем каждые 5 секунд
+                }, 5000);
             }
-        } catch (e) {
-            console.error('Ошибка обработки WebSocket сообщения:', e);
-        }
+        } catch (e) { console.error('Ошибка обработки WebSocket сообщения:', e); }
     });
 
     ws.on('close', () => {
         console.log('Клиент отключился');
-        if (trackingInterval) {
-            clearInterval(trackingInterval);
-            console.log('Отслеживание остановлено из-за отключения клиента.');
-        }
+        if (trackingInterval) clearInterval(trackingInterval);
     });
-
     ws.on('error', (error) => {
         console.error('WebSocket ошибка:', error);
         if (trackingInterval) clearInterval(trackingInterval);
     });
 });
 
-
+// --- SERVER START ---
 server.listen(port, async () => {
     await setupDatabase();
     console.log(`Сервер запущен! Откройте в браузере http://localhost:${port}`);
