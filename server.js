@@ -504,8 +504,19 @@ wss.on('connection', (ws, req) => {
                         const taskData = response.data.data;
                         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
 
+                        // --- START OF FIXED BLOCK ---
+                        // Обновленная, более надежная логика на основе документации
                         const statusLowerCase = taskData.status.toLowerCase();
-                        if (["success", "completed"].includes(statusLowerCase)) {
+                        
+                        const successStatuses = ["success", "completed"];
+                        const failureStatuses = [
+                            "create_task_failed", 
+                            "generate_audio_failed", 
+                            "callback_exception", 
+                            "sensitive_word_error"
+                        ];
+
+                        if (successStatuses.includes(statusLowerCase)) {
                             console.log(`Задача ${taskId} успешно завершена. Останавливаем отслеживание.`);
                             clearInterval(trackingInterval);
                             
@@ -519,12 +530,16 @@ wss.on('connection', (ws, req) => {
                                         `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
                                         [song.id, song, { ...paramsToSave, taskId }, userId]
                                     );
-                                }
+                                 }
                             }
-                        } else if (!["pending", "running", "submitted", "queued", "text_success", "first_success"].includes(statusLowerCase)) {
-                            console.log(`Задача ${taskId} завершилась со статусом: ${statusLowerCase}. Останавливаем отслеживание.`);
+                        } else if (failureStatuses.includes(statusLowerCase)) {
+                            console.log(`Задача ${taskId} завершилась с ошибкой: ${statusLowerCase}. Останавливаем отслеживание.`);
                             clearInterval(trackingInterval);
                         }
+                        // Если статус не является ни успешным, ни ошибочным (например, PENDING, TEXT_SUCCESS),
+                        // то мы ничего не делаем и просто ждем следующей проверки setInterval.
+                        // --- END OF FIXED BLOCK ---
+
                     } catch (error) {
                         console.error(`Ошибка при проверке статуса задачи ${taskId}:`, error.message);
                         clearInterval(trackingInterval);
