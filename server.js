@@ -33,7 +33,6 @@ const pool = new Pool({
 async function setupDatabase() {
     const client = await pool.connect();
     try {
-        // 1. Users Table
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -48,7 +47,6 @@ async function setupDatabase() {
         `);
         console.log('Таблица "users" готова.');
 
-        // 2. Projects Table
         await client.query(`
             CREATE TABLE IF NOT EXISTS projects (
                 id SERIAL PRIMARY KEY,
@@ -59,7 +57,6 @@ async function setupDatabase() {
         `);
         console.log('Таблица "projects" готова.');
 
-        // 3. Songs Table
         await client.query(`
             CREATE TABLE IF NOT EXISTS songs (
                 id VARCHAR(255) PRIMARY KEY,
@@ -83,13 +80,10 @@ async function setupDatabase() {
 
 // --- MIDDLEWARE ---
 app.use(express.json());
-
-// ИСПРАВЛЕНИЕ: Добавлен заголовок для исправления ошибки Cross-Origin
 app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     next();
 });
-
 app.use(express.static(__dirname));
 
 const authMiddleware = (req, res, next) => {
@@ -107,7 +101,6 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-
 // --- AUTH ROUTES ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -120,7 +113,6 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     const correctPassword = process.env.SITE_ACCESS_KEY;
-
     if (password && password === correctPassword) {
         const adminToken = jwt.sign({ id: 0, email: 'admin@local', isAdmin: true, name: 'Admin', picture: '' }, JWT_SECRET, { expiresIn: '1d' });
         res.json({ success: true, token: adminToken });
@@ -138,10 +130,8 @@ app.post('/api/auth/google', async (req, res) => {
         });
         const payload = ticket.getPayload();
         const { sub: google_id, email, name, picture: picture_url } = payload;
-
         let userResult = await pool.query('SELECT * FROM users WHERE google_id = $1', [google_id]);
         let user;
-
         if (userResult.rows.length === 0) {
             const isAdmin = (email === ADMIN_EMAIL);
             const initialCredits = isAdmin ? 999999 : 0;
@@ -153,28 +143,18 @@ app.post('/api/auth/google', async (req, res) => {
         } else {
             user = userResult.rows[0];
         }
-
         const sessionToken = jwt.sign(
-            { 
-                id: user.id, 
-                email: user.email, 
-                isAdmin: user.is_admin,
-                name: user.name,
-                picture: user.picture_url
-            },
-            JWT_SECRET,
-            { expiresIn: '1d' }
+            { id: user.id, email: user.email, isAdmin: user.is_admin, name: user.name, picture: user.picture_url },
+            JWT_SECRET, { expiresIn: '1d' }
         );
-
         res.json({ success: true, token: sessionToken });
-
     } catch (error) {
         console.error("Ошибка аутентификации Google:", error);
         res.status(401).json({ success: false, message: 'Не удалось войти через Google' });
     }
 });
 
-// --- USER PROFILE ROUTE ---
+// --- USER PROFILE & CREDITS ---
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT name, email, picture_url, credits, is_admin FROM users WHERE id = $1', [req.user.id]);
@@ -182,13 +162,11 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Пользователь не найден' });
         }
         const user = userResult.rows[0];
-        const transactions = []; // Placeholder for future implementation
         res.json({
             name: user.name,
             email: user.email,
             picture: user.picture_url,
-            credits: user.is_admin ? '∞' : user.credits,
-            transactions
+            credits: user.is_admin ? '∞' : user.credits
         });
     } catch (error) {
         console.error('Ошибка при получении профиля:', error);
@@ -196,28 +174,38 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
     }
 });
 
+app.get('/api/chat/credit', authMiddleware, async (req, res) => {
+    try {
+        const user = await pool.query('SELECT credits, is_admin FROM users WHERE id = $1', [req.user.id]);
+        if (user.rows.length > 0) {
+            const credits = user.rows[0].is_admin ? '∞' : user.rows[0].credits;
+            res.json({ data: credits });
+        } else {
+            res.status(404).json({ message: 'Пользователь не найден' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
 
-// --- PROTECTED API for Projects ---
+
+// --- PROJECTS API ---
 app.get('/api/projects', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at ASC', [req.user.id]);
         res.json(result.rows);
     } catch (err) {
-        console.error('Ошибка при получении проектов:', err);
         res.status(500).json({ message: 'Не удалось загрузить проекты' });
     }
 });
 
 app.post('/api/projects', authMiddleware, async (req, res) => {
     const { name } = req.body;
-    if (!name || name.trim().length === 0) {
-        return res.status(400).json({ message: 'Название проекта не может быть пустым' });
-    }
+    if (!name || name.trim().length === 0) return res.status(400).json({ message: 'Название проекта не может быть пустым' });
     try {
         const result = await pool.query('INSERT INTO projects (name, user_id) VALUES ($1, $2) RETURNING *', [name.trim(), req.user.id]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('Ошибка при создании проекта:', err);
         res.status(500).json({ message: 'Не удалось создать проект' });
     }
 });
@@ -227,36 +215,30 @@ app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     try {
         await client.query('BEGIN');
         const projectCheck = await client.query('SELECT id FROM projects WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-        if (projectCheck.rows.length === 0) {
-            return res.status(403).json({ message: 'Доступ запрещен' });
-        }
+        if (projectCheck.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
         await client.query('UPDATE songs SET project_id = NULL WHERE project_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         await client.query('DELETE FROM projects WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         await client.query('COMMIT');
-        res.status(200).json({ message: 'Проект удален, песни перемещены' });
+        res.status(200).json({ message: 'Проект удален' });
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error('Ошибка при удалении проекта:', err);
         res.status(500).json({ message: 'Не удалось удалить проект' });
     } finally {
         client.release();
     }
 });
 
-
-// --- PROTECTED API for Songs ---
+// --- SONGS API ---
 app.get('/api/songs', authMiddleware, async (req, res) => {
     const { projectId } = req.query;
     let queryText;
     const params = [req.user.id];
-
     if (projectId && projectId !== 'null') {
         queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE user_id = $1 AND project_id = $2 ORDER BY created_at DESC';
         params.push(projectId);
     } else {
         queryText = 'SELECT id, song_data, request_params, is_favorite FROM songs WHERE user_id = $1 AND project_id IS NULL ORDER BY created_at DESC';
     }
-
     try {
         const result = await pool.query(queryText, params);
         res.json(result.rows.map(row => ({ 
@@ -264,19 +246,16 @@ app.get('/api/songs', authMiddleware, async (req, res) => {
             requestParams: row.request_params 
         })));
     } catch (err) {
-        console.error('Ошибка при получении песен:', err);
         res.status(500).json({ message: 'Не удалось загрузить песни' });
     }
 });
 
 app.put('/api/songs/:id/move', authMiddleware, async (req, res) => {
     const { projectId } = req.body;
-    const { id } = req.params;
     try {
-        await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2 AND user_id = $3', [projectId, id, req.user.id]);
+        await pool.query('UPDATE songs SET project_id = $1 WHERE id = $2 AND user_id = $3', [projectId, req.params.id, req.user.id]);
         res.status(200).json({ message: 'Песня перемещена' });
     } catch (err) {
-        console.error('Ошибка при перемещении песни:', err);
         res.status(500).json({ message: 'Не удалось переместить песню' });
     }
 });
@@ -286,7 +265,6 @@ app.delete('/api/songs/:id', authMiddleware, async (req, res) => {
         await pool.query('DELETE FROM songs WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         res.status(200).json({ message: 'Песня удалена' });
     } catch (err) {
-        console.error('Ошибка при удалении песни:', err);
         res.status(500).json({ message: 'Не удалось удалить песню' });
     }
 });
@@ -296,97 +274,33 @@ app.put('/api/songs/:id/favorite', authMiddleware, async (req, res) => {
         await pool.query('UPDATE songs SET is_favorite = $1 WHERE id = $2 AND user_id = $3', [req.body.is_favorite, req.params.id, req.user.id]);
         res.status(200).json({ message: 'Статус избранного обновлен' });
     } catch (err) {
-        console.error('Ошибка при обновлении избранного:', err);
         res.status(500).json({ message: 'Не удалось обновить' });
     }
 });
 
-// --- PUBLIC Stream Route ---
+// --- STREAMING & SUNO PROXY ---
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query('SELECT song_data FROM songs WHERE id = $1', [id]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).send('Песня не найдена в базе данных');
-        }
-
+        if (result.rows.length === 0) return res.status(404).send('Песня не найдена');
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
-        if (!audioUrl) {
-            return res.status(404).send('URL аудио для этой песни не найден');
-        }
-
-        const headResponse = await axios.head(audioUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
-        });
-
-        const totalSize = headResponse.headers['content-length'];
-        const contentType = headResponse.headers['content-type'] || 'audio/mpeg';
+        if (!audioUrl) return res.status(404).send('URL аудио не найден');
         
-        const range = req.headers.range;
-        if (range) {
-            const parts = range.replace(/bytes=/, "").split("-");
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
-            const chunksize = (end - start) + 1;
-
-            const audioResponse = await axios({
-                method: 'get',
-                url: audioUrl,
-                responseType: 'stream',
-                headers: {
-                    'Range': `bytes=${start}-${end}`,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            });
-
-            res.writeHead(206, {
-                'Content-Range': `bytes ${start}-${end}/${totalSize}`,
-                'Accept-Ranges': 'bytes',
-                'Content-Length': chunksize,
-                'Content-Type': contentType,
-            });
-            audioResponse.data.pipe(res);
-        } else {
-            res.writeHead(200, {
-                'Content-Length': totalSize,
-                'Content-Type': contentType,
-                'Accept-Ranges': 'bytes',
-            });
-
-            const audioResponse = await axios({
-                method: 'get',
-                url: audioUrl,
-                responseType: 'stream',
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
-            });
-            audioResponse.data.pipe(res);
-        }
+        const response = await axios({ method: 'get', url: audioUrl, responseType: 'stream', headers: { 'User-Agent': 'Mozilla/5.0' } });
+        res.set('Content-Type', response.headers['content-type']);
+        response.data.pipe(res);
     } catch (error) {
-        const songId = req.params.id;
-        if (error.response) {
-            console.error(`Ошибка проксирования аудио (ID: ${songId}): Сервер Suno ответил со статусом ${error.response.status}`);
-            res.status(error.response.status).send(`Не удалось получить аудио от источника: Статус ${error.response.status}`);
-        } else if (error.request) {
-            console.error(`Ошибка проксирования аудио (ID: ${songId}): Нет ответа от сервера Suno.`);
-            res.status(504).send('Таймаут шлюза: Нет ответа от источника аудио');
-        } else {
-            console.error(`Внутренняя ошибка проксирования аудио (ID: ${songId}): ${error.message}`);
-            res.status(500).send('Внутренняя ошибка сервера при обработке аудиопотока');
-        }
+        res.status(500).send('Ошибка сервера при проксировании аудио');
     }
 });
 
-// --- PROTECTED Suno Proxy & Other Routes ---
 app.post('/api/refresh-url', authMiddleware, async (req, res) => {
     const { id } = req.body;
-    if (!id) return res.status(400).json({ message: 'ID песни не предоставлен' });
     try {
         const songCheck = await pool.query('SELECT id FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
-        if (songCheck.rows.length === 0) {
-            return res.status(403).json({ message: 'Доступ запрещен' });
-        }
-
+        if (songCheck.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
+        
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { musicId: id }, {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
@@ -399,13 +313,11 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
             res.json({ newUrl: newAudioUrl });
         } else { throw new Error('Не удалось получить новый URL'); }
     } catch (error) {
-        console.error('Ошибка при обновлении URL:', error.response ? error.response.data : error.message);
         res.status(500).json({ message: 'Не удалось обновить URL' });
     }
 });
 
 async function proxySunoRequest(req, res, endpoint, method = 'POST') {
-    // TODO: Add credit deduction logic here
     try {
         const response = await axios({
             method,
@@ -416,9 +328,8 @@ async function proxySunoRequest(req, res, endpoint, method = 'POST') {
         res.json(response.data);
     } catch (error) {
         const status = error.response ? error.response.status : 500;
-        const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
-        console.error(`Ошибка при запросе к ${endpoint}:`, details);
-        res.status(status).json({ message: `Ошибка при запросе к ${endpoint}`, details });
+        const details = error.response ? error.response.data : { message: "API не отвечает." };
+        res.status(status).json({ message: `Ошибка при запросе к Suno`, details });
     }
 }
 
@@ -437,34 +348,17 @@ app.post('/api/lyrics', authMiddleware, async (req, res) => {
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/generate/get-timestamped-lyrics`, { taskId, audioId }, {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
-        if (sunoResponse.data && sunoResponse.data.data && Array.isArray(sunoResponse.data.data.alignedWords)) {
+        if (sunoResponse.data?.data?.alignedWords) {
             await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2 AND user_id = $3', [sunoResponse.data.data, audioId, req.user.id]);
         }
         res.json(sunoResponse.data);
     } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const details = error.response ? error.response.data : { message: "Сервер API не отвечает." };
-        res.status(status).json({ message: `Ошибка при запросе текста`, details });
-    }
-});
-
-app.get('/api/chat/credit', authMiddleware, async (req, res) => {
-    try {
-        const user = await pool.query('SELECT credits, is_admin FROM users WHERE id = $1', [req.user.id]);
-        if (user.rows.length > 0) {
-            const credits = user.rows[0].is_admin ? '∞' : user.rows[0].credits;
-            res.json({ data: credits });
-        } else {
-            res.status(404).json({ message: 'Пользователь не найден' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: 'Ошибка сервера' });
+        res.status(error.response?.status || 500).json({ message: `Ошибка при запросе текста` });
     }
 });
 
 // --- WebSocket Server ---
 const wss = new WebSocketServer({ server });
-
 wss.on('connection', (ws, req) => {
     console.log('Клиент подключился по WebSocket');
     let trackingInterval;
@@ -477,14 +371,10 @@ wss.on('connection', (ws, req) => {
             userId = decoded.id;
             console.log(`WebSocket авторизован для пользователя ${userId}`);
         } catch (e) {
-            console.log('Неверный токен WebSocket, соединение будет закрыто.');
-            ws.close();
-            return;
+            ws.close(); return;
         }
     } else {
-        console.log('Отсутствует токен WebSocket, соединение будет закрыто.');
-        ws.close();
-        return;
+        ws.close(); return;
     }
 
     ws.on('message', async (message) => {
@@ -492,70 +382,51 @@ wss.on('connection', (ws, req) => {
             const data = JSON.parse(message);
             if (data.type === 'trackTask' && data.taskId && userId) {
                 const { taskId } = data;
-                console.log(`[User ${userId}] Начинаем отслеживать taskId: ${taskId}`);
                 if (trackingInterval) clearInterval(trackingInterval);
 
                 trackingInterval = setInterval(async () => {
                     try {
-                        const response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info?taskId=${taskId}`, {
+                        const response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
+                            params: { taskId },
                             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
                         });
                         
+                        if (!response.data || !response.data.data) { return; }
                         const taskData = response.data.data;
                         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
 
-                        // --- START OF FIXED BLOCK ---
-                        // Обновленная, более надежная логика на основе документации
-                        const statusLowerCase = taskData.status.toLowerCase();
-                        
-                        const successStatuses = ["success", "completed"];
-                        const failureStatuses = [
-                            "create_task_failed", 
-                            "generate_audio_failed", 
-                            "callback_exception", 
-                            "sensitive_word_error"
-                        ];
+                        const status = taskData.status.toUpperCase();
+                        const finalStatuses = ["SUCCESS", "CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
 
-                        if (successStatuses.includes(statusLowerCase)) {
-                            console.log(`Задача ${taskId} успешно завершена. Останавливаем отслеживание.`);
+                        if (finalStatuses.includes(status)) {
                             clearInterval(trackingInterval);
-                            
-                            if (taskData.response && Array.isArray(taskData.response.sunoData)) {
+                            if (status === "SUCCESS" && taskData.response?.sunoData) {
                                 for (const song of taskData.response.sunoData) {
-                                    if (song.audioUrl) { song.streamAudioUrl = song.audioUrl; }
+                                    song.streamAudioUrl = song.audioUrl;
                                     let paramsToSave = taskData.param;
                                     try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
                                     
                                     await pool.query(
-                                        `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
+                                        `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4)
+                                         ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
                                         [song.id, song, { ...paramsToSave, taskId }, userId]
                                     );
-                                 }
+                                }
                             }
-                        } else if (failureStatuses.includes(statusLowerCase)) {
-                            console.log(`Задача ${taskId} завершилась с ошибкой: ${statusLowerCase}. Останавливаем отслеживание.`);
-                            clearInterval(trackingInterval);
                         }
-                        // Если статус не является ни успешным, ни ошибочным (например, PENDING, TEXT_SUCCESS),
-                        // то мы ничего не делаем и просто ждем следующей проверки setInterval.
-                        // --- END OF FIXED BLOCK ---
-
                     } catch (error) {
-                        console.error(`Ошибка при проверке статуса задачи ${taskId}:`, error.message);
                         clearInterval(trackingInterval);
-                        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ error: true, message: `Ошибка проверки статуса: ${error.message}` }));
+                        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ error: true, message: 'Ошибка проверки статуса' }));
                     }
                 }, 5000);
             }
-        } catch (e) { console.error('Ошибка обработки WebSocket сообщения:', e); }
+        } catch (e) { console.error('Ошибка WebSocket сообщения:', e); }
     });
 
     ws.on('close', () => {
-        console.log('Клиент отключился');
         if (trackingInterval) clearInterval(trackingInterval);
     });
     ws.on('error', (error) => {
-        console.error('WebSocket ошибка:', error);
         if (trackingInterval) clearInterval(trackingInterval);
     });
 });
@@ -563,5 +434,5 @@ wss.on('connection', (ws, req) => {
 // --- SERVER START ---
 server.listen(port, async () => {
     await setupDatabase();
-    console.log(`Сервер запущен! Откройте в браузере http://localhost:${port}`);
+    console.log(`Сервер запущен на http://localhost:${port}`);
 });
