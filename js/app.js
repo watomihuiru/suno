@@ -276,7 +276,11 @@ function handleGenerateSubmit(e) {
     const isCustom = document.getElementById("g-customMode").checked;
     const model = document.getElementById("g-model-value").value;
     
-    let payload = { model, customMode: isCustom };
+    let payload = {
+        model,
+        customMode: isCustom,
+        callBackUrl: "https://api.example.com/callback"
+    };
 
     if (isCustom) {
         const isInstrumental = document.getElementById("g-instrumental").checked;
