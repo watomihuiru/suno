@@ -393,8 +393,6 @@ wss.on('connection', (ws, req) => {
                         
                         if (!response.data || !response.data.data) { return; }
                         const taskData = response.data.data;
-                        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
-
                         const status = taskData.status.toUpperCase();
                         const finalStatuses = ["SUCCESS", "CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
 
@@ -402,7 +400,7 @@ wss.on('connection', (ws, req) => {
                             clearInterval(trackingInterval);
                             if (status === "SUCCESS" && taskData.response?.sunoData) {
                                 for (const song of taskData.response.sunoData) {
-                                    song.streamAudioUrl = song.audioUrl;
+                                    // ИСПРАВЛЕНО: Удалена строка song.streamAudioUrl = song.audioUrl;
                                     let paramsToSave = taskData.param;
                                     try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
                                     
@@ -413,6 +411,9 @@ wss.on('connection', (ws, req) => {
                                     );
                                 }
                             }
+                            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                        } else {
+                            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         }
                     } catch (error) {
                         clearInterval(trackingInterval);
