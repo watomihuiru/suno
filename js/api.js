@@ -48,10 +48,12 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
                 responseOutput.textContent = JSON.stringify(result, null, 2);
             }
             if (isCreditCheck && result.data !== undefined) {
-                // Эти элементы существуют на всех страницах, здесь проверка не нужна
-                document.getElementById("credits-value").textContent = result.data;
-                document.getElementById("mobile-credits-value").textContent = result.data;
-                document.getElementById("mobile-credits-container").style.display = 'inline-flex';
+                // ИСПРАВЛЕНО: Удалена строка, обращающаяся к несуществующему id="credits-value"
+                const mobileCreditsValue = document.getElementById("mobile-credits-value");
+                if (mobileCreditsValue) mobileCreditsValue.textContent = result.data;
+                
+                const mobileCreditsContainer = document.getElementById("mobile-credits-container");
+                if (mobileCreditsContainer) mobileCreditsContainer.style.display = 'inline-flex';
             }
             if (isGeneration && result.data && result.data.taskId) {
                 startTaskTracking(result.data.taskId);
