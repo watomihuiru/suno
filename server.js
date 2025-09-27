@@ -399,8 +399,8 @@ wss.on('connection', (ws, req) => {
                         if (finalStatuses.includes(status)) {
                             clearInterval(trackingInterval);
                             if (status === "SUCCESS" && taskData.response?.sunoData) {
+                                // Сначала сохраняем в базу
                                 for (const song of taskData.response.sunoData) {
-                                    // ИСПРАВЛЕНО: Удалена строка song.streamAudioUrl = song.audioUrl;
                                     let paramsToSave = taskData.param;
                                     try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
                                     
@@ -411,8 +411,10 @@ wss.on('connection', (ws, req) => {
                                     );
                                 }
                             }
+                            // И только потом отправляем финальный ответ
                             if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         } else {
+                            // Отправляем промежуточные статусы
                             if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         }
                     } catch (error) {
