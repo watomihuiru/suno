@@ -314,6 +314,9 @@ export function updateAllPlayIcons() {
     document.querySelectorAll('.song-cover').forEach(el => {
         const id = el.id.replace('cover-', '');
         const playIconContainer = el.querySelector('.play-icon');
+        // Добавлена проверка, чтобы избежать ошибки, если playIconContainer не найден
+        if (!playIconContainer) return;
+
         el.classList.remove('playing', 'paused');
         if (id === globalPlayer.currentSongId && globalPlayer.audio.src) {
             playIconContainer.innerHTML = globalPlayer.audio.paused ? `<i class="fas fa-play"></i>` : `<i class="fas fa-pause"></i>`;
@@ -364,7 +367,11 @@ export async function showTimestampedLyrics(songId) {
         const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const result = await response.json();
         
-        document.getElementById("response-output").textContent = JSON.stringify(result, null, 2);
+        // ИСПРАВЛЕНО: Добавлена проверка на существование элемента логов
+        const responseOutput = document.getElementById("response-output");
+        if (responseOutput) {
+            responseOutput.textContent = JSON.stringify(result, null, 2);
+        }
 
         const lyricsData = result.data;
         if (!response.ok || !lyricsData || !Array.isArray(lyricsData.alignedWords) || lyricsData.alignedWords.length === 0) {

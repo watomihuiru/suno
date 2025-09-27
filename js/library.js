@@ -295,7 +295,8 @@ export function createPlaceholderCard(taskId) {
         const card = document.createElement('div');
         card.className = 'song-card placeholder';
         card.id = `placeholder-${taskId}-${i}`;
-        card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
+        // ИСПРАВЛЕНО: Добавлен недостающий div.play-icon
+        card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
         songListContainer.prepend(card);
     }
     updateAllPlayIcons();
