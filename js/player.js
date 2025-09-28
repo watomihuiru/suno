@@ -88,7 +88,10 @@ async function refreshAudioUrlAndPlay(songId) {
             }, 
             body: JSON.stringify({ id: songId }) 
         });
-        if (!response.ok) throw new Error('Не удалось обновить URL');
+        if (!response.ok) {
+             const errorResult = await response.json();
+             throw new Error(errorResult.message || 'Не удалось обновить URL');
+        }
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
         globalPlayer.audio.src = `/api/stream/${songId}`;
@@ -97,8 +100,10 @@ async function refreshAudioUrlAndPlay(songId) {
         updateStatus(`✅ Ссылка обновлена, воспроизведение...`, true);
         setTimeout(() => updateStatus(''), 2000);
     } catch (error) {
-        console.error('Ошибка при обновлении URL аудио:', error);
-        updateStatus(`🚫 Не удалось обновить ссылку на аудио.`, false, true);
+        // ИСПРАВЛЕНИЕ: Улучшенное логирование ошибки
+        const errorMessage = error.message || 'Неизвестная ошибка обновления URL.';
+        console.error('Ошибка при обновлении URL аудио:', errorMessage, error); 
+        updateStatus(`🚫 Не удалось обновить ссылку на аудио. Ошибка: ${errorMessage}`, false, true);
     }
 }
 
@@ -151,7 +156,14 @@ function updatePlayerBackground(imageUrl) {
 }
 
 function setupPlayerListeners() {
-    globalPlayer.audio.onerror = (e) => { console.error("Ошибка аудио:", e); if (globalPlayer.currentSongId) { refreshAudioUrlAndPlay(globalPlayer.currentSongId); } };
+    // ИСПРАВЛЕНИЕ: Перехват ошибок при загрузке аудио
+    globalPlayer.audio.onerror = (e) => { 
+        console.error("Ошибка аудио:", e); 
+        // Проверяем, что ошибка не связана с тем, что src пустой (когда закрываем плеер)
+        if (globalPlayer.currentSongId && globalPlayer.audio.src) { 
+             refreshAudioUrlAndPlay(globalPlayer.currentSongId); 
+        }
+    };
     
     const togglePlayPause = () => { if (globalPlayer.audio.src) { if (globalPlayer.audio.paused) globalPlayer.audio.play(); else globalPlayer.audio.pause(); } };
     globalPlayer.playPauseBtn.onclick = togglePlayPause;

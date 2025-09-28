@@ -309,13 +309,15 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
         });
         const newAudioUrl = sunoResponse.data.data;
         if (newAudioUrl) {
+            // ИСПРАВЛЕНИЕ: Используем to_jsonb($1::text) для корректной вставки строкового URL в JSONB
             await pool.query(
-                `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', $1::jsonb), '{streamAudioUrl}', $1::jsonb) WHERE id = $2`,
-                [JSON.stringify(newAudioUrl), id]
+                `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', to_jsonb($1::text)), '{streamAudioUrl}', to_jsonb($1::text)) WHERE id = $2`,
+                [newAudioUrl, id]
             );
             res.json({ newUrl: newAudioUrl });
         } else { throw new Error('Не удалось получить новый URL'); }
     } catch (error) {
+        // Улучшенное логирование ошибки сервера
         console.error("Ошибка при обновлении URL:", error.response ? error.response.data : error.message);
         res.status(500).json({ message: 'Не удалось обновить URL' });
     }
