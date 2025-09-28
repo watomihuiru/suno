@@ -349,7 +349,7 @@ app.post('/api/lyrics', authMiddleware, async (req, res) => {
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
         if (sunoResponse.data?.data?.alignedWords) {
-            await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2 AND user_id = $3', [sunoResponse.data.data, audioId, req.user.id]);
+            await pool.query('UPDATE songs SET lyrics_data = $1 WHERE id = $2 AND user_id = $3', [JSON.stringify(sunoResponse.data.data), audioId, req.user.id]);
         }
         res.json(sunoResponse.data);
     } catch (error) {

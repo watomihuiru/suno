@@ -98,17 +98,16 @@ function renderAudioEditor(mode, songInfo, container) {
             percent = Math.max(0, Math.min(1, percent));
             const currentTime = duration * percent;
 
-            handle.style.left = `${percent * 100}%`;
-            progress.style.left = `${percent * 100}%`;
+            if (handle) handle.style.left = `${percent * 100}%`;
+            if (progress) progress.style.left = `${percent * 100}%`;
             
-            timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
-            continueAtInput.value = Math.round(currentTime);
+            if (timeLabel) timeLabel.textContent = `Расширить с ${formatTime(currentTime)}`;
+            if (continueAtInput) continueAtInput.value = Math.round(currentTime);
         };
 
         initExtendHandle(songInfo, container, updateExtendUI);
         initEditorPlayer(songInfo, container);
     } else {
-        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: МЕНЯЕМ ЦВЕТ НА БЕЛЫЙ ---
         drawWaveformFromData(canvasBase, waveData, '#E6EDF3'); 
     }
 }
@@ -164,20 +163,24 @@ function initEditorPlayer(songInfo, container) {
     editorAudio = new Audio(`/api/stream/${songData.id}`);
 
     const updatePlayIcon = () => {
-        playIcon.className = editorAudio.paused ? 'fas fa-play' : 'fas fa-pause';
+        if (playIcon) {
+            playIcon.className = editorAudio.paused ? 'fas fa-play' : 'fas fa-pause';
+        }
     };
 
-    coverContainer.addEventListener('click', () => {
-        if (editorAudio.paused) editorAudio.play();
-        else editorAudio.pause();
-    });
+    if (coverContainer) {
+        coverContainer.addEventListener('click', () => {
+            if (editorAudio.paused) editorAudio.play();
+            else editorAudio.pause();
+        });
+    }
 
     editorAudio.addEventListener('play', updatePlayIcon);
     editorAudio.addEventListener('pause', updatePlayIcon);
     editorAudio.addEventListener('ended', () => {
         updatePlayIcon();
         if (canvasTop) canvasTop.style.clipPath = 'inset(0 0 0 0)';
-        timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
+        if (timeDisplay) timeDisplay.textContent = `0:00 / ${formatTime(songData.duration)}`;
         editorAudio.currentTime = 0;
     });
 
@@ -187,16 +190,18 @@ function initEditorPlayer(songInfo, container) {
         const progressPercent = (currentTime / duration) * 100;
         
         if (canvasTop) canvasTop.style.clipPath = `inset(0 0 0 ${progressPercent}%)`;
-        timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+        if (timeDisplay) timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
     });
     
-    waveformContainer.addEventListener('click', (e) => {
-        if (!editorAudio.duration) return;
-        const rect = waveformContainer.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const percent = Math.max(0, Math.min(1, x / rect.width));
-        editorAudio.currentTime = editorAudio.duration * percent;
-    });
+    if (waveformContainer) {
+        waveformContainer.addEventListener('click', (e) => {
+            if (!editorAudio.duration) return;
+            const rect = waveformContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+                        const percent = Math.max(0, Math.min(1, x / rect.width));
+            editorAudio.currentTime = editorAudio.duration * percent;
+        });
+    }
 }
 
 function initExtendHandle(songInfo, container, updateUI) {
@@ -207,6 +212,7 @@ function initExtendHandle(songInfo, container, updateUI) {
     let isDragging = false;
 
     const onDrag = (clientX) => {
+        if (!waveformContainer) return;
         const rect = waveformContainer.getBoundingClientRect();
         const x = clientX - rect.left;
         const percent = Math.max(0, Math.min(1, x / rect.width));
@@ -220,11 +226,13 @@ function initExtendHandle(songInfo, container, updateUI) {
     
     updateUI(1);
 
-    handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation(); 
-        isDragging = true;
-        document.body.style.cursor = 'ew-resize';
-    });
+    if (handle) {
+        handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); 
+            isDragging = true;
+            document.body.style.cursor = 'ew-resize';
+        });
+    }
 
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {

@@ -79,7 +79,15 @@ function closeFullscreenPlayer() {
 async function refreshAudioUrlAndPlay(songId) {
     updateStatus(`⏳ Ссылка на аудио истекла, обновляю...`);
     try {
-        const response = await fetch('/api/refresh-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: songId }) });
+        const token = sessionStorage.getItem('authToken');
+        const response = await fetch('/api/refresh-url', { 
+            method: 'POST', 
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }, 
+            body: JSON.stringify({ id: songId }) 
+        });
         if (!response.ok) throw new Error('Не удалось обновить URL');
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
@@ -175,20 +183,25 @@ function setupPlayerListeners() {
 
     globalPlayer.audio.onloadedmetadata = () => { 
         const duration = globalPlayer.audio.duration;
-        globalPlayer.seekBar.max = duration;
-        globalPlayer.seekBarMobile.max = duration;
-        globalPlayer.fsSeekBar.max = duration;
-        globalPlayer.totalDuration.textContent = formatTime(duration);
-        globalPlayer.fsTotalDuration.textContent = formatTime(duration);
+        if (isFinite(duration)) {
+            globalPlayer.seekBar.max = duration;
+            globalPlayer.seekBarMobile.max = duration;
+            globalPlayer.fsSeekBar.max = duration;
+            globalPlayer.totalDuration.textContent = formatTime(duration);
+            globalPlayer.fsTotalDuration.textContent = formatTime(duration);
+        }
     };
     globalPlayer.audio.ontimeupdate = () => {
         const currentTime = globalPlayer.audio.currentTime;
         const duration = globalPlayer.audio.duration;
+        if (!isFinite(duration)) return;
+
         globalPlayer.seekBar.value = currentTime;
         globalPlayer.seekBarMobile.value = currentTime;
         globalPlayer.fsSeekBar.value = currentTime;
         globalPlayer.currentTime.textContent = formatTime(currentTime);
         globalPlayer.fsCurrentTime.textContent = formatTime(currentTime);
+        
         const progressPercent = (currentTime / duration) * 100;
         globalPlayer.seekBar.style.setProperty('--seek-before-width', `${progressPercent}%`);
         globalPlayer.seekBarMobile.style.setProperty('--seek-before-width', `${progressPercent}%`);
@@ -314,7 +327,6 @@ export function updateAllPlayIcons() {
     document.querySelectorAll('.song-cover').forEach(el => {
         const id = el.id.replace('cover-', '');
         const playIconContainer = el.querySelector('.play-icon');
-        // Добавлена проверка, чтобы избежать ошибки, если playIconContainer не найден
         if (!playIconContainer) return;
 
         el.classList.remove('playing', 'paused');
@@ -363,11 +375,18 @@ export async function showTimestampedLyrics(songId) {
             return;
         }
 
+        const token = sessionStorage.getItem('authToken');
         const payload = { audioId: songId, taskId: songInfo.requestParams.taskId };
-        const response = await fetch('/api/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const response = await fetch('/api/lyrics', { 
+            method: 'POST', 
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }, 
+            body: JSON.stringify(payload) 
+        });
         const result = await response.json();
         
-        // ИСПРАВЛЕНО: Добавлена проверка на существование элемента логов
         const responseOutput = document.getElementById("response-output");
         if (responseOutput) {
             responseOutput.textContent = JSON.stringify(result, null, 2);
@@ -439,7 +458,7 @@ export async function showTimestampedLyrics(songId) {
                  parsedSegments.push({
                     text: partsToRender.join(''),
                     index: index,
-                    startTime: segment.startS // ИСПРАВЛЕНИЕ: Использовать startS
+                    startTime: segment.startS
                 });
             } else if (parsedSegments.length > 0 && !parsedSegments[parsedSegments.length-1].isBreak) {
                  parsedSegments.push({ isBreak: true });
@@ -471,7 +490,7 @@ export async function showTimestampedLyrics(songId) {
                         span.textContent = cleanedPart + ' ';
                         span.className = 'lyric-segment';
                         span.dataset.index = seg.index;
-                        span.dataset.startTime = seg.startTime; // ИСПРАВЛЕНИЕ: startTime теперь корректно
+                        span.dataset.startTime = seg.startTime;
                         currentLineDiv.appendChild(span);
                     }
                     if (i < textParts.length - 1 && currentLineDiv.hasChildNodes()) {
