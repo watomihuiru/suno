@@ -102,13 +102,14 @@ async function refreshAudioUrlAndPlay(songId) {
         }
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
+        // Используем маршрут проксирования для воспроизведения
         globalPlayer.audio.src = `/api/stream/${songId}`;
         const playPromise = globalPlayer.audio.play();
         if (playPromise !== undefined) { playPromise.catch(error => console.error("Ошибка авто-воспроизведения после обновления URL:", error)); }
         updateStatus(`✅ Ссылка обновлена, воспроизведение...`, true);
         setTimeout(() => updateStatus(''), 2000);
     } catch (error) {
-        // ИСПРАВЛЕНИЕ: Улучшенное логирование ошибки
+        // Улучшенное логирование ошибки
         const errorMessage = error.message || 'Неизвестная ошибка обновления URL.';
         console.error('Ошибка при обновлении URL аудио:', errorMessage, error); 
         updateStatus(`🚫 Не удалось обновить ссылку на аудио. Ошибка: ${errorMessage}`, false, true);
@@ -244,7 +245,13 @@ function setupPlayerListeners() {
     globalPlayer.shuffleBtn.onclick = toggleShuffle;
     globalPlayer.fsShuffleBtn.onclick = toggleShuffle;
 
-    const toggleRepeat = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.repeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.fsRepeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; };
+    const toggleRepeat = () => { 
+        isRepeatOne = !isRepeatOne; 
+        globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); 
+        globalPlayer.repeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
+        globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); 
+        globalPlayer.fsRepeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
+    };
     globalPlayer.repeatBtn.onclick = toggleRepeat;
     globalPlayer.fsRepeatBtn.onclick = toggleRepeat;
     
@@ -304,6 +311,7 @@ export function playSongByIndex(index) {
         updatePlayerBackground(songData.imageUrl);
     }
 
+    // ИСПРАВЛЕНИЕ: Используем прокси-маршрут для воспроизведения
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
     globalPlayer.container.style.display = 'flex';

@@ -284,13 +284,17 @@ app.get('/api/stream/:id', async (req, res) => {
         const { id } = req.params;
         const result = await pool.query('SELECT song_data FROM songs WHERE id = $1', [id]);
         if (result.rows.length === 0) return res.status(404).send('Песня не найдена');
+        // Используем streamAudioUrl, если доступен, иначе audioUrl
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) return res.status(404).send('URL аудио не найден');
         
+        // Добавление заголовка для проксирования, чтобы обходить некоторые ограничения
         const response = await axios({ method: 'get', url: audioUrl, responseType: 'stream', headers: { 'User-Agent': 'Mozilla/5.0' } });
         res.set('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
     } catch (error) {
+        // Улучшенная обработка ошибки проксирования
+        console.error('Ошибка проксирования аудио:', error.message);
         res.status(500).send('Ошибка сервера при проксировании аудио');
     }
 });
@@ -298,15 +302,21 @@ app.get('/api/stream/:id', async (req, res) => {
 app.post('/api/refresh-url', authMiddleware, async (req, res) => {
     const { id } = req.body;
     try {
-        const songCheck = await pool.query('SELECT id FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
-        if (songCheck.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
+        // 1. Получаем текущий (возможно, просроченный) URL из базы
+        const songResult = await pool.query('SELECT song_data FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (songResult.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
+
+        const oldAudioUrl = songResult.rows[0].song_data.audioUrl || songResult.rows[0].song_data.streamAudioUrl;
+        if (!oldAudioUrl) throw new Error('Старый URL аудио не найден в базе данных.');
         
-        const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { musicId: id }, {
+        // 2. Вызываем API Suno, используя старый URL как параметр 'url' (согласно документации)
+        const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { url: oldAudioUrl }, {
             headers: { 
                 'Authorization': `Bearer ${SUNO_API_TOKEN}`,
                 'Content-Type': 'application/json' 
             }
         });
+        
         const newAudioUrl = sunoResponse.data.data;
         if (newAudioUrl) {
             // ИСПРАВЛЕНИЕ: Используем to_jsonb($1::text) для корректной вставки строкового URL в JSONB
