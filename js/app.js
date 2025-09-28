@@ -298,6 +298,7 @@ function handleGenerateSubmit(e) {
         }
     } else {
         payload.prompt = document.getElementById('g-song-description').value;
+        payload.instrumental = document.getElementById('g-instrumental-simple').checked;
     }
     handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
 }
