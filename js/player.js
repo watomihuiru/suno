@@ -89,8 +89,16 @@ async function refreshAudioUrlAndPlay(songId) {
             body: JSON.stringify({ id: songId }) 
         });
         if (!response.ok) {
-             const errorResult = await response.json();
-             throw new Error(errorResult.message || 'Не удалось обновить URL');
+             // ИСПРАВЛЕНИЕ: Более надежная обработка ошибок сервера, которые могут быть не в формате JSON
+             let errorDetails = `HTTP Error ${response.status}`;
+             try {
+                 const errorResult = await response.json();
+                 errorDetails = errorResult.message || errorDetails;
+             } catch (e) {
+                 // Если ответ сервера не JSON, оставляем статус
+                 console.warn('Сервер вернул ошибку, но тело ответа не JSON.');
+             }
+             throw new Error(errorDetails);
         }
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
@@ -236,7 +244,7 @@ function setupPlayerListeners() {
     globalPlayer.shuffleBtn.onclick = toggleShuffle;
     globalPlayer.fsShuffleBtn.onclick = toggleShuffle;
 
-    const toggleRepeat = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); };
+    const toggleRepeat = () => { isRepeatOne = !isRepeatOne; globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.repeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); globalPlayer.fsRepeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; };
     globalPlayer.repeatBtn.onclick = toggleRepeat;
     globalPlayer.fsRepeatBtn.onclick = toggleRepeat;
     
