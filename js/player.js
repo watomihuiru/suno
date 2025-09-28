@@ -248,6 +248,7 @@ function setupPlayerListeners() {
     const toggleRepeat = () => { 
         isRepeatOne = !isRepeatOne; 
         globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); 
+        // ИСПРАВЛЕНИЕ: Используем 'fa-repeat-1' для повтора одной песни
         globalPlayer.repeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
         globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); 
         globalPlayer.fsRepeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
@@ -311,7 +312,6 @@ export function playSongByIndex(index) {
         updatePlayerBackground(songData.imageUrl);
     }
 
-    // ИСПРАВЛЕНИЕ: Используем прокси-маршрут для воспроизведения
     globalPlayer.audio.src = `/api/stream/${songData.id}`;
     globalPlayer.audio.play().catch(e => { if (e.name !== 'AbortError') { console.error("Ошибка воспроизведения:", e); } });
     globalPlayer.container.style.display = 'flex';
@@ -355,6 +355,7 @@ export function updateAllPlayIcons() {
     document.querySelectorAll('.song-cover').forEach(el => {
         const id = el.id.replace('cover-', '');
         const playIconContainer = el.querySelector('.play-icon');
+        // Добавлена проверка, чтобы избежать ошибки, если playIconContainer не найден
         if (!playIconContainer) return;
 
         el.classList.remove('playing', 'paused');
@@ -415,6 +416,7 @@ export async function showTimestampedLyrics(songId) {
         });
         const result = await response.json();
         
+        // ИСПРАВЛЕНО: Добавлена проверка на существование элемента логов
         const responseOutput = document.getElementById("response-output");
         if (responseOutput) {
             responseOutput.textContent = JSON.stringify(result, null, 2);
