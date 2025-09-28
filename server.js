@@ -302,7 +302,10 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
         if (songCheck.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
         
         const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { musicId: id }, {
-            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+            headers: { 
+                'Authorization': `Bearer ${SUNO_API_TOKEN}`,
+                'Content-Type': 'application/json' 
+            }
         });
         const newAudioUrl = sunoResponse.data.data;
         if (newAudioUrl) {
@@ -313,6 +316,7 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
             res.json({ newUrl: newAudioUrl });
         } else { throw new Error('Не удалось получить новый URL'); }
     } catch (error) {
+        console.error("Ошибка при обновлении URL:", error.response ? error.response.data : error.message);
         res.status(500).json({ message: 'Не удалось обновить URL' });
     }
 });
