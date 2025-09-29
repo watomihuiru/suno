@@ -43,3 +43,14 @@
 .transaction-history p {
     color: var(--text-secondary);
 }
+
+#logout-button {
+    margin-top: 16px;
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+#logout-button:hover {
+    background-color: #f85149;
+    border-color: #f85149;
+}

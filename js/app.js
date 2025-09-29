@@ -60,7 +60,6 @@ function showApp() {
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
 function initializeApp() {
-    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Логика скрытия вкладки "Логи" ---
     try {
         const token = sessionStorage.getItem('authToken');
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -76,7 +75,6 @@ function initializeApp() {
             logsNavButton.style.display = 'none';
         }
     }
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
     loadUserProfile();
     initializeLibrary();
@@ -166,6 +164,13 @@ function setupEventListeners() {
             }
         });
     });
+
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавляем обработчик для кнопки выхода ---
+    document.getElementById('logout-button').addEventListener('click', () => {
+        sessionStorage.removeItem('authToken');
+        window.location.reload();
+    });
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
     globalPlayer.addEventListener('click', (e) => {
         if (window.innerWidth > 768 || e.target.closest('button') || e.target.closest('input[type="range"]')) return;
