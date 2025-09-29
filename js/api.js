@@ -5,8 +5,11 @@ let taskWebSocket = null;
 
 export async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false, taskType = 'suno') {
     const responseOutput = document.getElementById("response-output");
+    
+    console.log(`[API Call] endpoint: ${endpoint}, isGeneration: ${isGeneration}, taskType: ${taskType}`);
 
     if (taskWebSocket) {
+        console.log('[API Call] Закрываем существующий WebSocket');
         taskWebSocket.close();
         taskWebSocket = null;
     }
@@ -50,8 +53,10 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
                 if (mobileCreditsContainer) mobileCreditsContainer.style.display = 'inline-flex';
             }
             if (isGeneration && result.data && result.data.taskId) {
+                console.log(`[API Call] Получен taskId: ${result.data.taskId}, запуск отслеживания`);
                 startTaskTracking(result.data.taskId, taskType);
             } else if (isGeneration) {
+                console.log(`[API Call] Ошибка: нет taskId в ответе`, result);
                 updateStatus(`🚫 Ошибка запуска: ${result.message || 'Не удалось получить taskId.'}`, false, true);
             }
         } else {
@@ -83,7 +88,10 @@ function createMjPlaceholderCard(taskId, count = 4) {
 }
 
 async function startTaskTracking(taskId, taskType) {
+    console.log(`[startTaskTracking] taskId: ${taskId}, taskType: ${taskType}`);
+    
     if (taskWebSocket) {
+        console.log('[startTaskTracking] Закрываем предыдущий WebSocket');
         taskWebSocket.close();
         taskWebSocket = null;
     }
@@ -101,17 +109,22 @@ async function startTaskTracking(taskId, taskType) {
     const token = sessionStorage.getItem('authToken');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
+    console.log(`[startTaskTracking] Создаём WebSocket: ${wsUrl}`);
     taskWebSocket = new WebSocket(wsUrl);
 
     taskWebSocket.onopen = () => {
-        console.log('WebSocket соединение установлено.');
-        taskWebSocket.send(JSON.stringify({ type: 'trackTask', taskId: taskId, taskType: taskType }));
+        console.log('[WebSocket] Соединение установлено, отправляем trackTask');
+        const message = { type: 'trackTask', taskId: taskId, taskType: taskType };
+        console.log('[WebSocket] Отправляем:', message);
+        taskWebSocket.send(JSON.stringify(message));
     };
 
     taskWebSocket.onmessage = async (event) => {
         const responseOutput = document.getElementById("response-output");
         try {
             const result = JSON.parse(event.data);
+            console.log('[WebSocket] Получено сообщение:', result);
+            
             if (responseOutput) {
                 responseOutput.textContent = JSON.stringify(result, null, 2);
             }
@@ -122,7 +135,9 @@ async function startTaskTracking(taskId, taskType) {
             const taskData = result.data;
 
             if (taskType.startsWith('mj')) {
+                console.log(`[WebSocket MJ] successFlag: ${taskData.successFlag}`);
                 if ([1, 2, 3].includes(taskData.successFlag)) {
+                    console.log('[WebSocket MJ] Задача завершена, закрываем WebSocket');
                     if(taskWebSocket) taskWebSocket.close();
                     taskWebSocket = null;
                     document.querySelectorAll(`[id^="placeholder-${taskId}-"]`).forEach(el => el.remove());
@@ -178,8 +193,8 @@ async function startTaskTracking(taskId, taskType) {
         }
     };
 
-    taskWebSocket.onclose = () => {
-        console.log('WebSocket соединение закрыто.');
+    taskWebSocket.onclose = (event) => {
+        console.log('WebSocket соединение закрыто.', event.code, event.reason);
         taskWebSocket = null;
     };
 }

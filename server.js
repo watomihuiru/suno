@@ -484,9 +484,14 @@ wss.on('connection', (ws, req) => {
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
+            console.log(`[WebSocket] Получено сообщение от пользователя ${userId}:`, data);
             if (data.type === 'trackTask' && data.taskId && userId) {
                 const { taskId, taskType } = data;
-                if (trackingInterval) clearInterval(trackingInterval);
+                console.log(`[WebSocket] Начинаем отслеживание задачи ${taskId} типа ${taskType}`);
+                if (trackingInterval) {
+                    console.log('[WebSocket] Очищаем предыдущий интервал');
+                    clearInterval(trackingInterval);
+                }
 
                 trackingInterval = setInterval(async () => {
                     try {
@@ -497,12 +502,18 @@ wss.on('connection', (ws, req) => {
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
                             });
 
-                            if (!response.data || !response.data.data) { return; }
+                            if (!response.data || !response.data.data) { 
+                                console.log(`[WebSocket MJ] Нет данных в ответе для задачи ${taskId}`);
+                                return; 
+                            }
                             const taskData = response.data.data;
                             const finalStatuses = [1, 2, 3];
+                            console.log(`[WebSocket MJ] Статус задачи ${taskId}: successFlag=${taskData.successFlag}`);
 
                             if (finalStatuses.includes(taskData.successFlag)) {
+                                console.log(`[WebSocket MJ] Задача ${taskId} завершена, очищаем интервал`);
                                 clearInterval(trackingInterval);
+                                trackingInterval = null;
                                 if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
                                     for (const image of taskData.resultInfoJson.resultUrls) {
                                         let promptData = {};
@@ -513,7 +524,12 @@ wss.on('connection', (ws, req) => {
                                         );
                                     }
                                 }
-                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                                if (ws.readyState === ws.OPEN) {
+                                    console.log(`[WebSocket MJ] Отправляем финальный ответ клиенту`);
+                                    ws.send(JSON.stringify(response.data));
+                                } else {
+                                    console.log(`[WebSocket MJ] WebSocket закрыт, не можем отправить ответ`);
+                                }
                             } else {
                                 if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                             }
@@ -529,7 +545,9 @@ wss.on('connection', (ws, req) => {
                             const finalStatuses = ["SUCCESS", "CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
 
                             if (finalStatuses.includes(status)) {
+                                console.log(`[WebSocket Suno] Задача ${taskId} завершена со статусом ${status}`);
                                 clearInterval(trackingInterval);
+                                trackingInterval = null;
                                 if (status === "SUCCESS" && taskData.response?.sunoData) {
                                     for (const song of taskData.response.sunoData) {
                                         let paramsToSave = taskData.param;
@@ -548,7 +566,9 @@ wss.on('connection', (ws, req) => {
                             }
                         }
                     } catch (error) {
+                        console.error(`[WebSocket] Ошибка при проверке статуса задачи ${taskId}:`, error.message);
                         clearInterval(trackingInterval);
+                        trackingInterval = null;
                         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ error: true, message: 'Ошибка проверки статуса' }));
                     }
                 }, 5000);
@@ -557,10 +577,18 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('close', () => {
-        if (trackingInterval) clearInterval(trackingInterval);
+        console.log(`[WebSocket] Соединение закрыто для пользователя ${userId}`);
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+        }
     });
     ws.on('error', (error) => {
-        if (trackingInterval) clearInterval(trackingInterval);
+        console.error(`[WebSocket] Ошибка соединения для пользователя ${userId}:`, error.message);
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+        }
     });
 });
 
