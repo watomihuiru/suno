@@ -176,14 +176,36 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
 
 app.get('/api/chat/credit', authMiddleware, async (req, res) => {
     try {
-        const user = await pool.query('SELECT credits, is_admin FROM users WHERE id = $1', [req.user.id]);
-        if (user.rows.length > 0) {
-            const credits = user.rows[0].is_admin ? '∞' : user.rows[0].credits;
-            res.json({ data: credits });
-        } else {
-            res.status(404).json({ message: 'Пользователь не найден' });
+        const userResult = await pool.query('SELECT credits, is_admin FROM users WHERE id = $1', [req.user.id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
         }
-    } catch (error) {
+        const user = userResult.rows[0];
+
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+        if (user.is_admin) {
+            try {
+                // Если пользователь админ, делаем запрос напрямую к API Suno
+                const sunoResponse = await axios.get(`${SUNO_API_BASE_URL}/chat/credit`, {
+                    headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+                });
+                
+                if (sunoResponse.data && sunoResponse.data.code === 200) {
+                    res.json({ data: sunoResponse.data.data });
+                } else {
+                    throw new Error(sunoResponse.data.msg || 'Suno API вернул ошибку');
+                }
+            } catch (apiError) {
+                console.error("Ошибка при запросе кредитов у Suno API:", apiError.message);
+                // В случае ошибки возвращаем '∞', чтобы не сломать интерфейс
+                res.json({ data: '∞ (ошибка API)' });
+            }
+        } else {
+            // Для обычных пользователей возвращаем значение из нашей БД
+            res.json({ data: user.credits });
+        }
+    } catch (dbError) {
+        console.error("Ошибка при запросе кредитов из БД:", dbError.message);
         res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
@@ -287,7 +309,6 @@ app.get('/api/stream/:id', async (req, res) => {
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) return res.status(404).send('URL аудио не найден');
         
-        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
         // 1. Готовим заголовки для запроса к Suno, пробрасывая Range
         const requestHeaders = {
             'User-Agent': 'Mozilla/5.0'
