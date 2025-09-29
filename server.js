@@ -437,7 +437,6 @@ app.post('/api/generate/upload-cover', authMiddleware, (req, res) => proxySunoRe
 app.post('/api/generate/upload-extend', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-extend'));
 app.post('/api/boost-style', authMiddleware, (req, res) => proxySunoRequest(req, res, '/style/generate'));
 app.post('/api/mj/generate', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generate'));
-// --- ИЗМЕНЕНИЕ: Новые эндпоинты для действий Midjourney ---
 app.post('/api/mj/upscale', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generateUpscale'));
 app.post('/api/mj/vary', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generateVary'));
 
@@ -491,32 +490,40 @@ wss.on('connection', (ws, req) => {
                 trackingInterval = setInterval(async () => {
                     try {
                         let response;
-                        if (taskType.startsWith('mj')) { // Catches 'mj', 'mj_upscale', 'mj_vary'
+                        if (taskType.startsWith('mj')) {
                             response = await axios.get(`${SUNO_API_BASE_URL}/mj/record-info`, {
                                 params: { taskId },
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
                             });
 
-                            if (!response.data || !response.data.data) { return; }
-                            const taskData = response.data.data;
-                            const finalStatuses = [1, 2, 3];
-
-                            if (finalStatuses.includes(taskData.successFlag)) {
-                                clearInterval(trackingInterval);
-                                if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
-                                    for (const image of taskData.resultInfoJson.resultUrls) {
-                                        let promptData = {};
-                                        try { promptData = JSON.parse(taskData.paramJson) } catch (e) {}
-                                        await pool.query(
-                                            `INSERT INTO images (user_id, task_id, image_url, prompt_data) VALUES ($1, $2, $3, $4)`,
-                                            [userId, taskId, image.resultUrl, promptData]
-                                        );
-                                    }
-                                }
-                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
-                            } else {
-                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                            if (!response.data || !response.data.data) {
+                                return;
                             }
+                            const taskData = response.data.data;
+                            const finalSuccessFlags = [1, 2, 3];
+                            const isFinal = finalSuccessFlags.includes(taskData.successFlag);
+                            
+                            // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+                            // Отправляем обновление на каждом шаге, если задача не завершена
+                            if (!isFinal) {
+                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                                return; // Выходим из этой итерации интервала
+                            }
+
+                            // Если задача завершена, останавливаем интервал и обрабатываем результат
+                            clearInterval(trackingInterval);
+                            if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
+                                for (const image of taskData.resultInfoJson.resultUrls) {
+                                    let promptData = {};
+                                    try { promptData = JSON.parse(taskData.paramJson) } catch (e) {}
+                                    await pool.query(
+                                        `INSERT INTO images (user_id, task_id, image_url, prompt_data) VALUES ($1, $2, $3, $4)`,
+                                        [userId, taskId, image.resultUrl, promptData]
+                                    );
+                                }
+                            }
+                            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+
                         } else { // Suno logic
                             response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
                                 params: { taskId },
