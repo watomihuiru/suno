@@ -13,6 +13,10 @@ let isProgrammaticScroll = false;
 let lyricsScrollTimeout;
 let lyricsAnimationId;
 
+// --- ИЗМЕНЕНИЯ ЗДЕСЬ: Добавляем счетчик для предотвращения бесконечного цикла ---
+let refreshRetryCount = 0;
+const MAX_REFRESH_RETRIES = 3;
+
 function checkLyricsScrollability() {
     const lyricsContent = globalPlayer.fsLyricsContent;
     if (lyricsContent.scrollHeight > lyricsContent.clientHeight) {
@@ -89,27 +93,27 @@ async function refreshAudioUrlAndPlay(songId) {
             body: JSON.stringify({ id: songId }) 
         });
         if (!response.ok) {
-             // ИСПРАВЛЕНИЕ: Более надежная обработка ошибок сервера, которые могут быть не в формате JSON
              let errorDetails = `HTTP Error ${response.status}`;
              try {
                  const errorResult = await response.json();
                  errorDetails = errorResult.message || errorDetails;
              } catch (e) {
-                 // Если ответ сервера не JSON, оставляем статус
                  console.warn('Сервер вернул ошибку, но тело ответа не JSON.');
              }
              throw new Error(errorDetails);
         }
         const result = await response.json();
         console.log('Получен новый URL:', result.newUrl);
-        // Используем маршрут проксирования для воспроизведения
-        globalPlayer.audio.src = `/api/stream/${songId}`;
+
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавляем cache-busting параметр ---
+        const timestamp = new Date().getTime();
+        globalPlayer.audio.src = `/api/stream/${songId}?t=${timestamp}`;
+        
         const playPromise = globalPlayer.audio.play();
         if (playPromise !== undefined) { playPromise.catch(error => console.error("Ошибка авто-воспроизведения после обновления URL:", error)); }
         updateStatus(`✅ Ссылка обновлена, воспроизведение...`, true);
         setTimeout(() => updateStatus(''), 2000);
     } catch (error) {
-        // Улучшенное логирование ошибки
         const errorMessage = error.message || 'Неизвестная ошибка обновления URL.';
         console.error('Ошибка при обновлении URL аудио:', errorMessage, error); 
         updateStatus(`🚫 Не удалось обновить ссылку на аудио. Ошибка: ${errorMessage}`, false, true);
@@ -165,12 +169,18 @@ function updatePlayerBackground(imageUrl) {
 }
 
 function setupPlayerListeners() {
-    // ИСПРАВЛЕНИЕ: Перехват ошибок при загрузке аудио
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Обновляем обработчик ошибок ---
     globalPlayer.audio.onerror = (e) => { 
         console.error("Ошибка аудио:", e); 
-        // Проверяем, что ошибка не связана с тем, что src пустой (когда закрываем плеер)
         if (globalPlayer.currentSongId && globalPlayer.audio.src) { 
-             refreshAudioUrlAndPlay(globalPlayer.currentSongId); 
+            if (refreshRetryCount < MAX_REFRESH_RETRIES) {
+                refreshRetryCount++;
+                console.warn(`Аудио не загрузилось. Попытка обновления URL #${refreshRetryCount}...`);
+                refreshAudioUrlAndPlay(globalPlayer.currentSongId);
+            } else {
+                console.error(`Достигнут лимит попыток (${MAX_REFRESH_RETRIES}) обновления URL для песни ${globalPlayer.currentSongId}.`);
+                updateStatus(`🚫 Не удалось воспроизвести трек после нескольких попыток.`, false, true);
+            }
         }
     };
     
@@ -248,7 +258,6 @@ function setupPlayerListeners() {
     const toggleRepeat = () => { 
         isRepeatOne = !isRepeatOne; 
         globalPlayer.repeatBtn.classList.toggle('active', isRepeatOne); 
-        // ИСПРАВЛЕНИЕ: Используем 'fa-repeat-1' для повтора одной песни
         globalPlayer.repeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
         globalPlayer.fsRepeatBtn.classList.toggle('active', isRepeatOne); 
         globalPlayer.fsRepeatBtn.innerHTML = isRepeatOne ? '<i class="fas fa-repeat-1"></i>' : '<i class="fas fa-repeat"></i>'; 
@@ -299,6 +308,9 @@ export function playSongByIndex(index) {
     currentTrackIndex = index;
     const songData = playlist[currentTrackIndex].songData;
     globalPlayer.currentSongId = songData.id;
+
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Сбрасываем счетчик при успешном запуске новой песни ---
+    refreshRetryCount = 0;
     
     globalPlayer.cover.src = songData.imageUrl || 'placeholder.png';
     globalPlayer.title.textContent = songData.title || 'Без названия';
@@ -355,7 +367,6 @@ export function updateAllPlayIcons() {
     document.querySelectorAll('.song-cover').forEach(el => {
         const id = el.id.replace('cover-', '');
         const playIconContainer = el.querySelector('.play-icon');
-        // Добавлена проверка, чтобы избежать ошибки, если playIconContainer не найден
         if (!playIconContainer) return;
 
         el.classList.remove('playing', 'paused');
@@ -416,7 +427,6 @@ export async function showTimestampedLyrics(songId) {
         });
         const result = await response.json();
         
-        // ИСПРАВЛЕНО: Добавлена проверка на существование элемента логов
         const responseOutput = document.getElementById("response-output");
         if (responseOutput) {
             responseOutput.textContent = JSON.stringify(result, null, 2);
