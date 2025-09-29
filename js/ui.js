@@ -1,4 +1,5 @@
 import { modelLimits, extendModelLimits } from './config.js';
+import { toggleLibraryView } from './library.js';
 
 let currentViewName = 'generate';
 
@@ -15,7 +16,6 @@ export function formatTime(seconds) {
 
 export function updateStatus(message, isSuccess = false, isError = false) {
     const statusContainer = document.getElementById("status-container");
-    // ДОБАВЛЕНА ПРОВЕРКА: Если элемент не найден, ничего не делаем
     if (statusContainer) {
         statusContainer.innerHTML = `<div class="status-message ${isSuccess ? 'success' : ''} ${isError ? 'error' : ''}">${message}</div>`;
     }
@@ -64,6 +64,12 @@ async function loadAndDisplayProfileData() {
 
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
+    
+    if (viewName === 'midjourney') {
+        toggleLibraryView('images');
+    } else if (['generate', 'upload-extend', 'upload'].includes(viewName)) {
+        toggleLibraryView('songs');
+    }
 
     const viewBeingLeft = document.getElementById(currentViewName);
     if (viewBeingLeft && !isSetup) {
@@ -116,6 +122,12 @@ export function showLibraryView() {
         document.querySelector('.library-card').style.display = 'flex';
         setActiveMobileNav('library');
         currentViewName = 'library';
+        const lastMainView = document.querySelector('.sidebar-nav .nav-button.active')?.dataset.view;
+        if (lastMainView === 'midjourney') {
+             toggleLibraryView('images');
+        } else {
+             toggleLibraryView('songs');
+        }
     }
 }
 
@@ -140,7 +152,6 @@ function updateCountersUI(element, limit) {
 }
 
 export function updateAllLimits() {
-    // Generate Form
     const g_model = document.getElementById('g-model-value').value;
     const g_limits = modelLimits[g_model] || modelLimits['V4_5PLUS'];
     const g_fields = [
@@ -157,7 +168,6 @@ export function updateAllLimits() {
         }
     });
 
-    // Upload Cover Form
     const uc_model = document.getElementById('uc-model-value').value;
     const uc_limits = modelLimits[uc_model] || modelLimits['V4_5PLUS'];
     const uc_fields = [
@@ -174,7 +184,6 @@ export function updateAllLimits() {
         }
     });
 
-    // Upload Extend Form
     const ue_model = document.getElementById('ue-model-value').value;
     const ue_limits = extendModelLimits[ue_model] || extendModelLimits['V4_5PLUS'];
     const ue_fields = [

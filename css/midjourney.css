@@ -1,4 +1,19 @@
-/* Этот селектор теперь указывает на грид внутри галереи в библиотечной карточке */
+.mj-form-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.mj-tab-content {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.mj-tab-content.active {
+    display: flex;
+}
+
 #image-gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -8,38 +23,73 @@
     flex-grow: 1;
 }
 
-.mj-result-item {
+.mj-gallery-item {
     position: relative;
     aspect-ratio: 1 / 1;
     border-radius: 8px;
     overflow: hidden;
     background-color: var(--bg-input);
     animation: fadeInScale 0.4s ease-out forwards;
-    cursor: pointer;
 }
 
-.mj-result-item.placeholder {
+.mj-gallery-item.placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
     color: var(--text-secondary);
-    cursor: default;
 }
 
-.mj-result-item img {
+.mj-gallery-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.2s ease-out;
 }
 
-.mj-result-item:hover img {
-    transform: scale(1.05);
+.mj-gallery-item-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+}
+
+.mj-gallery-item:hover .mj-gallery-item-overlay {
+    opacity: 1;
+}
+
+.mj-gallery-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.mj-action-button {
+    background-color: rgba(48, 54, 61, 0.8);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mj-action-button:hover {
+    background-color: var(--border);
 }
 
 #image-gallery-container {
-    display: flex;
+    display: none; /* Initially hidden */
     flex-direction: column;
     flex-grow: 1;
     min-height: 0;

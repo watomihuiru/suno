@@ -5,13 +5,13 @@ import { modelMap } from './config.js';
 import { formatTime, copyToClipboard, showConfirmationModal } from './ui.js';
 import { playSongById, getPlayerState, showSimpleLyrics, showTimestampedLyrics, updateAllPlayIcons } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
+import { handleApiCall } from './api.js';
 
 let playlist = [];
 let projects = [];
-let activeProjectId = null; // null означает "Без проекта"
+let activeProjectId = null;
 let currentLibraryTab = 'all';
 
-// --- ИЗМЕНЕНИЕ: Добавляем ссылки на новые DOM-элементы ---
 let songLibraryContainer, imageGalleryContainer;
 let songListContainer, emptyListMessage, projectListContainer;
 let imageGrid, imageEmptyMessage;
@@ -29,7 +29,6 @@ function getAuthHeaders() {
 }
 
 export function initializeLibrary() {
-    // --- ИЗМЕНЕНИЕ: Инициализируем все контейнеры ---
     songLibraryContainer = document.getElementById('song-library-container');
     imageGalleryContainer = document.getElementById('image-gallery-container');
     songListContainer = document.getElementById('song-list-container');
@@ -38,21 +37,22 @@ export function initializeLibrary() {
     imageGrid = document.getElementById('image-gallery-grid');
     imageEmptyMessage = document.getElementById('image-gallery-empty-message');
 
+    // Initially load song projects and songs
     fetchProjects();
 }
 
-// --- ИЗМЕНЕНИЕ: Новая функция для переключения вида библиотеки ---
 export function toggleLibraryView(viewType) {
     if (viewType === 'songs') {
         songLibraryContainer.style.display = 'flex';
         imageGalleryContainer.style.display = 'none';
+        fetchProjects(); // Reload projects and songs
     } else if (viewType === 'images') {
         songLibraryContainer.style.display = 'none';
         imageGalleryContainer.style.display = 'flex';
+        fetchImagesFromServer(); // Load images
     }
 }
 
-// --- ИЗМЕНЕНИЕ: Новые функции для работы с галереей изображений ---
 export async function fetchImagesFromServer() {
     try {
         const response = await fetch('/api/images', { headers: getAuthHeaders() });
@@ -70,22 +70,63 @@ function renderImageGallery(images) {
     if (images.length > 0) {
         images.forEach(image => {
             const item = document.createElement('div');
-            item.className = 'mj-result-item';
-            item.innerHTML = `<img src="${image.image_url}" alt="${image.prompt_data?.prompt || 'Generated image'}">`;
+            item.className = 'mj-gallery-item';
+            item.innerHTML = `
+                <img src="${image.image_url}" alt="${image.prompt_data?.prompt || 'Generated image'}">
+                <div class="mj-gallery-item-overlay">
+                    <div class="mj-gallery-actions">
+                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="0">U1</button>
+                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="1">U2</button>
+                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="2">U3</button>
+                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="3">U4</button>
+                    </div>
+                    <div class="mj-gallery-actions">
+                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="0">V1</button>
+                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="1">V2</button>
+                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="2">V3</button>
+                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="3">V4</button>
+                    </div>
+                </div>
+            `;
             imageGrid.appendChild(item);
+        });
+
+        imageGrid.querySelectorAll('.mj-action-button').forEach(button => {
+            button.addEventListener('click', handleMjAction);
         });
     } else {
         imageGrid.innerHTML = '<p id="image-gallery-empty-message">Ваша галерея изображений пуста.</p>';
     }
 }
 
-export function getPlaylist() {
-    return playlist;
+function handleMjAction(event) {
+    const button = event.currentTarget;
+    const { action, taskId, index } = button.dataset;
+    
+    let endpoint, payload, taskType;
+
+    if (action === 'upscale') {
+        endpoint = '/api/mj/upscale';
+        payload = { taskId, imageIndex: parseInt(index) };
+        taskType = 'mj_upscale';
+    } else if (action === 'vary') {
+        endpoint = '/api/mj/vary';
+        payload = { taskId, imageIndex: parseInt(index) };
+        taskType = 'mj_vary';
+    } else {
+        return;
+    }
+
+    handleApiCall(endpoint, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    }, false, true, taskType);
 }
 
-export function getSongById(songId) {
-    return playlist.find(p => p.songData.id === songId);
-}
+
+export function getPlaylist() { return playlist; }
+export function getSongById(songId) { return playlist.find(p => p.songData.id === songId); }
 
 async function downloadSong(event, url, filename) {
     event.preventDefault();
@@ -201,14 +242,8 @@ function addSongToList(songInfo) {
     card.querySelector('.song-cover').onclick = () => {
         const { player, currentSongId } = getPlayerState();
         if (currentSongId === songData.id && player.audio.src) {
-            if (player.audio.paused) {
-                player.audio.play();
-            } else {
-                player.audio.pause();
-            }
-        } else {
-            playSongById(songData.id);
-        }
+            if (player.audio.paused) { player.audio.play(); } else { player.audio.pause(); }
+        } else { playSongById(songData.id); }
     };
 
     card.querySelector('.song-title').onclick = () => copyToClipboard(songData.id, card.querySelector('.song-title'));
@@ -230,11 +265,7 @@ function addSongToList(songInfo) {
             const spaceBelow = containerRect.bottom - triggerRect.bottom;
             const menuHeight = 220;
 
-            if (spaceBelow < menuHeight) {
-                menu.classList.add('opens-up');
-            } else {
-                menu.classList.remove('opens-up');
-            }
+            if (spaceBelow < menuHeight) { menu.classList.add('opens-up'); } else { menu.classList.remove('opens-up'); }
             menu.classList.add('active');
             card.classList.add('menu-is-active');
         }
@@ -248,10 +279,7 @@ function addSongToList(songInfo) {
     moveMenuItem.innerHTML = `<i class="fas fa-folder-plus"></i> Переместить`;
     moveMenuItem.appendChild(moveSubMenu);
     moveMenuItem.addEventListener('click', (e) => {
-        if (window.innerWidth <= 768) {
-            e.stopPropagation();
-            moveSubMenu.classList.toggle('is-open');
-        }
+        if (window.innerWidth <= 768) { e.stopPropagation(); moveSubMenu.classList.toggle('is-open'); }
     });
 
     const menuItems = [ 
@@ -266,9 +294,7 @@ function addSongToList(songInfo) {
     ];
 
     menuItems.forEach(item => { 
-        if (item.nodeName) {
-            menu.appendChild(item);
-        } else {
+        if (item.nodeName) { menu.appendChild(item); } else {
             const li = document.createElement('li'); 
             li.className = 'menu-item ' + (item.className || ''); 
             li.innerHTML = `<i class="${item.icon}"></i> ${item.text}`; 
@@ -282,11 +308,7 @@ function addSongToList(songInfo) {
         const subItem = document.createElement('li');
         subItem.className = 'menu-item';
         subItem.textContent = p.name;
-        subItem.onclick = (e) => {
-            e.stopPropagation();
-            moveSongToProject(songData.id, p.id, card);
-            menu.classList.remove('active');
-        };
+        subItem.onclick = (e) => { e.stopPropagation(); moveSongToProject(songData.id, p.id, card); menu.classList.remove('active'); };
         moveSubMenu.appendChild(subItem);
     });
 
@@ -328,7 +350,7 @@ export async function loadSongsFromServer(projectId = null) {
         renderLibrary();
     } catch (e) {
         console.error("Не удалось загрузить песни с сервера", e);
-        songListContainer.innerHTML = '<p id="empty-list-message" style="color: var(--accent-red);">Ошибка загрузки песен. Проверьте консоль.</p>';
+        songListContainer.innerHTML = '<p id="empty-list-message" style="color: var(--accent-red);">Ошибка загрузки песен.</p>';
     }
 }
 

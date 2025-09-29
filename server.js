@@ -299,7 +299,6 @@ app.get('/api/songs', authMiddleware, async (req, res) => {
     }
 });
 
-// --- ИЗМЕНЕНИЕ: Новый эндпоинт для получения изображений ---
 app.get('/api/images', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
@@ -438,6 +437,10 @@ app.post('/api/generate/upload-cover', authMiddleware, (req, res) => proxySunoRe
 app.post('/api/generate/upload-extend', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-extend'));
 app.post('/api/boost-style', authMiddleware, (req, res) => proxySunoRequest(req, res, '/style/generate'));
 app.post('/api/mj/generate', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generate'));
+// --- ИЗМЕНЕНИЕ: Новые эндпоинты для действий Midjourney ---
+app.post('/api/mj/upscale', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generateUpscale'));
+app.post('/api/mj/vary', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generateVary'));
+
 
 app.post('/api/lyrics', authMiddleware, async (req, res) => {
     const { taskId, audioId } = req.body;
@@ -488,7 +491,7 @@ wss.on('connection', (ws, req) => {
                 trackingInterval = setInterval(async () => {
                     try {
                         let response;
-                        if (taskType === 'mj') {
+                        if (taskType.startsWith('mj')) { // Catches 'mj', 'mj_upscale', 'mj_vary'
                             response = await axios.get(`${SUNO_API_BASE_URL}/mj/record-info`, {
                                 params: { taskId },
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
@@ -502,9 +505,11 @@ wss.on('connection', (ws, req) => {
                                 clearInterval(trackingInterval);
                                 if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
                                     for (const image of taskData.resultInfoJson.resultUrls) {
+                                        let promptData = {};
+                                        try { promptData = JSON.parse(taskData.paramJson) } catch (e) {}
                                         await pool.query(
                                             `INSERT INTO images (user_id, task_id, image_url, prompt_data) VALUES ($1, $2, $3, $4)`,
-                                            [userId, taskId, image.resultUrl, { prompt: taskData.prompt }]
+                                            [userId, taskId, image.resultUrl, promptData]
                                         );
                                     }
                                 }
@@ -512,7 +517,7 @@ wss.on('connection', (ws, req) => {
                             } else {
                                 if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                             }
-                        } else {
+                        } else { // Suno logic
                             response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
                                 params: { taskId },
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }

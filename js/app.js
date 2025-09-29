@@ -3,7 +3,7 @@
 // инициализирует приложение и устанавливает основные обработчики событий.
 
 import { handleApiCall } from './api.js';
-import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects, toggleLibraryView, fetchImagesFromServer } from './library.js';
+import { initializeLibrary, setupLibraryTabs, fetchProjects, toggleLibraryView, fetchImagesFromServer, loadSongsFromServer } from './library.js';
 import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
@@ -19,10 +19,8 @@ import {
     setupConfirmationModal
 } from './ui.js';
 
-// --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ КОЛЛБЭКА GOOGLE ---
 window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
 
-// --- НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ СКРИПТА GOOGLE ---
 function loadGoogleGSI() {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -31,7 +29,6 @@ function loadGoogleGSI() {
     document.head.appendChild(script);
 }
 
-// --- ФУНКЦИИ УПРАВЛЕНИЯ ИНТЕРФЕЙСОМ ---
 function loadUserProfile() {
     const token = sessionStorage.getItem('authToken');
     if (!token) return;
@@ -57,7 +54,6 @@ function showApp() {
     initializeApp();
 }
 
-// --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
 function initializeApp() {
     try {
         const token = sessionStorage.getItem('authToken');
@@ -82,7 +78,6 @@ function initializeApp() {
     handleApiCall("/api/chat/credit", { method: "GET" }, true);
 }
 
-// --- ЛОГИКА АВТОРИЗАЦИИ ---
 async function handleGoogleCredentialResponse(response) {
     const loginError = document.getElementById('login-error-message');
     try {
@@ -203,6 +198,17 @@ function setupEventListeners() {
         document.getElementById('ue-simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
         document.getElementById('ue-custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
     });
+    
+    document.querySelectorAll('.mj-form-tabs .tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.dataset.mjTab;
+            document.querySelectorAll('.mj-form-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            document.querySelectorAll('.mj-tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `mj-tab-content-${tabId}`);
+            });
+        });
+    });
 
     setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
@@ -229,68 +235,41 @@ function setupEventListeners() {
     });
 }
 
-// --- FORM VALIDATION ---
-function validateGenerateForm() {
-    const isCustom = document.getElementById("g-customMode").checked;
-    if (isCustom) {
-        const isInstrumental = document.getElementById("g-instrumental").checked;
-        let valid = validateField(document.getElementById('g-title')) && validateField(document.getElementById('g-style'));
-        if (!isInstrumental) {
-            valid = valid && validateField(document.getElementById('g-prompt'));
-        }
-        return valid;
-    } else {
-        return validateField(document.getElementById('g-song-description'));
+// --- FORM SUBMIT HANDLERS & VALIDATION ---
+
+function handleMidjourneySubmit(e) {
+    e.preventDefault();
+    const activeTab = document.querySelector('.mj-form-tabs .tab-button.active').dataset.mjTab;
+
+    const payload = {
+        version: document.getElementById('mj-version').value,
+        aspectRatio: document.getElementById('mj-aspect-ratio').value,
+        speed: document.getElementById('mj-speed').value,
+        stylization: parseInt(document.getElementById('mj-stylization').value, 10),
+        weirdness: parseInt(document.getElementById('mj-weirdness').value, 10),
+        variety: parseInt(document.getElementById('mj-variety').value, 10),
+    };
+
+    if (activeTab === 'txt2img') {
+        if (!validateField(document.getElementById('mj-prompt-txt2img'))) return;
+        payload.taskType = 'mj_txt2img';
+        payload.prompt = document.getElementById('mj-prompt-txt2img').value;
+    } else if (activeTab === 'img2img') {
+        if (!validateField(document.getElementById('mj-fileUrl-img2img')) || !validateField(document.getElementById('mj-prompt-img2img'))) return;
+        payload.taskType = 'mj_img2img';
+        payload.fileUrl = document.getElementById('mj-fileUrl-img2img').value;
+        payload.prompt = document.getElementById('mj-prompt-img2img').value;
+    } else if (activeTab === 'video') {
+        if (!validateField(document.getElementById('mj-fileUrl-video')) || !validateField(document.getElementById('mj-prompt-video'))) return;
+        payload.taskType = 'mj_video';
+        payload.fileUrl = document.getElementById('mj-fileUrl-video').value;
+        payload.prompt = document.getElementById('mj-prompt-video').value;
+        payload.motion = document.getElementById('mj-motion').value;
     }
+
+    handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
 }
 
-function validateUploadCoverForm() {
-    const songToEdit = getSongToEdit();
-    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('uc-uploadUrl').value;
-    if (!url || !url.trim()) {
-        const field = document.getElementById('uc-uploadUrl');
-        field.classList.add('input-error');
-        setTimeout(() => field.classList.remove('input-error'), 1000);
-        return false;
-    }
-
-    const isCustom = document.getElementById("uc-customMode").checked;
-    if (isCustom) {
-        const isInstrumental = document.getElementById("uc-instrumental").checked;
-        let valid = validateField(document.getElementById('uc-title')) && validateField(document.getElementById('uc-style'));
-        if (!isInstrumental) {
-            valid = valid && validateField(document.getElementById('uc-prompt'));
-        }
-        return valid;
-    } else {
-        return validateField(document.getElementById('uc-song-description'));
-    }
-}
-
-function validateUploadExtendForm() {
-    const songToEdit = getSongToEdit();
-    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('ue-uploadUrl').value;
-    if (!url || !url.trim()) {
-        const field = document.getElementById('ue-uploadUrl');
-        field.classList.add('input-error');
-        setTimeout(() => field.classList.remove('input-error'), 1000);
-        return false;
-    }
-
-    const isCustom = document.getElementById("ue-customMode").checked;
-    if (isCustom) {
-        const isInstrumental = document.getElementById("ue-instrumental").checked;
-        let valid = validateField(document.getElementById('ue-continueAt')) && validateField(document.getElementById('ue-title')) && validateField(document.getElementById('ue-style'));
-        if (!isInstrumental) {
-            valid = valid && validateField(document.getElementById('ue-prompt'));
-        }
-        return valid;
-    } else {
-        return validateField(document.getElementById('ue-prompt-simple'));
-    }
-}
-
-// --- FORM SUBMIT HANDLERS ---
 function handleGenerateSubmit(e) {
     e.preventDefault();
     if (!validateGenerateForm()) return;
@@ -324,22 +303,18 @@ function handleGenerateSubmit(e) {
     handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
 }
 
-function handleMidjourneySubmit(e) {
-    e.preventDefault();
-    if (!validateField(document.getElementById('mj-prompt'))) return;
-
-    const payload = {
-        taskType: "mj_txt2img",
-        prompt: document.getElementById('mj-prompt').value,
-        version: document.getElementById('mj-version').value,
-        aspectRatio: document.getElementById('mj-aspect-ratio').value,
-        speed: document.getElementById('mj-speed').value,
-        stylization: parseInt(document.getElementById('mj-stylization').value, 10),
-        weirdness: parseInt(document.getElementById('mj-weirdness').value, 10),
-        variety: parseInt(document.getElementById('mj-variety').value, 10),
-    };
-
-    handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
+function validateGenerateForm() {
+    const isCustom = document.getElementById("g-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("g-instrumental").checked;
+        let valid = validateField(document.getElementById('g-title')) && validateField(document.getElementById('g-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('g-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('g-song-description'));
+    }
 }
 
 function handleCoverSubmit(e) {
@@ -381,6 +356,29 @@ function handleCoverSubmit(e) {
     resetEditViews();
 }
 
+function validateUploadCoverForm() {
+    const songToEdit = getSongToEdit();
+    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('uc-uploadUrl').value;
+    if (!url || !url.trim()) {
+        const field = document.getElementById('uc-uploadUrl');
+        field.classList.add('input-error');
+        setTimeout(() => field.classList.remove('input-error'), 1000);
+        return false;
+    }
+
+    const isCustom = document.getElementById("uc-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("uc-instrumental").checked;
+        let valid = validateField(document.getElementById('uc-title')) && validateField(document.getElementById('uc-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('uc-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('uc-song-description'));
+    }
+}
+
 function handleExtendSubmit(e) {
     e.preventDefault();
     if (!validateUploadExtendForm()) return;
@@ -419,6 +417,29 @@ function handleExtendSubmit(e) {
     }
     handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
     resetEditViews();
+}
+
+function validateUploadExtendForm() {
+    const songToEdit = getSongToEdit();
+    const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('ue-uploadUrl').value;
+    if (!url || !url.trim()) {
+        const field = document.getElementById('ue-uploadUrl');
+        field.classList.add('input-error');
+        setTimeout(() => field.classList.remove('input-error'), 1000);
+        return false;
+    }
+
+    const isCustom = document.getElementById("ue-customMode").checked;
+    if (isCustom) {
+        const isInstrumental = document.getElementById("ue-instrumental").checked;
+        let valid = validateField(document.getElementById('ue-continueAt')) && validateField(document.getElementById('ue-title')) && validateField(document.getElementById('ue-style'));
+        if (!isInstrumental) {
+            valid = valid && validateField(document.getElementById('ue-prompt'));
+        }
+        return valid;
+    } else {
+        return validateField(document.getElementById('ue-prompt-simple'));
+    }
 }
 
 async function handleBoostStyle(e) {
@@ -486,7 +507,6 @@ async function handleCreateProject() {
     }
 }
 
-// --- ЗАПУСК ПРИЛОЖЕНИЯ (ФИНАЛЬНАЯ ВЕРСИЯ) ---
 async function verifyUserSession() {
     const token = sessionStorage.getItem('authToken');
     if (!token) {

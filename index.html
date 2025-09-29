@@ -189,8 +189,25 @@
                 <div id="midjourney" class="view-content">
                     <div class="view-header"><h2>Создать изображение</h2><p>Сгенерируйте изображение с помощью Midjourney по вашему описанию.</p></div>
                     <form id="midjourney-form">
+                        <div class="tabs mj-form-tabs">
+                            <button type="button" class="tab-button active" data-mj-tab="txt2img">Text to Image</button>
+                            <button type="button" class="tab-button" data-mj-tab="img2img">Image to Image</button>
+                            <button type="button" class="tab-button" data-mj-tab="video">Image to Video</button>
+                        </div>
                         <div class="form-grid">
-                            <div class="form-group"><label for="mj-prompt">Промпт (описание)</label><textarea id="mj-prompt" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
+                            <div id="mj-tab-content-txt2img" class="mj-tab-content active">
+                                <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
+                            </div>
+                            <div id="mj-tab-content-img2img" class="mj-tab-content">
+                                <div class="form-group"><label for="mj-fileUrl-img2img">URL изображения</label><input type="text" id="mj-fileUrl-img2img" placeholder="https://example.com/image.jpg"></div>
+                                <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" placeholder="Transform this into a cyberpunk style..."></textarea></div>
+                            </div>
+                            <div id="mj-tab-content-video" class="mj-tab-content">
+                                <div class="form-group"><label for="mj-fileUrl-video">URL изображения</label><input type="text" id="mj-fileUrl-video" placeholder="https://example.com/image.jpg"></div>
+                                <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" placeholder="Add gentle movement and atmospheric effects..."></textarea></div>
+                                <div class="form-group"><label for="mj-motion">Движение</label><select id="mj-motion"><option value="high">Высокое</option><option value="low">Низкое</option></select></div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="mj-version">Версия</label>
@@ -222,21 +239,23 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-group slider-group">
-                                <label for="mj-stylization">Стилизация</label>
-                                <input type="range" id="mj-stylization" min="0" max="1000" step="50" value="250">
-                                <span class="slider-value">250</span>
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="mj-weirdness">Необычность (Weird)</label>
-                                <input type="range" id="mj-weirdness" min="0" max="3000" step="100" value="0">
-                                <span class="slider-value">0</span>
-                            </div>
-                             <div class="form-group slider-group">
-                                <label for="mj-variety">Разнообразие (Variety)</label>
-                                <input type="range" id="mj-variety" min="0" max="100" step="5" value="10">
-                                <span class="slider-value">10</span>
-                            </div>
+                            <details class="advanced-options"><summary>Дополнительно</summary>
+                                <div class="form-group slider-group">
+                                    <label for="mj-stylization">Стилизация</label>
+                                    <input type="range" id="mj-stylization" min="0" max="1000" step="50" value="250">
+                                    <span class="slider-value">250</span>
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="mj-weirdness">Необычность (Weird)</label>
+                                    <input type="range" id="mj-weirdness" min="0" max="3000" step="100" value="0">
+                                    <span class="slider-value">0</span>
+                                </div>
+                                 <div class="form-group slider-group">
+                                    <label for="mj-variety">Разнообразие (Variety)</label>
+                                    <input type="range" id="mj-variety" min="0" max="100" step="5" value="10">
+                                    <span class="slider-value">10</span>
+                                </div>
+                            </details>
                         </div>
                          <button type="submit" class="submit-button" id="mj-submit-button">Сгенерировать</button>
                     </form>
@@ -362,7 +381,7 @@
             </main>
 
             <div class="card library-card">
-                <div id="song-library-container">
+                <div id="song-library-container" style="display: flex; flex-direction: column; flex-grow: 1; min-height: 0;">
                     <div class="library-header">
                         <div id="project-list"></div>
                         <button id="add-project-btn" class="add-project-btn"><i class="fas fa-plus"></i></button>
@@ -376,11 +395,11 @@
                         <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
                     </div>
                 </div>
-                <div id="image-gallery-container" style="display: none;">
+                <div id="image-gallery-container" style="display: none; flex-direction: column; flex-grow: 1; min-height: 0;">
                     <div class="library-header">
                         <h4>Галерея Midjourney</h4>
                     </div>
-                    <div id="image-gallery-grid" class="mj-results-grid">
+                    <div id="image-gallery-grid">
                         <p id="image-gallery-empty-message">Ваша галерея изображений пуста.</p>
                     </div>
                 </div>
