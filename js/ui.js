@@ -64,13 +64,13 @@ async function loadAndDisplayProfileData() {
 
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
-    
-    if (viewName === 'midjourney') {
+
+    if (viewName.startsWith('midjourney')) {
         toggleLibraryView('images');
     } else if (['generate', 'upload-extend', 'upload'].includes(viewName)) {
         toggleLibraryView('songs');
     }
-
+    
     const viewBeingLeft = document.getElementById(currentViewName);
     if (viewBeingLeft && !isSetup) {
         const formToReset = viewBeingLeft.querySelector('form');
@@ -103,6 +103,10 @@ export function showView(viewName, isSetup = false) {
     const activeButton = document.querySelector(`.nav-button[data-view="${viewName}"]`);
     if (activeButton) {
         activeButton.classList.add('active');
+        const details = activeButton.closest('details');
+        if (details && !details.open) {
+            details.open = true;
+        }
     }
     
     currentViewName = viewName;
@@ -123,7 +127,7 @@ export function showLibraryView() {
         setActiveMobileNav('library');
         currentViewName = 'library';
         const lastMainView = document.querySelector('.sidebar-nav .nav-button.active')?.dataset.view;
-        if (lastMainView === 'midjourney') {
+        if (lastMainView && lastMainView.startsWith('midjourney')) {
              toggleLibraryView('images');
         } else {
              toggleLibraryView('songs');

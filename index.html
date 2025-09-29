@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Creative Hub</title>
    
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -120,7 +119,16 @@
                                 </ul>
                             </details>
                         </li>
-                        <li><button class="nav-button" data-view="midjourney"><i class="fas fa-image"></i><span>Midjourney</span></button></li>
+                        <li>
+                            <details>
+                                <summary class="nav-category"><i class="fas fa-image"></i><span>Midjourney</span></summary>
+                                <ul class="nav-submenu">
+                                    <li><button class="nav-button" data-view="midjourney-txt2img"><i class="fas fa-font"></i><span>Text to Image</span></button></li>
+                                    <li><button class="nav-button" data-view="midjourney-img2img"><i class="fas fa-image"></i><span>Image to Image</span></button></li>
+                                    <li><button class="nav-button" data-view="midjourney-video"><i class="fas fa-film"></i><span>Image to Video</span></button></li>
+                                </ul>
+                            </details>
+                        </li>
                         <li><button class="nav-button" disabled><i class="fas fa-film"></i><span>Runway</span></button></li>
                         <li><button class="nav-button" disabled><i class="fas fa-video"></i><span>Veo 3</span></button></li>
                         <li><button class="nav-button" disabled><i class="far fa-image"></i><span>4o Image</span></button></li>
@@ -186,81 +194,57 @@
                     </form>
                 </div>
 
-                <div id="midjourney" class="view-content">
-                    <div class="view-header"><h2>Создать изображение</h2><p>Сгенерируйте изображение с помощью Midjourney по вашему описанию.</p></div>
-                    <form id="midjourney-form">
-                        <div class="tabs mj-form-tabs">
-                            <button type="button" class="tab-button active" data-mj-tab="txt2img">Text to Image</button>
-                            <button type="button" class="tab-button" data-mj-tab="img2img">Image to Image</button>
-                            <button type="button" class="tab-button" data-mj-tab="video">Image to Video</button>
-                        </div>
+                <!-- Midjourney Views -->
+                <div id="midjourney-txt2img" class="view-content">
+                    <div class="view-header"><h2>Midjourney: Text to Image</h2><p>Создайте изображение по текстовому описанию.</p></div>
+                    <form id="midjourney-form-txt2img">
                         <div class="form-grid">
-                            <div id="mj-tab-content-txt2img" class="mj-tab-content active">
-                                <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
-                            </div>
-                            <div id="mj-tab-content-img2img" class="mj-tab-content">
-                                <div class="form-group"><label for="mj-fileUrl-img2img">URL изображения</label><input type="text" id="mj-fileUrl-img2img" placeholder="https://example.com/image.jpg"></div>
-                                <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" placeholder="Transform this into a cyberpunk style..."></textarea></div>
-                            </div>
-                            <div id="mj-tab-content-video" class="mj-tab-content">
-                                <div class="form-group"><label for="mj-fileUrl-video">URL изображения</label><input type="text" id="mj-fileUrl-video" placeholder="https://example.com/image.jpg"></div>
-                                <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" placeholder="Add gentle movement and atmospheric effects..."></textarea></div>
-                                <div class="form-group"><label for="mj-motion">Движение</label><select id="mj-motion"><option value="high">Высокое</option><option value="low">Низкое</option></select></div>
-                            </div>
-
+                            <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label for="mj-version">Версия</label>
-                                    <select id="mj-version">
-                                        <option value="7">V7</option>
-                                        <option value="6.1">V6.1</option>
-                                        <option value="6">V6</option>
-                                        <option value="5.2">V5.2</option>
-                                        <option value="5.1">V5.1</option>
-                                        <option value="niji6">Niji 6 (Anime)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="mj-aspect-ratio">Соотношение сторон</label>
-                                    <select id="mj-aspect-ratio">
-                                        <option value="1:1">1:1 (Квадрат)</option>
-                                        <option value="16:9">16:9 (Пейзаж)</option>
-                                        <option value="9:16">9:16 (Портрет)</option>
-                                        <option value="4:3">4:3</option>
-                                        <option value="3:2">3:2</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="mj-speed">Скорость</label>
-                                    <select id="mj-speed">
-                                        <option value="relaxed">Relaxed</option>
-                                        <option value="fast">Fast</option>
-                                        <option value="turbo">Turbo</option>
-                                    </select>
-                                </div>
+                                <div class="form-group"><label for="mj-version-txt2img">Версия</label><select id="mj-version-txt2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
+                                <div class="form-group"><label for="mj-aspect-ratio-txt2img">Соотношение</label><select id="mj-aspect-ratio-txt2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option></select></div>
+                                <div class="form-group"><label for="mj-speed-txt2img">Скорость</label><select id="mj-speed-txt2img"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
                             </div>
                             <details class="advanced-options"><summary>Дополнительно</summary>
-                                <div class="form-group slider-group">
-                                    <label for="mj-stylization">Стилизация</label>
-                                    <input type="range" id="mj-stylization" min="0" max="1000" step="50" value="250">
-                                    <span class="slider-value">250</span>
-                                </div>
-                                <div class="form-group slider-group">
-                                    <label for="mj-weirdness">Необычность (Weird)</label>
-                                    <input type="range" id="mj-weirdness" min="0" max="3000" step="100" value="0">
-                                    <span class="slider-value">0</span>
-                                </div>
-                                 <div class="form-group slider-group">
-                                    <label for="mj-variety">Разнообразие (Variety)</label>
-                                    <input type="range" id="mj-variety" min="0" max="100" step="5" value="10">
-                                    <span class="slider-value">10</span>
-                                </div>
+                                <div class="form-group slider-group"><label for="mj-stylization-txt2img">Стилизация</label><input type="range" id="mj-stylization-txt2img" min="0" max="1000" step="50" value="250"><span class="slider-value">250</span></div>
+                                <div class="form-group slider-group"><label for="mj-weirdness-txt2img">Необычность</label><input type="range" id="mj-weirdness-txt2img" min="0" max="3000" step="100" value="0"><span class="slider-value">0</span></div>
+                                <div class="form-group slider-group"><label for="mj-variety-txt2img">Разнообразие</label><input type="range" id="mj-variety-txt2img" min="0" max="100" step="5" value="10"><span class="slider-value">10</span></div>
                             </details>
                         </div>
-                         <button type="submit" class="submit-button" id="mj-submit-button">Сгенерировать</button>
+                        <button type="submit" class="submit-button">Сгенерировать</button>
                     </form>
                 </div>
-                
+                <div id="midjourney-img2img" class="view-content">
+                    <div class="view-header"><h2>Midjourney: Image to Image</h2><p>Создайте новое изображение на основе существующего.</p></div>
+                    <form id="midjourney-form-img2img">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="mj-fileUrl-img2img">URL исходного изображения</label><input type="text" id="mj-fileUrl-img2img" placeholder="https://example.com/image.jpg"></div>
+                            <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" placeholder="Transform this into a cyberpunk style..."></textarea></div>
+                             <div class="form-row">
+                                <div class="form-group"><label for="mj-version-img2img">Версия</label><select id="mj-version-img2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
+                                <div class="form-group"><label for="mj-aspect-ratio-img2img">Соотношение</label><select id="mj-aspect-ratio-img2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option></select></div>
+                                <div class="form-group"><label for="mj-speed-img2img">Скорость</label><select id="mj-speed-img2img"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button">Сгенерировать</button>
+                    </form>
+                </div>
+                <div id="midjourney-video" class="view-content">
+                    <div class="view-header"><h2>Midjourney: Image to Video</h2><p>Анимируйте статичное изображение.</p></div>
+                    <form id="midjourney-form-video">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="mj-fileUrl-video">URL исходного изображения</label><input type="text" id="mj-fileUrl-video" placeholder="https://example.com/image.jpg"></div>
+                            <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" placeholder="Add gentle movement and atmospheric effects..."></textarea></div>
+                            <div class="form-row">
+                                <div class="form-group"><label for="mj-version-video">Версия</label><select id="mj-version-video"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
+                                <div class="form-group"><label for="mj-motion-video">Движение</label><select id="mj-motion-video"><option value="high">Высокое</option><option value="low">Низкое</option></select></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button">Сгенерировать</button>
+                    </form>
+                </div>
+
+
                 <div id="upload-extend" class="view-content">
                     <div class="view-header"><h2>Расширить трек</h2><p>Выберите трек из библиотеки или вставьте URL.</p></div>
                     <form id="upload-extend-form">
@@ -395,7 +379,7 @@
                         <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
                     </div>
                 </div>
-                <div id="image-gallery-container" style="display: none; flex-direction: column; flex-grow: 1; min-height: 0;">
+                <div id="image-gallery-container" style="display: none;">
                     <div class="library-header">
                         <h4>Галерея Midjourney</h4>
                     </div>

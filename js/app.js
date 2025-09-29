@@ -3,7 +3,7 @@
 // инициализирует приложение и устанавливает основные обработчики событий.
 
 import { handleApiCall } from './api.js';
-import { initializeLibrary, setupLibraryTabs, fetchProjects, toggleLibraryView, fetchImagesFromServer, loadSongsFromServer } from './library.js';
+import { initializeLibrary, setupLibraryTabs, fetchProjects, toggleLibraryView } from './library.js';
 import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
@@ -198,17 +198,6 @@ function setupEventListeners() {
         document.getElementById('ue-simple-mode-fields').style.display = isCustom ? 'none' : 'flex';
         document.getElementById('ue-custom-mode-fields').style.display = isCustom ? 'flex' : 'none';
     });
-    
-    document.querySelectorAll('.mj-form-tabs .tab-button').forEach(button => {
-        button.addEventListener('click', () => {
-            const tabId = button.dataset.mjTab;
-            document.querySelectorAll('.mj-form-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            document.querySelectorAll('.mj-tab-content').forEach(content => {
-                content.classList.toggle('active', content.id === `mj-tab-content-${tabId}`);
-            });
-        });
-    });
 
     setupInstrumentalToggle('g-instrumental', 'g-prompt-group', 'g-vocalGender-group');
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
@@ -221,7 +210,9 @@ function setupEventListeners() {
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
     document.getElementById("upload-extend-form").addEventListener("submit", handleExtendSubmit);
-    document.getElementById("midjourney-form").addEventListener("submit", handleMidjourneySubmit);
+    document.getElementById("midjourney-form-txt2img").addEventListener("submit", handleMjTxt2ImgSubmit);
+    document.getElementById("midjourney-form-img2img").addEventListener("submit", handleMjImg2ImgSubmit);
+    document.getElementById("midjourney-form-video").addEventListener("submit", handleMjVideoSubmit);
     
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
@@ -237,36 +228,46 @@ function setupEventListeners() {
 
 // --- FORM SUBMIT HANDLERS & VALIDATION ---
 
-function handleMidjourneySubmit(e) {
+function handleMjTxt2ImgSubmit(e) {
     e.preventDefault();
-    const activeTab = document.querySelector('.mj-form-tabs .tab-button.active').dataset.mjTab;
-
+    if (!validateField(document.getElementById('mj-prompt-txt2img'))) return;
     const payload = {
-        version: document.getElementById('mj-version').value,
-        aspectRatio: document.getElementById('mj-aspect-ratio').value,
-        speed: document.getElementById('mj-speed').value,
-        stylization: parseInt(document.getElementById('mj-stylization').value, 10),
-        weirdness: parseInt(document.getElementById('mj-weirdness').value, 10),
-        variety: parseInt(document.getElementById('mj-variety').value, 10),
+        taskType: "mj_txt2img",
+        prompt: document.getElementById('mj-prompt-txt2img').value,
+        version: document.getElementById('mj-version-txt2img').value,
+        aspectRatio: document.getElementById('mj-aspect-ratio-txt2img').value,
+        speed: document.getElementById('mj-speed-txt2img').value,
+        stylization: parseInt(document.getElementById('mj-stylization-txt2img').value, 10),
+        weirdness: parseInt(document.getElementById('mj-weirdness-txt2img').value, 10),
+        variety: parseInt(document.getElementById('mj-variety-txt2img').value, 10),
     };
+    handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
+}
 
-    if (activeTab === 'txt2img') {
-        if (!validateField(document.getElementById('mj-prompt-txt2img'))) return;
-        payload.taskType = 'mj_txt2img';
-        payload.prompt = document.getElementById('mj-prompt-txt2img').value;
-    } else if (activeTab === 'img2img') {
-        if (!validateField(document.getElementById('mj-fileUrl-img2img')) || !validateField(document.getElementById('mj-prompt-img2img'))) return;
-        payload.taskType = 'mj_img2img';
-        payload.fileUrl = document.getElementById('mj-fileUrl-img2img').value;
-        payload.prompt = document.getElementById('mj-prompt-img2img').value;
-    } else if (activeTab === 'video') {
-        if (!validateField(document.getElementById('mj-fileUrl-video')) || !validateField(document.getElementById('mj-prompt-video'))) return;
-        payload.taskType = 'mj_video';
-        payload.fileUrl = document.getElementById('mj-fileUrl-video').value;
-        payload.prompt = document.getElementById('mj-prompt-video').value;
-        payload.motion = document.getElementById('mj-motion').value;
-    }
+function handleMjImg2ImgSubmit(e) {
+    e.preventDefault();
+    if (!validateField(document.getElementById('mj-fileUrl-img2img')) || !validateField(document.getElementById('mj-prompt-img2img'))) return;
+    const payload = {
+        taskType: "mj_img2img",
+        fileUrl: document.getElementById('mj-fileUrl-img2img').value,
+        prompt: document.getElementById('mj-prompt-img2img').value,
+        version: document.getElementById('mj-version-img2img').value,
+        aspectRatio: document.getElementById('mj-aspect-ratio-img2img').value,
+        speed: document.getElementById('mj-speed-img2img').value,
+    };
+    handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
+}
 
+function handleMjVideoSubmit(e) {
+    e.preventDefault();
+    if (!validateField(document.getElementById('mj-fileUrl-video')) || !validateField(document.getElementById('mj-prompt-video'))) return;
+    const payload = {
+        taskType: "mj_video",
+        fileUrl: document.getElementById('mj-fileUrl-video').value,
+        prompt: document.getElementById('mj-prompt-video').value,
+        version: document.getElementById('mj-version-video').value,
+        motion: document.getElementById('mj-motion-video').value,
+    };
     handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
 }
 
