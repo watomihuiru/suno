@@ -298,36 +298,53 @@ app.get('/api/stream/:id', async (req, res) => {
 });
 
 app.post('/api/refresh-url', authMiddleware, async (req, res) => {
-    const { id } = req.body;
+    const { id } = req.body; // Это audioId
     try {
-        // 1. Получаем текущий (возможно, просроченный) URL из базы
-        const songResult = await pool.query('SELECT song_data FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
-        if (songResult.rows.length === 0) return res.status(403).json({ message: 'Доступ запрещен' });
+        // 1. Получаем taskId из нашей базы данных
+        const songResult = await pool.query('SELECT request_params FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (songResult.rows.length === 0) {
+            return res.status(403).json({ message: 'Доступ запрещен или песня не найдена' });
+        }
+        const taskId = songResult.rows[0].request_params?.taskId;
+        if (!taskId) {
+            throw new Error('Task ID не найден для этой песни в базе данных.');
+        }
 
-        const oldAudioUrl = songResult.rows[0].song_data.audioUrl || songResult.rows[0].song_data.streamAudioUrl;
-        if (!oldAudioUrl) throw new Error('Старый URL аудио не найден в базе данных.');
-        
-        // 2. Вызываем API Suno, используя старый URL как параметр 'url' (согласно документации)
-        const sunoResponse = await axios.post(`${SUNO_API_BASE_URL}/common/download-url`, { url: oldAudioUrl }, { // ИСПРАВЛЕНИЕ: Используем 'url' вместо 'musicId'
-            headers: { 
-                'Authorization': `Bearer ${SUNO_API_TOKEN}`,
-                'Content-Type': 'application/json' 
-            }
+        // 2. Вызываем API Suno для получения информации о задаче
+        const sunoResponse = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
+            params: { taskId },
+            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
         });
+
+        const taskData = sunoResponse.data.data;
+
+        // 3. Проверяем статус и ищем нужную песню в ответе
+        if (taskData?.status !== 'SUCCESS' || !taskData.response?.sunoData) {
+            throw new Error('Задача на сервере Suno еще не завершена, не найдена, или ответ имеет неверный формат.');
+        }
+
+        const songObject = taskData.response.sunoData.find(song => song.id === id);
+        if (!songObject) {
+            throw new Error('Аудио с указанным ID не найдено в ответе Suno API.');
+        }
         
-        const newAudioUrl = sunoResponse.data.data;
-        if (newAudioUrl) {
-            // ИСПРАВЛЕНИЕ: Используем to_jsonb($1::text) для корректной вставки строкового URL в JSONB
-            await pool.query(
-                `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', to_jsonb($1::text)), '{streamAudioUrl}', to_jsonb($1::text)) WHERE id = $2`,
-                [newAudioUrl, id]
-            );
-            res.json({ newUrl: newAudioUrl });
-        } else { throw new Error('Не удалось получить новый URL'); }
+        const newAudioUrl = songObject.audioUrl;
+        if (!newAudioUrl) {
+            throw new Error('Новый URL аудио не найден в ответе Suno API.');
+        }
+        
+        // 4. Обновляем URL в нашей базе данных
+        await pool.query(
+            `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', to_jsonb($1::text)), '{streamAudioUrl}', to_jsonb($1::text)) WHERE id = $2`,
+            [newAudioUrl, id]
+        );
+        
+        // 5. Отправляем новый URL на клиент
+        res.json({ newUrl: newAudioUrl });
+
     } catch (error) {
-        // Улучшенное логирование ошибки сервера
         console.error("Ошибка при обновлении URL:", error.response ? error.response.data : error.message);
-        res.status(500).json({ message: 'Не удалось обновить URL' });
+        res.status(500).json({ message: 'Не удалось обновить URL: ' + error.message });
     }
 });
 
