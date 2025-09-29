@@ -156,6 +156,7 @@ function updateCountersUI(element, limit) {
 }
 
 export function updateAllLimits() {
+    // Suno Limits
     const g_model = document.getElementById('g-model-value').value;
     const g_limits = modelLimits[g_model] || modelLimits['V4_5PLUS'];
     const g_fields = [

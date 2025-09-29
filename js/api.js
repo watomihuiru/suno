@@ -6,15 +6,16 @@ let taskWebSocket = null;
 export async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false, taskType = 'suno') {
     const responseOutput = document.getElementById("response-output");
 
+    if (taskWebSocket) {
+        taskWebSocket.close();
+        taskWebSocket = null;
+    }
+
     if (!isCreditCheck) {
         updateStatus('Ожидание запуска задачи...');
         if (responseOutput) {
             responseOutput.textContent = "Выполняется запрос...";
         }
-    }
-    if (taskWebSocket && !isCreditCheck) {
-        taskWebSocket.close();
-        taskWebSocket = null;
     }
 
     const token = sessionStorage.getItem('authToken');
@@ -84,6 +85,7 @@ function createMjPlaceholderCard(taskId, count = 4) {
 async function startTaskTracking(taskId, taskType) {
     if (taskWebSocket) {
         taskWebSocket.close();
+        taskWebSocket = null;
     }
     
     if (taskType === 'suno') {
@@ -121,12 +123,13 @@ async function startTaskTracking(taskId, taskType) {
 
             if (taskType.startsWith('mj')) {
                 if ([1, 2, 3].includes(taskData.successFlag)) {
-                    taskWebSocket.close();
+                    if(taskWebSocket) taskWebSocket.close();
+                    taskWebSocket = null;
                     document.querySelectorAll(`[id^="placeholder-${taskId}-"]`).forEach(el => el.remove());
 
                     if (taskData.successFlag === 1) {
                         updateStatus("✅ Изображения сгенерированы!", true);
-                        await fetchImagesFromServer(); // Reload the whole gallery
+                        await fetchImagesFromServer(); 
                     } else {
                         throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.successFlag}`);
                     }
@@ -140,7 +143,8 @@ async function startTaskTracking(taskId, taskType) {
                 const pendingStatuses = ["pending", "running", "submitted", "queued", "text_success", "first_success"];
 
                 if (successStatuses.includes(statusLowerCase)) {
-                    taskWebSocket.close();
+                    if(taskWebSocket) taskWebSocket.close();
+                    taskWebSocket = null;
                     updateStatus("✅ Задача выполнена!", true);
                     document.getElementById(`placeholder-${taskId}-1`)?.remove();
                     document.getElementById(`placeholder-${taskId}-2`)?.remove();
@@ -157,9 +161,10 @@ async function startTaskTracking(taskId, taskType) {
                 }
             }
         } catch (error) {
-            taskWebSocket.close();
             updateStatus(`🚫 Ошибка проверки: ${error.message}`, false, true);
             document.querySelectorAll(`[id^="placeholder-${taskId}-"]`).forEach(el => el.remove());
+            if(taskWebSocket) taskWebSocket.close();
+            taskWebSocket = null;
         }
     };
 
@@ -167,6 +172,10 @@ async function startTaskTracking(taskId, taskType) {
         console.error('WebSocket ошибка:', error);
         updateStatus(`🚫 Ошибка WebSocket соединения.`, false, true);
         document.querySelectorAll(`[id^="placeholder-${taskId}-"]`).forEach(el => el.remove());
+        if (taskWebSocket) {
+            taskWebSocket.close();
+            taskWebSocket = null;
+        }
     };
 
     taskWebSocket.onclose = () => {
