@@ -206,7 +206,13 @@ export function updateAllLimits() {
 }
 
 export function setupCharCounters() {
-    ['g-title', 'g-song-description', 'g-style', 'g-prompt', 'uc-title', 'uc-song-description', 'uc-style', 'uc-prompt', 'ue-title', 'ue-style', 'ue-prompt', 'ue-prompt-simple'].forEach(id => {
+    const idsToTrack = [
+        'g-title', 'g-song-description', 'g-style', 'g-prompt',
+        'uc-title', 'uc-song-description', 'uc-style', 'uc-prompt',
+        'ue-title', 'ue-style', 'ue-prompt', 'ue-prompt-simple',
+        'mj-prompt-txt2img', 'mj-prompt-img2img', 'mj-prompt-video'
+    ];
+    idsToTrack.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('input', () => updateCountersUI(element, element.maxLength));

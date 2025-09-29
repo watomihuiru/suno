@@ -1,11 +1,8 @@
-// --- ФАЙЛ api.js ---
-
 import { updateStatus } from './ui.js';
-import { loadSongsFromServer } from './library.js';
+import { loadSongsFromServer, fetchImagesFromServer } from './library.js';
 
 let taskWebSocket = null;
 
-// ИЗМЕНЕНИЕ: Добавляем taskType в параметры
 export async function handleApiCall(endpoint, options, isCreditCheck = false, isGeneration = false, taskType = 'suno') {
     const responseOutput = document.getElementById("response-output");
 
@@ -51,7 +48,6 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
                 const mobileCreditsContainer = document.getElementById("mobile-credits-container");
                 if (mobileCreditsContainer) mobileCreditsContainer.style.display = 'inline-flex';
             }
-            // ИЗМЕНЕНИЕ: Передаем taskType в трекер
             if (isGeneration && result.data && result.data.taskId) {
                 startTaskTracking(result.data.taskId, taskType);
             } else if (isGeneration) {
@@ -71,34 +67,31 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
     }
 }
 
-// ИЗМЕНЕНИЕ: Новая функция для создания плейсхолдеров MJ
-function createMjPlaceholderCard(taskId) {
-    const resultsGrid = document.getElementById('mj-results-grid');
-    document.getElementById('mj-empty-message').style.display = 'none';
+function createMjPlaceholderCard(taskId, count = 4) {
+    const resultsGrid = document.getElementById('image-gallery-grid');
+    if(!resultsGrid) return;
+    document.getElementById('image-gallery-empty-message').style.display = 'none';
 
-    // Midjourney обычно возвращает 4 картинки
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= count; i++) {
         const placeholder = document.createElement('div');
-        placeholder.className = 'mj-result-item placeholder';
+        placeholder.className = 'mj-gallery-item placeholder';
         placeholder.id = `placeholder-${taskId}-${i}`;
         placeholder.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
         resultsGrid.prepend(placeholder);
     }
 }
 
-
-// ИЗМЕНЕНИЕ: Добавляем taskType в параметры
-async function startTaskTracking(taskId, taskType = 'suno') {
+async function startTaskTracking(taskId, taskType) {
     if (taskWebSocket) {
         taskWebSocket.close();
     }
     
-    // ИЗМЕНЕНИЕ: Разная логика для плейсхолдеров
     if (taskType === 'suno') {
         const { createPlaceholderCard } = await import('./library.js');
         createPlaceholderCard(taskId);
-    } else if (taskType === 'mj') {
-        createMjPlaceholderCard(taskId);
+    } else if (taskType.startsWith('mj')) {
+        const isSingleImageTask = taskType === 'mj_upscale' || taskType === 'mj_vary';
+        createMjPlaceholderCard(taskId, isSingleImageTask ? 1 : 4);
     }
     
     updateStatus(`⏳ Задача ${taskId.slice(0, 8)}... в очереди.`);
@@ -110,7 +103,6 @@ async function startTaskTracking(taskId, taskType = 'suno') {
 
     taskWebSocket.onopen = () => {
         console.log('WebSocket соединение установлено.');
-        // ИЗМЕНЕНИЕ: Отправляем тип задачи на сервер
         taskWebSocket.send(JSON.stringify({ type: 'trackTask', taskId: taskId, taskType: taskType }));
     };
 
@@ -122,32 +114,19 @@ async function startTaskTracking(taskId, taskType = 'suno') {
                 responseOutput.textContent = JSON.stringify(result, null, 2);
             }
 
-            if (result.error) {
-                throw new Error(result.message || "Сервер вернул ошибку WebSocket");
-            }
-            
-            if (!result.data) {
-                 throw new Error(result.message || "Некорректный ответ от API");
-            }
+            if (result.error) { throw new Error(result.message || "Сервер вернул ошибку WebSocket"); }
+            if (!result.data) { throw new Error(result.message || "Некорректный ответ от API"); }
 
             const taskData = result.data;
 
-            // --- ИЗМЕНЕНИЕ: Логика для разных типов задач ---
-            if (taskType === 'mj') {
-                if ([1, 2, 3].includes(taskData.successFlag)) { // Финальные статусы
+            if (taskType.startsWith('mj')) {
+                if ([1, 2, 3].includes(taskData.successFlag)) {
                     taskWebSocket.close();
-                    // Удаляем все плейсхолдеры для этой задачи
                     document.querySelectorAll(`[id^="placeholder-${taskId}-"]`).forEach(el => el.remove());
 
                     if (taskData.successFlag === 1) {
                         updateStatus("✅ Изображения сгенерированы!", true);
-                        const resultsGrid = document.getElementById('mj-results-grid');
-                        taskData.resultInfoJson.resultUrls.forEach(img => {
-                            const imgItem = document.createElement('div');
-                            imgItem.className = 'mj-result-item';
-                            imgItem.innerHTML = `<img src="${img.resultUrl}" alt="Generated image">`;
-                            resultsGrid.prepend(imgItem);
-                        });
+                        await fetchImagesFromServer(); // Reload the whole gallery
                     } else {
                         throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.successFlag}`);
                     }
@@ -155,7 +134,7 @@ async function startTaskTracking(taskId, taskType = 'suno') {
                      updateStatus(`⏳ Статус: Генерация...`);
                 }
 
-            } else { // Логика для Suno
+            } else { // Suno logic
                 const statusLowerCase = taskData.status.toLowerCase();
                 const successStatuses = ["success", "completed"];
                 const pendingStatuses = ["pending", "running", "submitted", "queued", "text_success", "first_success"];

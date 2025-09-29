@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Creative Hub</title>
    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -199,10 +200,10 @@
                     <div class="view-header"><h2>Midjourney: Text to Image</h2><p>Создайте изображение по текстовому описанию.</p></div>
                     <form id="midjourney-form-txt2img">
                         <div class="form-grid">
-                            <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
+                            <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" maxlength="2000" placeholder="A majestic mountain landscape at sunset..."></textarea><div class="char-counter" id="mj-prompt-txt2img-counter">0/2000</div></div>
                             <div class="form-row">
                                 <div class="form-group"><label for="mj-version-txt2img">Версия</label><select id="mj-version-txt2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
-                                <div class="form-group"><label for="mj-aspect-ratio-txt2img">Соотношение</label><select id="mj-aspect-ratio-txt2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option></select></div>
+                                <div class="form-group"><label for="mj-aspect-ratio-txt2img">Соотношение</label><select id="mj-aspect-ratio-txt2img"><option value="1:1">1:1 (Квадрат)</option><option value="16:9">16:9 (Пейзаж)</option><option value="9:16">9:16 (Портрет)</option><option value="4:3">4:3 (Стандарт)</option><option value="3:2">3:2 (Классика)</option><option value="2:1">2:1 (Ультрашир.)</option><option value="3:4">3:4</option><option value="5:6">5:6</option><option value="2:3">2:3</option><option value="6:5">6:5</option><option value="1:2">1:2</option></select></div>
                                 <div class="form-group"><label for="mj-speed-txt2img">Скорость</label><select id="mj-speed-txt2img"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
                             </div>
                             <details class="advanced-options"><summary>Дополнительно</summary>
@@ -219,10 +220,10 @@
                     <form id="midjourney-form-img2img">
                         <div class="form-grid">
                             <div class="form-group"><label for="mj-fileUrl-img2img">URL исходного изображения</label><input type="text" id="mj-fileUrl-img2img" placeholder="https://example.com/image.jpg"></div>
-                            <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" placeholder="Transform this into a cyberpunk style..."></textarea></div>
+                            <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Transform this into a cyberpunk style..."></textarea><div class="char-counter" id="mj-prompt-img2img-counter">0/2000</div></div>
                              <div class="form-row">
                                 <div class="form-group"><label for="mj-version-img2img">Версия</label><select id="mj-version-img2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
-                                <div class="form-group"><label for="mj-aspect-ratio-img2img">Соотношение</label><select id="mj-aspect-ratio-img2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option></select></div>
+                                <div class="form-group"><label for="mj-aspect-ratio-img2img">Соотношение</label><select id="mj-aspect-ratio-img2img"><option value="1:1">1:1 (Квадрат)</option><option value="16:9">16:9 (Пейзаж)</option><option value="9:16">9:16 (Портрет)</option><option value="4:3">4:3 (Стандарт)</option><option value="3:2">3:2 (Классика)</option><option value="2:1">2:1 (Ультрашир.)</option><option value="3:4">3:4</option><option value="5:6">5:6</option><option value="2:3">2:3</option><option value="6:5">6:5</option><option value="1:2">1:2</option></select></div>
                                 <div class="form-group"><label for="mj-speed-img2img">Скорость</label><select id="mj-speed-img2img"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
                             </div>
                         </div>
@@ -234,7 +235,7 @@
                     <form id="midjourney-form-video">
                         <div class="form-grid">
                             <div class="form-group"><label for="mj-fileUrl-video">URL исходного изображения</label><input type="text" id="mj-fileUrl-video" placeholder="https://example.com/image.jpg"></div>
-                            <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" placeholder="Add gentle movement and atmospheric effects..."></textarea></div>
+                            <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" maxlength="2000" placeholder="Add gentle movement and atmospheric effects..."></textarea><div class="char-counter" id="mj-prompt-video-counter">0/2000</div></div>
                             <div class="form-row">
                                 <div class="form-group"><label for="mj-version-video">Версия</label><select id="mj-version-video"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
                                 <div class="form-group"><label for="mj-motion-video">Движение</label><select id="mj-motion-video"><option value="high">Высокое</option><option value="low">Низкое</option></select></div>
