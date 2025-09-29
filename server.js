@@ -71,6 +71,19 @@ async function setupDatabase() {
         `);
         console.log('Таблица "songs" готова.');
 
+        // --- ИЗМЕНЕНИЕ: Новая таблица для изображений ---
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS images (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                task_id VARCHAR(255) NOT NULL,
+                image_url TEXT NOT NULL,
+                prompt_data JSONB,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('Таблица "images" готова.');
+
     } catch (err) {
         console.error('Ошибка при настройке базы данных:', err);
     } finally {
@@ -226,7 +239,6 @@ app.get('/api/chat/credit', authMiddleware, async (req, res) => {
     }
 });
 
-
 // --- PROJECTS API ---
 app.get('/api/projects', authMiddleware, async (req, res) => {
     try {
@@ -341,7 +353,6 @@ app.get('/api/stream/:id', async (req, res) => {
         });
 
         res.writeHead(response.status, response.headers);
-        
         response.data.pipe(res);
 
     } catch (error) {
@@ -417,6 +428,9 @@ app.post('/api/generate/upload-cover', authMiddleware, (req, res) => proxySunoRe
 app.post('/api/generate/upload-extend', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-extend'));
 app.post('/api/boost-style', authMiddleware, (req, res) => proxySunoRequest(req, res, '/style/generate'));
 
+// --- ИЗМЕНЕНИЕ: Новый прокси-эндпоинт для Midjourney ---
+app.post('/api/mj/generate', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generate'));
+
 app.post('/api/lyrics', authMiddleware, async (req, res) => {
     const { taskId, audioId } = req.body;
     try {
@@ -460,38 +474,67 @@ wss.on('connection', (ws, req) => {
         try {
             const data = JSON.parse(message);
             if (data.type === 'trackTask' && data.taskId && userId) {
-                const { taskId } = data;
+                const { taskId, taskType } = data; // Получаем тип задачи
                 if (trackingInterval) clearInterval(trackingInterval);
 
                 trackingInterval = setInterval(async () => {
                     try {
-                        const response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
-                            params: { taskId },
-                            headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
-                        });
-                        
-                        if (!response.data || !response.data.data) { return; }
-                        const taskData = response.data.data;
-                        const status = taskData.status.toUpperCase();
-                        const finalStatuses = ["SUCCESS", "CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
+                        let response;
+                        if (taskType === 'mj') {
+                            // --- ИЗМЕНЕНИЕ: Логика для Midjourney ---
+                            response = await axios.get(`${SUNO_API_BASE_URL}/mj/record-info`, {
+                                params: { taskId },
+                                headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+                            });
 
-                        if (finalStatuses.includes(status)) {
-                            clearInterval(trackingInterval);
-                            if (status === "SUCCESS" && taskData.response?.sunoData) {
-                                for (const song of taskData.response.sunoData) {
-                                    let paramsToSave = taskData.param;
-                                    try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
-                                    
-                                    await pool.query(
-                                        `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4)
-                                         ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
-                                        [song.id, song, { ...paramsToSave, taskId }, userId]
-                                    );
+                            if (!response.data || !response.data.data) { return; }
+                            const taskData = response.data.data;
+                            const finalStatuses = [1, 2, 3]; // success, fail, create_fail
+
+                            if (finalStatuses.includes(taskData.successFlag)) {
+                                clearInterval(trackingInterval);
+                                if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
+                                    for (const image of taskData.resultInfoJson.resultUrls) {
+                                        await pool.query(
+                                            `INSERT INTO images (user_id, task_id, image_url, prompt_data) VALUES ($1, $2, $3, $4)`,
+                                            [userId, taskId, image.resultUrl, { prompt: taskData.prompt }]
+                                        );
+                                    }
                                 }
+                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                            } else {
+                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                             }
-                            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         } else {
-                            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                            // --- Существующая логика для Suno ---
+                            response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
+                                params: { taskId },
+                                headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+                            });
+                            
+                            if (!response.data || !response.data.data) { return; }
+                            const taskData = response.data.data;
+                            const status = taskData.status.toUpperCase();
+                            const finalStatuses = ["SUCCESS", "CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
+
+                            if (finalStatuses.includes(status)) {
+                                clearInterval(trackingInterval);
+                                if (status === "SUCCESS" && taskData.response?.sunoData) {
+                                    for (const song of taskData.response.sunoData) {
+                                        let paramsToSave = taskData.param;
+                                        try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
+                                        
+                                        await pool.query(
+                                            `INSERT INTO songs (id, song_data, request_params, user_id) VALUES ($1, $2, $3, $4)
+                                             ON CONFLICT (id) DO UPDATE SET song_data = EXCLUDED.song_data, request_params = EXCLUDED.request_params, user_id = EXCLUDED.user_id`,
+                                            [song.id, song, { ...paramsToSave, taskId }, userId]
+                                        );
+                                    }
+                                }
+                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                            } else {
+                                if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
+                            }
                         }
                     } catch (error) {
                         clearInterval(trackingInterval);

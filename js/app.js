@@ -165,12 +165,10 @@ function setupEventListeners() {
         });
     });
 
-    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавляем обработчик для кнопки выхода ---
     document.getElementById('logout-button').addEventListener('click', () => {
         sessionStorage.removeItem('authToken');
         window.location.reload();
     });
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
     globalPlayer.addEventListener('click', (e) => {
         if (window.innerWidth > 768 || e.target.closest('button') || e.target.closest('input[type="range"]')) return;
@@ -218,6 +216,8 @@ function setupEventListeners() {
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
     document.getElementById("upload-extend-form").addEventListener("submit", handleExtendSubmit);
+    // --- ИЗМЕНЕНИЕ: Добавляем обработчик для новой формы ---
+    document.getElementById("midjourney-form").addEventListener("submit", handleMidjourneySubmit);
     
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
@@ -323,7 +323,24 @@ function handleGenerateSubmit(e) {
         payload.prompt = document.getElementById('g-song-description').value;
         payload.instrumental = document.getElementById('g-instrumental-simple').checked;
     }
-    handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
+}
+
+// --- ИЗМЕНЕНИЕ: Новый обработчик для Midjourney ---
+function handleMidjourneySubmit(e) {
+    e.preventDefault();
+    if (!validateField(document.getElementById('mj-prompt'))) return;
+
+    const payload = {
+        taskType: "mj_txt2img",
+        prompt: document.getElementById('mj-prompt').value,
+        version: document.getElementById('mj-version').value,
+        aspectRatio: document.getElementById('mj-aspect-ratio').value,
+        speed: document.getElementById('mj-speed').value,
+        stylization: parseInt(document.getElementById('mj-stylization').value, 10),
+    };
+
+    handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
 }
 
 function handleCoverSubmit(e) {
@@ -361,7 +378,7 @@ function handleCoverSubmit(e) {
     } else {
         payload.prompt = document.getElementById('uc-song-description').value;
     }
-    handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    handleApiCall("/api/generate/upload-cover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
     resetEditViews();
 }
 
@@ -401,7 +418,7 @@ function handleExtendSubmit(e) {
     } else {
         payload.prompt = document.getElementById('ue-prompt-simple').value;
     }
-    handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true);
+    handleApiCall("/api/generate/upload-extend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
     resetEditViews();
 }
 
@@ -503,9 +520,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    if (sunoCard) {
-        sunoCard.addEventListener('click', showLogin);
-    }
+    // --- ИЗМЕНЕНИЕ: Назначаем обработчик на все карточки, а не только на Suno ---
+    document.querySelectorAll('.dashboard-card:not(.disabled)').forEach(card => {
+        card.addEventListener('click', showLogin);
+    });
+
     loginCloseButton.addEventListener('click', hideLogin);
     loginOverlay.addEventListener('click', (e) => {
         if (e.target === loginOverlay) hideLogin();

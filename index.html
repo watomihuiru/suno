@@ -26,10 +26,9 @@
                     <h3>Suno</h3>
                     <p>Генерация музыки</p>
                 </div>
-                <div class="dashboard-card disabled">
+                <div class="dashboard-card">
                     <h3>Midjourney</h3>
                     <p>Генерация изображений</p>
-                    <span>Скоро</span>
                 </div>
                 <div class="dashboard-card disabled">
                     <h3>Runway</h3>
@@ -121,7 +120,7 @@
                                 </ul>
                             </details>
                         </li>
-                        <li><button class="nav-button" disabled><i class="fas fa-image"></i><span>Midjourney</span></button></li>
+                        <li><button class="nav-button" data-view="midjourney"><i class="fas fa-image"></i><span>Midjourney</span></button></li>
                         <li><button class="nav-button" disabled><i class="fas fa-film"></i><span>Runway</span></button></li>
                         <li><button class="nav-button" disabled><i class="fas fa-video"></i><span>Veo 3</span></button></li>
                         <li><button class="nav-button" disabled><i class="far fa-image"></i><span>4o Image</span></button></li>
@@ -185,6 +184,33 @@
                         </div>
                         <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать</button>
                     </form>
+                </div>
+
+                <!-- === НОВАЯ СЕКЦИЯ ДЛЯ MIDJOURNEY === -->
+                <div id="midjourney" class="view-content">
+                    <div class="view-header"><h2>Создать изображение</h2><p>Сгенерируйте изображение с помощью Midjourney по вашему описанию.</p></div>
+                    <form id="midjourney-form">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="mj-prompt">Промпт (описание)</label><textarea id="mj-prompt" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
+                            <div class="form-row">
+                                <div class="form-group"><label for="mj-version">Версия</label><select id="mj-version"><option value="7">V7</option><option value="6.1">V6.1</option><option value="niji6">Niji 6 (Anime)</option></select></div>
+                                <div class="form-group"><label for="mj-aspect-ratio">Соотношение сторон</label><select id="mj-aspect-ratio"><option value="1:1">1:1 (Квадрат)</option><option value="16:9">16:9 (Пейзаж)</option><option value="9:16">9:16 (Портрет)</option><option value="4:3">4:3</option></select></div>
+                                <div class="form-group"><label for="mj-speed">Скорость</label><select id="mj-speed"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="mj-stylization">Стилизация</label>
+                                <input type="range" id="mj-stylization" min="0" max="1000" step="10" value="250">
+                                <span class="slider-value">250</span>
+                            </div>
+                        </div>
+                         <button type="submit" class="submit-button" id="mj-submit-button">Сгенерировать</button>
+                    </form>
+                    <div id="mj-results-container">
+                         <h4>Результаты</h4>
+                         <div id="mj-results-grid" class="mj-results-grid">
+                             <p id="mj-empty-message">Здесь появятся ваши изображения.</p>
+                         </div>
+                    </div>
                 </div>
                 
                 <div id="upload-extend" class="view-content">
