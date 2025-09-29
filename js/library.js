@@ -10,10 +10,13 @@ let playlist = [];
 let projects = [];
 let activeProjectId = null; // null означает "Без проекта"
 let currentLibraryTab = 'all';
-let songListContainer, emptyListMessage, projectListContainer;
 
-// --- НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ---
-// Создадим функцию для получения заголовков авторизации, чтобы не повторять код
+// --- ИЗМЕНЕНИЕ: Добавляем ссылки на новые DOM-элементы ---
+let songLibraryContainer, imageGalleryContainer;
+let songListContainer, emptyListMessage, projectListContainer;
+let imageGrid, imageEmptyMessage;
+
+
 function getAuthHeaders() {
     const token = sessionStorage.getItem('authToken');
     const headers = {
@@ -26,10 +29,54 @@ function getAuthHeaders() {
 }
 
 export function initializeLibrary() {
+    // --- ИЗМЕНЕНИЕ: Инициализируем все контейнеры ---
+    songLibraryContainer = document.getElementById('song-library-container');
+    imageGalleryContainer = document.getElementById('image-gallery-container');
     songListContainer = document.getElementById('song-list-container');
     emptyListMessage = document.getElementById('empty-list-message');
     projectListContainer = document.getElementById('project-list');
+    imageGrid = document.getElementById('image-gallery-grid');
+    imageEmptyMessage = document.getElementById('image-gallery-empty-message');
+
     fetchProjects();
+}
+
+// --- ИЗМЕНЕНИЕ: Новая функция для переключения вида библиотеки ---
+export function toggleLibraryView(viewType) {
+    if (viewType === 'songs') {
+        songLibraryContainer.style.display = 'flex';
+        imageGalleryContainer.style.display = 'none';
+    } else if (viewType === 'images') {
+        songLibraryContainer.style.display = 'none';
+        imageGalleryContainer.style.display = 'flex';
+    }
+}
+
+// --- ИЗМЕНЕНИЕ: Новые функции для работы с галереей изображений ---
+export async function fetchImagesFromServer() {
+    try {
+        const response = await fetch('/api/images', { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const images = await response.json();
+        renderImageGallery(images);
+    } catch (e) {
+        console.error("Не удалось загрузить изображения с сервера", e);
+        imageGrid.innerHTML = '<p id="image-gallery-empty-message" style="color: var(--accent-red);">Ошибка загрузки.</p>';
+    }
+}
+
+function renderImageGallery(images) {
+    imageGrid.innerHTML = '';
+    if (images.length > 0) {
+        images.forEach(image => {
+            const item = document.createElement('div');
+            item.className = 'mj-result-item';
+            item.innerHTML = `<img src="${image.image_url}" alt="${image.prompt_data?.prompt || 'Generated image'}">`;
+            imageGrid.appendChild(item);
+        });
+    } else {
+        imageGrid.innerHTML = '<p id="image-gallery-empty-message">Ваша галерея изображений пуста.</p>';
+    }
 }
 
 export function getPlaylist() {
@@ -71,7 +118,6 @@ async function downloadSong(event, url, filename) {
 
 async function deleteSong(songId, cardElement) {
     try {
-        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         await fetch(`/api/songs/${songId}`, { 
             method: 'DELETE',
             headers: getAuthHeaders() 
@@ -98,7 +144,6 @@ async function toggleFavorite(songId, cardElement) {
     if (!songInfo) return;
     const newStatus = !songInfo.songData.is_favorite;
     try {
-        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         await fetch(`/api/songs/${songId}/favorite`, { 
             method: 'PUT', 
             headers: getAuthHeaders(), 
@@ -117,20 +162,18 @@ async function toggleFavorite(songId, cardElement) {
 
 async function moveSongToProject(songId, newProjectId, cardElement) {
     try {
-        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         await fetch(`/api/songs/${songId}/move`, {
             method: 'PUT',
             headers: getAuthHeaders(),
             body: JSON.stringify({ projectId: newProjectId })
         });
-        // Визуально удаляем карточку из текущего списка
         cardElement.style.transition = 'opacity 0.3s ease';
         cardElement.style.opacity = '0';
         setTimeout(() => {
             cardElement.remove();
             playlist = playlist.filter(p => p.songData.id !== songId);
             if (playlist.length === 0) {
-                renderLibrary(); // Обновить, чтобы показать сообщение о пустом списке
+                renderLibrary();
             }
         }, 300);
     } catch (error) {
@@ -279,7 +322,6 @@ export function renderLibrary() {
 export async function loadSongsFromServer(projectId = null) {
     try {
         const url = projectId ? `/api/songs?projectId=${projectId}` : '/api/songs';
-        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         const response = await fetch(url, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error('Network response was not ok');
         playlist = await response.json();
@@ -295,7 +337,6 @@ export function createPlaceholderCard(taskId) {
         const card = document.createElement('div');
         card.className = 'song-card placeholder';
         card.id = `placeholder-${taskId}-${i}`;
-        // ИСПРАВЛЕНО: Добавлен недостающий div.play-icon
         card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
         songListContainer.prepend(card);
     }
@@ -319,7 +360,6 @@ async function handleDeleteProject(projectId, projectName) {
         `Вы уверены, что хотите удалить проект "${projectName}"? Все песни из него будут перемещены в "Без проекта".`,
         async () => {
             try {
-                // ИСПРАВЛЕНО: Добавлены заголовки авторизации
                 const response = await fetch(`/api/projects/${projectId}`, { 
                     method: 'DELETE',
                     headers: getAuthHeaders()
@@ -340,10 +380,8 @@ async function handleDeleteProject(projectId, projectName) {
 
 export async function fetchProjects() {
     try {
-        // ИСПРАВЛЕНО: Добавлены заголовки авторизации
         const response = await fetch('/api/projects', { headers: getAuthHeaders() });
         if (!response.ok) {
-            // Если токен невалиден, разлогиниваем пользователя
             if (response.status === 401) {
                 sessionStorage.removeItem('authToken');
                 window.location.reload();

@@ -3,7 +3,7 @@
 // инициализирует приложение и устанавливает основные обработчики событий.
 
 import { handleApiCall } from './api.js';
-import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects } from './library.js';
+import { initializeLibrary, loadSongsFromServer, setupLibraryTabs, fetchProjects, toggleLibraryView, fetchImagesFromServer } from './library.js';
 import { initializePlayer, getPlayerState, showSimpleLyrics } from './player.js';
 import { getSongToEdit, resetEditViews } from './editor.js';
 import { 
@@ -37,7 +37,6 @@ function loadUserProfile() {
     if (!token) return;
 
     try {
-        // Декодируем токен на клиенте, чтобы мгновенно показать имя и аватар
         const payload = JSON.parse(atob(token.split('.')[1]));
         document.getElementById('profile-avatar').src = payload.picture || 'https://via.placeholder.com/40';
         document.getElementById('profile-name').textContent = payload.name || 'Профиль';
@@ -216,7 +215,6 @@ function setupEventListeners() {
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
     document.getElementById("upload-extend-form").addEventListener("submit", handleExtendSubmit);
-    // --- ИЗМЕНЕНИЕ: Добавляем обработчик для новой формы ---
     document.getElementById("midjourney-form").addEventListener("submit", handleMidjourneySubmit);
     
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
@@ -326,7 +324,6 @@ function handleGenerateSubmit(e) {
     handleApiCall("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'suno');
 }
 
-// --- ИЗМЕНЕНИЕ: Новый обработчик для Midjourney ---
 function handleMidjourneySubmit(e) {
     e.preventDefault();
     if (!validateField(document.getElementById('mj-prompt'))) return;
@@ -338,6 +335,8 @@ function handleMidjourneySubmit(e) {
         aspectRatio: document.getElementById('mj-aspect-ratio').value,
         speed: document.getElementById('mj-speed').value,
         stylization: parseInt(document.getElementById('mj-stylization').value, 10),
+        weirdness: parseInt(document.getElementById('mj-weirdness').value, 10),
+        variety: parseInt(document.getElementById('mj-variety').value, 10),
     };
 
     handleApiCall("/api/mj/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, false, true, 'mj');
@@ -477,7 +476,7 @@ async function handleCreateProject() {
             input.value = '';
             errorMsg.textContent = '';
             document.getElementById('project-modal-overlay').style.display = 'none';
-            fetchProjects(); // Обновляем список проектов на странице
+            fetchProjects(); 
         } else {
             const result = await response.json();
             errorMsg.textContent = result.message || 'Ошибка сервера';
@@ -513,14 +512,12 @@ async function verifyUserSession() {
 document.addEventListener("DOMContentLoaded", async () => {
     const loginOverlay = document.getElementById('login-overlay');
     const loginCloseButton = document.getElementById('login-close-button');
-    const sunoCard = document.getElementById('suno-card');
     const landingPage = document.getElementById('landing-page');
     const appContainer = document.getElementById('app-container');
 
     const showLogin = () => loginOverlay.style.display = 'flex';
     const hideLogin = () => loginOverlay.style.display = 'none';
 
-    // --- ИЗМЕНЕНИЕ: Назначаем обработчик на все карточки, а не только на Suno ---
     document.querySelectorAll('.dashboard-card:not(.disabled)').forEach(card => {
         card.addEventListener('click', showLogin);
     });
@@ -539,10 +536,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (isLoggedIn) {
         showApp();
     } else {
-        // Если пользователь не вошел, показываем главную страницу
         landingPage.style.display = 'block';
         appContainer.style.display = 'none';
-        // И ТОЛЬКО ТЕПЕРЬ загружаем скрипт Google
         loadGoogleGSI();
     }
 });

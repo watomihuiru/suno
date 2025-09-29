@@ -186,31 +186,60 @@
                     </form>
                 </div>
 
-                <!-- === НОВАЯ СЕКЦИЯ ДЛЯ MIDJOURNEY === -->
                 <div id="midjourney" class="view-content">
                     <div class="view-header"><h2>Создать изображение</h2><p>Сгенерируйте изображение с помощью Midjourney по вашему описанию.</p></div>
                     <form id="midjourney-form">
                         <div class="form-grid">
                             <div class="form-group"><label for="mj-prompt">Промпт (описание)</label><textarea id="mj-prompt" placeholder="A majestic mountain landscape at sunset..."></textarea></div>
                             <div class="form-row">
-                                <div class="form-group"><label for="mj-version">Версия</label><select id="mj-version"><option value="7">V7</option><option value="6.1">V6.1</option><option value="niji6">Niji 6 (Anime)</option></select></div>
-                                <div class="form-group"><label for="mj-aspect-ratio">Соотношение сторон</label><select id="mj-aspect-ratio"><option value="1:1">1:1 (Квадрат)</option><option value="16:9">16:9 (Пейзаж)</option><option value="9:16">9:16 (Портрет)</option><option value="4:3">4:3</option></select></div>
-                                <div class="form-group"><label for="mj-speed">Скорость</label><select id="mj-speed"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
+                                <div class="form-group">
+                                    <label for="mj-version">Версия</label>
+                                    <select id="mj-version">
+                                        <option value="7">V7</option>
+                                        <option value="6.1">V6.1</option>
+                                        <option value="6">V6</option>
+                                        <option value="5.2">V5.2</option>
+                                        <option value="5.1">V5.1</option>
+                                        <option value="niji6">Niji 6 (Anime)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mj-aspect-ratio">Соотношение сторон</label>
+                                    <select id="mj-aspect-ratio">
+                                        <option value="1:1">1:1 (Квадрат)</option>
+                                        <option value="16:9">16:9 (Пейзаж)</option>
+                                        <option value="9:16">9:16 (Портрет)</option>
+                                        <option value="4:3">4:3</option>
+                                        <option value="3:2">3:2</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mj-speed">Скорость</label>
+                                    <select id="mj-speed">
+                                        <option value="relaxed">Relaxed</option>
+                                        <option value="fast">Fast</option>
+                                        <option value="turbo">Turbo</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="form-group slider-group">
                                 <label for="mj-stylization">Стилизация</label>
-                                <input type="range" id="mj-stylization" min="0" max="1000" step="10" value="250">
+                                <input type="range" id="mj-stylization" min="0" max="1000" step="50" value="250">
                                 <span class="slider-value">250</span>
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="mj-weirdness">Необычность (Weird)</label>
+                                <input type="range" id="mj-weirdness" min="0" max="3000" step="100" value="0">
+                                <span class="slider-value">0</span>
+                            </div>
+                             <div class="form-group slider-group">
+                                <label for="mj-variety">Разнообразие (Variety)</label>
+                                <input type="range" id="mj-variety" min="0" max="100" step="5" value="10">
+                                <span class="slider-value">10</span>
                             </div>
                         </div>
                          <button type="submit" class="submit-button" id="mj-submit-button">Сгенерировать</button>
                     </form>
-                    <div id="mj-results-container">
-                         <h4>Результаты</h4>
-                         <div id="mj-results-grid" class="mj-results-grid">
-                             <p id="mj-empty-message">Здесь появятся ваши изображения.</p>
-                         </div>
-                    </div>
                 </div>
                 
                 <div id="upload-extend" class="view-content">
@@ -333,17 +362,27 @@
             </main>
 
             <div class="card library-card">
-                <div class="library-header">
-                    <div id="project-list"></div>
-                    <button id="add-project-btn" class="add-project-btn"><i class="fas fa-plus"></i></button>
+                <div id="song-library-container">
+                    <div class="library-header">
+                        <div id="project-list"></div>
+                        <button id="add-project-btn" class="add-project-btn"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div class="tabs" id="library-tabs">
+                         <button class="tab-button active" data-filter="all">Все</button>
+                         <button class="tab-button" data-filter="favorites">Избранное</button>
+                    </div>
+                    <hr class="divider">
+                    <div id="song-list-container">
+                        <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
+                    </div>
                 </div>
-                <div class="tabs" id="library-tabs">
-                     <button class="tab-button active" data-filter="all">Все</button>
-                     <button class="tab-button" data-filter="favorites">Избранное</button>
-                </div>
-                <hr class="divider">
-                <div id="song-list-container">
-                    <p id="empty-list-message">Здесь будут отображаться ваши сгенерированные песни.</p>
+                <div id="image-gallery-container" style="display: none;">
+                    <div class="library-header">
+                        <h4>Галерея Midjourney</h4>
+                    </div>
+                    <div id="image-gallery-grid" class="mj-results-grid">
+                        <p id="image-gallery-empty-message">Ваша галерея изображений пуста.</p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -71,7 +71,6 @@ async function setupDatabase() {
         `);
         console.log('Таблица "songs" готова.');
 
-        // --- ИЗМЕНЕНИЕ: Новая таблица для изображений ---
         await client.query(`
             CREATE TABLE IF NOT EXISTS images (
                 id SERIAL PRIMARY KEY,
@@ -278,7 +277,7 @@ app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// --- SONGS API ---
+// --- SONGS & IMAGES API ---
 app.get('/api/songs', authMiddleware, async (req, res) => {
     const { projectId } = req.query;
     let queryText;
@@ -297,6 +296,17 @@ app.get('/api/songs', authMiddleware, async (req, res) => {
         })));
     } catch (err) {
         res.status(500).json({ message: 'Не удалось загрузить песни' });
+    }
+});
+
+// --- ИЗМЕНЕНИЕ: Новый эндпоинт для получения изображений ---
+app.get('/api/images', authMiddleware, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Ошибка при получении изображений:", err);
+        res.status(500).json({ message: 'Не удалось загрузить изображения' });
     }
 });
 
@@ -427,8 +437,6 @@ app.post('/api/generate', authMiddleware, (req, res) => proxySunoRequest(req, re
 app.post('/api/generate/upload-cover', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-cover'));
 app.post('/api/generate/upload-extend', authMiddleware, (req, res) => proxySunoRequest(req, res, '/generate/upload-extend'));
 app.post('/api/boost-style', authMiddleware, (req, res) => proxySunoRequest(req, res, '/style/generate'));
-
-// --- ИЗМЕНЕНИЕ: Новый прокси-эндпоинт для Midjourney ---
 app.post('/api/mj/generate', authMiddleware, (req, res) => proxySunoRequest(req, res, '/mj/generate'));
 
 app.post('/api/lyrics', authMiddleware, async (req, res) => {
@@ -474,14 +482,13 @@ wss.on('connection', (ws, req) => {
         try {
             const data = JSON.parse(message);
             if (data.type === 'trackTask' && data.taskId && userId) {
-                const { taskId, taskType } = data; // Получаем тип задачи
+                const { taskId, taskType } = data;
                 if (trackingInterval) clearInterval(trackingInterval);
 
                 trackingInterval = setInterval(async () => {
                     try {
                         let response;
                         if (taskType === 'mj') {
-                            // --- ИЗМЕНЕНИЕ: Логика для Midjourney ---
                             response = await axios.get(`${SUNO_API_BASE_URL}/mj/record-info`, {
                                 params: { taskId },
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
@@ -489,7 +496,7 @@ wss.on('connection', (ws, req) => {
 
                             if (!response.data || !response.data.data) { return; }
                             const taskData = response.data.data;
-                            const finalStatuses = [1, 2, 3]; // success, fail, create_fail
+                            const finalStatuses = [1, 2, 3];
 
                             if (finalStatuses.includes(taskData.successFlag)) {
                                 clearInterval(trackingInterval);
@@ -506,7 +513,6 @@ wss.on('connection', (ws, req) => {
                                 if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                             }
                         } else {
-                            // --- Существующая логика для Suno ---
                             response = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
                                 params: { taskId },
                                 headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
