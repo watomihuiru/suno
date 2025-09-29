@@ -60,6 +60,24 @@ function showApp() {
 
 // --- ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
 function initializeApp() {
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Логика скрытия вкладки "Логи" ---
+    try {
+        const token = sessionStorage.getItem('authToken');
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const isAdmin = payload.isAdmin === true;
+        const logsNavButton = document.getElementById('logs-nav-button');
+        if (logsNavButton && !isAdmin) {
+            logsNavButton.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Не удалось проверить права администратора, скрываем логи по умолчанию.', e);
+        const logsNavButton = document.getElementById('logs-nav-button');
+        if(logsNavButton) {
+            logsNavButton.style.display = 'none';
+        }
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
     loadUserProfile();
     initializeLibrary();
     initializePlayer();
