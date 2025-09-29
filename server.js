@@ -287,11 +287,30 @@ app.get('/api/stream/:id', async (req, res) => {
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) return res.status(404).send('URL аудио не найден');
         
-        const response = await axios({ method: 'get', url: audioUrl, responseType: 'stream', headers: { 'User-Agent': 'Mozilla/5.0' } });
-        res.set('Content-Type', response.headers['content-type']);
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+        // 1. Готовим заголовки для запроса к Suno, пробрасывая Range
+        const requestHeaders = {
+            'User-Agent': 'Mozilla/5.0'
+        };
+        if (req.headers.range) {
+            requestHeaders['Range'] = req.headers.range;
+        }
+
+        const response = await axios({
+            method: 'get',
+            url: audioUrl,
+            responseType: 'stream',
+            headers: requestHeaders,
+            validateStatus: status => status >= 200 && status < 400 // Не считать 206 ошибкой
+        });
+
+        // 2. Пробрасываем статус-код и все заголовки от ответа Suno к клиенту
+        res.writeHead(response.status, response.headers);
+        
+        // 3. Передаем поток данных
         response.data.pipe(res);
+
     } catch (error) {
-        // Улучшенная обработка ошибки проксирования
         console.error('Ошибка проксирования аудио:', error.message);
         res.status(500).send('Ошибка сервера при проксировании аудио');
     }
