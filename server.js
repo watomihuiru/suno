@@ -162,12 +162,32 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Пользователь не найден' });
         }
         const user = userResult.rows[0];
+        
+        let finalCredits = user.credits;
+
+        if (user.is_admin) {
+            try {
+                const sunoResponse = await axios.get(`${SUNO_API_BASE_URL}/chat/credit`, {
+                    headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
+                });
+                if (sunoResponse.data && sunoResponse.data.code === 200) {
+                    finalCredits = sunoResponse.data.data;
+                } else {
+                    finalCredits = '∞ (ошибка)';
+                }
+            } catch (apiError) {
+                console.error("Ошибка при запросе кредитов у Suno API для профиля:", apiError.message);
+                finalCredits = '∞ (ошибка API)';
+            }
+        }
+
         res.json({
             name: user.name,
             email: user.email,
             picture: user.picture_url,
-            credits: user.is_admin ? '∞' : user.credits
+            credits: finalCredits
         });
+
     } catch (error) {
         console.error('Ошибка при получении профиля:', error);
         res.status(500).json({ message: 'Не удалось загрузить данные профиля' });
@@ -182,10 +202,8 @@ app.get('/api/chat/credit', authMiddleware, async (req, res) => {
         }
         const user = userResult.rows[0];
 
-        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
         if (user.is_admin) {
             try {
-                // Если пользователь админ, делаем запрос напрямую к API Suno
                 const sunoResponse = await axios.get(`${SUNO_API_BASE_URL}/chat/credit`, {
                     headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
                 });
@@ -197,11 +215,9 @@ app.get('/api/chat/credit', authMiddleware, async (req, res) => {
                 }
             } catch (apiError) {
                 console.error("Ошибка при запросе кредитов у Suno API:", apiError.message);
-                // В случае ошибки возвращаем '∞', чтобы не сломать интерфейс
                 res.json({ data: '∞ (ошибка API)' });
             }
         } else {
-            // Для обычных пользователей возвращаем значение из нашей БД
             res.json({ data: user.credits });
         }
     } catch (dbError) {
@@ -309,7 +325,6 @@ app.get('/api/stream/:id', async (req, res) => {
         const audioUrl = result.rows[0].song_data.streamAudioUrl || result.rows[0].song_data.audioUrl;
         if (!audioUrl) return res.status(404).send('URL аудио не найден');
         
-        // 1. Готовим заголовки для запроса к Suno, пробрасывая Range
         const requestHeaders = {
             'User-Agent': 'Mozilla/5.0'
         };
@@ -322,13 +337,11 @@ app.get('/api/stream/:id', async (req, res) => {
             url: audioUrl,
             responseType: 'stream',
             headers: requestHeaders,
-            validateStatus: status => status >= 200 && status < 400 // Не считать 206 ошибкой
+            validateStatus: status => status >= 200 && status < 400
         });
 
-        // 2. Пробрасываем статус-код и все заголовки от ответа Suno к клиенту
         res.writeHead(response.status, response.headers);
         
-        // 3. Передаем поток данных
         response.data.pipe(res);
 
     } catch (error) {
@@ -338,9 +351,8 @@ app.get('/api/stream/:id', async (req, res) => {
 });
 
 app.post('/api/refresh-url', authMiddleware, async (req, res) => {
-    const { id } = req.body; // Это audioId
+    const { id } = req.body;
     try {
-        // 1. Получаем taskId из нашей базы данных
         const songResult = await pool.query('SELECT request_params FROM songs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
         if (songResult.rows.length === 0) {
             return res.status(403).json({ message: 'Доступ запрещен или песня не найдена' });
@@ -350,7 +362,6 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
             throw new Error('Task ID не найден для этой песни в базе данных.');
         }
 
-        // 2. Вызываем API Suno для получения информации о задаче
         const sunoResponse = await axios.get(`${SUNO_API_BASE_URL}/generate/record-info`, {
             params: { taskId },
             headers: { 'Authorization': `Bearer ${SUNO_API_TOKEN}` }
@@ -358,7 +369,6 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
 
         const taskData = sunoResponse.data.data;
 
-        // 3. Проверяем статус и ищем нужную песню в ответе
         if (taskData?.status !== 'SUCCESS' || !taskData.response?.sunoData) {
             throw new Error('Задача на сервере Suno еще не завершена, не найдена, или ответ имеет неверный формат.');
         }
@@ -373,13 +383,11 @@ app.post('/api/refresh-url', authMiddleware, async (req, res) => {
             throw new Error('Новый URL аудио не найден в ответе Suno API.');
         }
         
-        // 4. Обновляем URL в нашей базе данных
         await pool.query(
             `UPDATE songs SET song_data = jsonb_set(jsonb_set(song_data, '{audioUrl}', to_jsonb($1::text)), '{streamAudioUrl}', to_jsonb($1::text)) WHERE id = $2`,
             [newAudioUrl, id]
         );
         
-        // 5. Отправляем новый URL на клиент
         res.json({ newUrl: newAudioUrl });
 
     } catch (error) {
@@ -470,7 +478,6 @@ wss.on('connection', (ws, req) => {
                         if (finalStatuses.includes(status)) {
                             clearInterval(trackingInterval);
                             if (status === "SUCCESS" && taskData.response?.sunoData) {
-                                // Сначала сохраняем в базу
                                 for (const song of taskData.response.sunoData) {
                                     let paramsToSave = taskData.param;
                                     try { if (typeof paramsToSave === 'string') paramsToSave = JSON.parse(paramsToSave); } catch (e) {}
@@ -482,10 +489,8 @@ wss.on('connection', (ws, req) => {
                                     );
                                 }
                             }
-                            // И только потом отправляем финальный ответ
                             if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         } else {
-                            // Отправляем промежуточные статусы
                             if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
                         }
                     } catch (error) {
