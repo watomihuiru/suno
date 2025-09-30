@@ -1,14 +1,17 @@
+/* --- ОБНОВЛЕННЫЙ ДИЗАЙН СТРАНИЦЫ ПРОФИЛЯ --- */
+
 .profile-page-content {
     display: flex;
     flex-direction: column;
     gap: 32px;
 }
 
+/* Новый стиль карточки баланса */
 .balance-card {
-    background-color: var(--bg-input);
+    background: linear-gradient(45deg, rgba(18, 18, 24, 0.6), rgba(30, 30, 38, 0.8));
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 24px; /* Увеличено */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -20,10 +23,11 @@
 }
 
 .balance-info h3 {
-    font-size: 24px;
+    font-size: 28px; /* Увеличено */
     font-weight: 700;
     color: var(--accent-yellow);
     margin-top: 4px;
+    text-shadow: 0 0 10px rgba(247, 183, 49, 0.5); /* Добавлено свечение */
 }
 
 #top-up-button {
@@ -31,26 +35,31 @@
     padding: 10px 24px;
     margin-top: 0;
     flex-shrink: 0;
+    /* Стиль кнопки уже определен в forms.css, здесь можно оставить пустым */
 }
 
 .transaction-history {
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 12px; /* Увеличено */
+    padding: 24px; /* Увеличено */
     min-height: 150px;
+    background-color: var(--bg-input); /* Добавлен фон */
 }
 
 .transaction-history p {
     color: var(--text-secondary);
 }
 
+/* Новый стиль кнопки выхода */
 #logout-button {
     margin-top: 16px;
-    background-color: var(--accent-red);
-    border-color: var(--accent-red);
+    background: var(--accent-red);
+    border: none; /* Убран border, т.к. submit-button его не имеет */
 }
 
 #logout-button:hover {
     background-color: #f85149;
     border-color: #f85149;
+    box-shadow: 0 0 15px -2px var(--accent-red); /* Добавлено свечение */
+    transform: translateY(-2px);
 }

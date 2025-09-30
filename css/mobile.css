@@ -1,3 +1,5 @@
+/* --- ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ --- */
+
 .mobile-header { 
     display: none; 
 }
@@ -11,19 +13,24 @@
     display: none;
 }
 
+/* --- Планшеты --- */
 @media (max-width: 1200px) {
     .page-container { 
-        grid-template-columns: var(--sidebar-width) 1fr; 
+        grid-template-columns: var(--sidebar-width) 1fr;
+        gap: 24px; /* Уменьшаем разрыв */
+        padding: 30px; /* Уменьшаем отступы */
     }
     .library-card { 
         display: none; 
     }
     #global-player {
+        /* Корректируем позицию плеера под новые отступы */
         right: 30px;
         left: calc(var(--sidebar-width) + 30px + 24px);
     }
 }
 
+/* --- Смартфоны --- */
 @media (max-width: 768px) {
     body { 
         overflow: auto; 
@@ -37,8 +44,8 @@
     .page-container { 
         grid-template-columns: 1fr; 
         height: auto; 
-        padding: 15px; 
-        padding-top: 70px; 
+        padding: 20px; /* Скорректировано */
+        padding-top: 80px; /* Увеличено под новый хедер */
         padding-bottom: 150px; 
     }
     .main-content { 
@@ -53,11 +60,14 @@
         transform: translateX(-100%); 
         margin: 0; 
         border-right: 1px solid var(--border); 
-        padding-bottom: 24px; 
+        padding-bottom: 24px;
+        border-radius: 0; /* Убираем скругления в мобильном виде */
     }
     .sidebar.is-open { 
         transform: translateX(0); 
     }
+    
+    /* Новый "стеклянный" мобильный хедер */
     .mobile-header { 
         display: flex; 
         align-items: center; 
@@ -66,7 +76,9 @@
         top: 0; 
         left: 0; 
         right: 0; 
-        background-color: var(--bg-card); 
+        height: 65px; /* Задаем фиксированную высоту */
+        background-color: rgba(18, 18, 24, 0.7); /* Полупрозрачный фон */
+        backdrop-filter: blur(10px); /* Эффект стекла */
         border-bottom: 1px solid var(--border); 
         padding: 10px 15px; 
         z-index: 1050; 
@@ -76,20 +88,20 @@
     }
     .mobile-header h2 { 
         font-size: 18px; 
-        /* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
-        margin: 0; /* Убираем авто-центрирование */
-        flex-grow: 1; /* Позволяем заголовку занимать доступное место */
+        margin: 0;
+        flex-grow: 1;
     }
     #mobile-credits-container {
-        flex-shrink: 0; /* Запрещаем сжиматься */
+        flex-shrink: 0;
     }
+
     #sidebar-overlay, #library-overlay { 
         position: fixed; 
         top: 0; 
         left: 0; 
         width: 100%; 
         height: 100%; 
-        background-color: rgba(0, 0, 0, 0.5); 
+        background-color: rgba(0, 0, 0, 0.6); /* Увеличена плотность */
         z-index: 1099; 
     }
     #sidebar-overlay.is-visible, #library-overlay.is-visible { 
@@ -99,8 +111,10 @@
         display: none;
         grid-column: 1 / -1;
         margin: 0;
-        min-height: calc(100vh - 70px - 150px);
+        min-height: calc(100vh - 80px - 150px);
     }
+    
+    /* Новая "стеклянная" нижняя навигация */
     .mobile-bottom-nav {
         display: flex;
         position: fixed;
@@ -108,7 +122,8 @@
         left: 0;
         right: 0;
         height: 65px;
-        background-color: var(--bg-card);
+        background-color: rgba(18, 18, 24, 0.7); /* Полупрозрачный фон */
+        backdrop-filter: blur(10px); /* Эффект стекла */
         border-top: 1px solid var(--border);
         z-index: 1050;
         justify-content: space-around;
@@ -139,17 +154,21 @@
         color: var(--accent-blue);
     }
     
+    /* Новый "стеклянный" мобильный плеер */
     #global-player {
-        left: 15px;
-        right: 15px;
-        bottom: 70px;
-        padding: 4px 12px;
+        left: 10px; /* Уменьшены отступы */
+        right: 10px; /* Уменьшены отступы */
+        bottom: 75px; /* Скорректировано под новую панель */
+        padding: 8px 12px;
         gap: 0 12px;
         display: none;
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
         cursor: pointer;
+        border-radius: 12px; /* Добавлено скругление */
+        background-color: rgba(28, 33, 40, 0.7); /* Полупрозрачный фон */
+        backdrop-filter: blur(12px); /* Эффект стекла */
     }
     #player-song-info {
         min-width: 0;

@@ -1,3 +1,5 @@
+/* --- ОБНОВЛЕННЫЙ ДИЗАЙН БИБЛИОТЕКИ --- */
+
 .library-header {
     display: flex;
     align-items: center;
@@ -6,78 +8,91 @@
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
 }
+
 #project-list {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     flex-grow: 1;
 }
+
+/* Новый стиль тегов проектов */
 .project-item {
     background-color: var(--bg-input);
     border: 1px solid var(--border);
     color: var(--text-secondary);
     padding: 6px 28px 6px 12px;
-    border-radius: 15px;
+    border-radius: 8px; /* Обновлено */
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
     white-space: nowrap;
     position: relative;
 }
+
 .project-item:hover {
-    background-color: var(--border);
+    background-color: #2a2a30;
     color: var(--text-primary);
 }
+
 .project-item.active {
     background-color: var(--accent-blue);
     border-color: var(--accent-blue);
     color: white;
     font-weight: 600;
+    box-shadow: var(--accent-glow);
 }
+
 .add-project-btn {
     flex-shrink: 0;
     background-color: var(--bg-input);
     border: 1px solid var(--border);
     color: var(--text-primary);
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
+    width: 32px; /* Увеличено */
+    height: 32px; /* Увеличено */
+    border-radius: 8px; /* Обновлено */
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px; /* Увеличено */
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
+
 .add-project-btn:hover {
     background-color: var(--border);
-    transform: scale(1.1);
+    transform: scale(1.05);
+    box-shadow: var(--accent-glow);
 }
 
 .delete-project-icon {
     position: absolute;
-    right: 10px;
+    right: 8px; /* Скорректировано */
     top: 50%;
     transform: translateY(-50%);
     opacity: 0;
     transition: opacity 0.2s, color 0.2s;
     font-size: 12px;
 }
+
 .project-item:hover .delete-project-icon {
-    opacity: 0.6;
+    opacity: 0.7;
 }
+
 .delete-project-icon:hover {
     opacity: 1;
     color: var(--accent-red);
 }
 
+/* Новый стиль табов */
 .tabs { 
     display: flex; 
     margin-bottom: 16px; 
     border-bottom: 1px solid var(--border); 
     flex-wrap: wrap; 
 }
+
 .tab-button { 
     position: relative; 
     background: none; 
@@ -89,19 +104,34 @@
     font-size: 14px; 
     font-weight: 500; 
     border-bottom: 2px solid transparent; 
-    transition: color 0.2s, border-color 0.2s; 
+    transition: color 0.2s; 
 }
+
 .tab-button:first-child { 
     margin-left: 0; 
 }
+
 .tab-button:hover { 
     color: var(--text-primary); 
 }
+
 .tab-button.active { 
     color: var(--text-primary); 
-    border-bottom-color: var(--accent-blue); 
     font-weight: 600; 
 }
+
+/* Новый индикатор для активного таба */
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; /* Располагаем поверх основной границы */
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--accent-blue);
+    box-shadow: 0 0 8px var(--accent-blue);
+}
+
 #song-list-container { 
     display: flex; 
     flex-direction: column; 
@@ -110,58 +140,74 @@
     padding-right: 10px; 
     flex-grow: 1; 
 }
+
+/* Новый стиль карточки трека */
 .song-card { 
     display: flex; 
     align-items: flex-start; 
     gap: 16px; 
     position: relative; 
     animation: fadeIn 0.4s ease-out forwards;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
 }
+
+.song-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
 .song-card.menu-is-active {
     z-index: 11;
 }
+
 .song-card.placeholder { 
     opacity: 0.6; 
     align-items: center; 
 }
+
 .song-cover { 
     width: 80px; 
     height: 80px; 
-    border-radius: 8px; 
+    border-radius: 12px; /* Увеличено */
     cursor: pointer; 
     position: relative; 
     overflow: hidden; 
     flex-shrink: 0; 
     background-color: var(--bg-input); 
 }
+
 .song-cover img { 
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
 }
+
 .song-cover .play-icon { 
     position: absolute; 
-    top: 50%; 
-    left: 50%; 
-    transform: translate(-50%, -50%); 
-    width: 32px; 
-    height: 32px; 
+    top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0,0,0,0.5); 
-    border-radius: 50%; 
+    border-radius: 12px;
     display: flex; 
     justify-content: center; 
     align-items: center; 
     color: white; 
+    font-size: 24px;
     opacity: 0; 
     transition: opacity 0.2s; 
 }
+
 .song-cover:hover .play-icon, .song-cover.playing .play-icon, .song-cover.paused .play-icon { 
     opacity: 1; 
 }
+
 .song-duration { 
     position: absolute; 
-    bottom: 4px; 
-    right: 4px; 
+    bottom: 6px; 
+    right: 6px; 
     background-color: rgba(0, 0, 0, 0.7); 
     color: white; 
     font-size: 11px; 
@@ -169,6 +215,7 @@
     padding: 2px 5px; 
     border-radius: 4px; 
 }
+
 .song-info { 
     display: flex; 
     flex-direction: column; 
@@ -176,6 +223,7 @@
     flex-grow: 1; 
     min-width: 0; 
 }
+
 .song-card.is-favorite::before { 
     font-family: "Font Awesome 6 Free"; 
     content: "\f004"; 
@@ -186,12 +234,14 @@
     color: var(--accent-red); 
     font-size: 12px; 
 }
+
 .song-title { 
     font-size: 16px; 
     font-weight: 600; 
     color: var(--text-primary); 
     cursor: pointer; 
 }
+
 .song-model-tag { 
     background-color: var(--border); 
     color: var(--text-secondary); 
@@ -203,11 +253,13 @@
     margin-left: 8px; 
     vertical-align: middle; 
 }
+
 .song-style { 
     font-size: 14px; 
     color: var(--text-secondary); 
     word-break: break-word; 
 }
+
 .song-style-content {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -215,22 +267,26 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .song-style.expanded .song-style-content {
     -webkit-line-clamp: unset;
 }
+
 .show-more-btn {
     background: none;
     border: none;
-    color: var(--accent-blue);
+    color: var(--accent-blue-hover); /* Ярче */
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px; /* Увеличено */
     font-weight: 600;
     padding: 4px 0;
     margin-top: 4px;
 }
+
 .song-actions { 
     position: relative; 
 }
+
 .menu-trigger { 
     background:none; 
     border:none; 
@@ -238,61 +294,78 @@
     cursor:pointer; 
     padding: 5px; 
     font-size: 16px; 
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    transition: background-color 0.2s, color 0.2s;
 }
+
 .menu-trigger:hover { 
     color: var(--text-primary); 
+    background-color: rgba(255, 255, 255, 0.1);
 }
+
+/* Новый стиль меню */
 .song-menu { 
     display: none; 
     position: absolute; 
     right: 0; 
-    top: 25px; 
-    background-color: #21262d; 
+    top: 35px; /* Скорректировано */
+    background-color: rgba(33, 38, 45, 0.8); /* Полупрозрачный фон */
+    backdrop-filter: blur(8px); /* Эффект стекла */
     border: 1px solid var(--border); 
-    border-radius: 6px; 
+    border-radius: 12px; /* Увеличено */
     list-style: none; 
-    padding: 5px; 
-    width: 180px; 
+    padding: 6px; /* Увеличено */
+    width: 200px; /* Увеличено */
     z-index: 10; 
 }
+
 .song-menu.active { 
     display: block; 
 }
-/* --- НОВЫЕ СТИЛИ --- */
+
 .song-menu.opens-up {
     top: auto;
     bottom: 100%;
     margin-bottom: 5px;
 }
+
 .menu-item { 
     display: flex; 
     align-items: center; 
     gap: 10px; 
-    padding: 8px 10px; 
-    border-radius: 4px; 
+    padding: 10px; /* Увеличено */
+    border-radius: 8px; /* Увеличено */
     cursor: pointer; 
     font-size: 14px; 
     position: relative;
 }
+
 .menu-item .fa-heart { 
     color: var(--accent-red); 
 }
+
 .menu-item:hover { 
-    background-color: var(--border); 
+    background-color: rgba(255, 255, 255, 0.1); 
 }
+
 .menu-item i { 
     width: 16px; 
     text-align: center; 
 }
+
 .menu-item.delete { 
     color: var(--accent-red); 
 }
+
 #empty-list-message { 
     margin: auto; 
     color: var(--text-secondary); 
     text-align: center; 
     padding: 20px; 
 }
+
 .progress-bar-container { 
     width: 100%; 
     background-color: var(--border); 
@@ -301,39 +374,45 @@
     overflow: hidden; 
     margin-top: 8px; 
 }
+
 .progress-bar-inner { 
     width: 0%; 
     height: 100%; 
     background-color: var(--accent-blue); 
 }
+
 @keyframes fake-progress { 
     from { width: 0%; } 
     to { width: 95%; } 
 }
+
 .song-card.placeholder .progress-bar-inner { 
     animation: fake-progress 120s linear forwards; 
     animation-delay: 0.5s; 
 }
+
 .move-to-project-submenu {
     display: none;
     position: absolute;
-    left: -180px; 
+    left: -200px; /* Скорректировано */
     top: 0;
-    background-color: #21262d;
+    background-color: rgba(33, 38, 45, 0.8); /* Полупрозрачный фон */
+    backdrop-filter: blur(8px); /* Эффект стекла */
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     list-style: none;
-    padding: 5px;
-    width: 180px;
+    padding: 6px;
+    width: 200px;
     z-index: 11;
     max-height: 200px;
     overflow-y: auto;
 }
-/* --- НОВЫЕ СТИЛИ --- */
+
 .song-menu.opens-up .move-to-project-submenu {
     top: auto;
     bottom: 0;
 }
+
 .move-to-project-action:hover > .move-to-project-submenu,
 .move-to-project-submenu.is-open {
     display: block;
