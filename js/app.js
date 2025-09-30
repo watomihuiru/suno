@@ -12,7 +12,6 @@ import {
     setupSliderListeners, 
     setupCharCounters, 
     updateAllLimits, 
-    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Обновляем импорты ---
     setupSegmentedControls,
     setupAdvancedOptionsToggle,
     setupInstrumentalToggle,
@@ -131,6 +130,90 @@ async function handleLogin() {
     }
 }
 
+// --- НОВАЯ ФУНКЦИЯ: Логика для Drag-and-Drop ---
+function setupFileDropArea(areaId, inputId, hiddenUrlId) {
+    const dropArea = document.getElementById(areaId);
+    const fileInput = document.getElementById(inputId);
+    const hiddenUrlInput = document.getElementById(hiddenUrlId);
+    const contentDiv = dropArea.querySelector('.file-drop-area__content');
+    const previewDiv = dropArea.querySelector('.file-drop-area__preview');
+    const progressContainer = dropArea.querySelector('.file-drop-area__progress');
+    const progressBar = progressContainer.querySelector('.progress-bar');
+
+    const handleFile = async (file) => {
+        if (!file) return;
+
+        contentDiv.style.display = 'none';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const token = sessionStorage.getItem('authToken');
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            
+            // Имитация прогресса загрузки
+            progressBar.style.width = '50%';
+
+            if (!response.ok) {
+                throw new Error('Ошибка загрузки файла на сервер.');
+            }
+
+            const result = await response.json();
+            progressBar.style.width = '100%';
+            
+            hiddenUrlInput.value = result.fileUrl;
+            previewDiv.innerHTML = `<i class="fas fa-check-circle"></i> <span>${file.name}</span>`;
+            previewDiv.style.display = 'flex';
+            progressContainer.style.display = 'none';
+
+        } catch (error) {
+            console.error(error);
+            previewDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>Ошибка загрузки</span>`;
+            previewDiv.style.display = 'flex';
+            progressContainer.style.display = 'none';
+            // Можно добавить кнопку "попробовать снова", которая сбрасывает состояние
+        }
+    };
+
+    dropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropArea.classList.add('is-dragging');
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+        dropArea.classList.remove('is-dragging');
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('is-dragging');
+        if (e.dataTransfer.files.length > 0) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Клик по зоне также открывает диалог выбора файла
+    dropArea.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'LABEL') {
+             fileInput.click();
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            handleFile(fileInput.files[0]);
+        }
+    });
+}
+
+
 function setupEventListeners() {
     const mobileLibraryBtn = document.getElementById('mobile-library-btn');
     const mobileNavViewBtns = document.querySelectorAll('.mobile-nav-btn[data-view]');
@@ -205,9 +288,15 @@ function setupEventListeners() {
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
     setupInstrumentalToggle('ue-instrumental', 'ue-prompt-group', 'ue-vocalGender-group');
     
-    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем новые функции ---
     setupSegmentedControls();
     setupAdvancedOptionsToggle();
+
+    // --- НОВОЕ: Инициализируем все Drag-and-Drop зоны ---
+    setupFileDropArea('uc-file-drop-area', 'uc-file-input', 'uc-uploadUrl');
+    setupFileDropArea('ue-file-drop-area', 'ue-file-input', 'ue-uploadUrl');
+    setupFileDropArea('mj-img2img-file-drop-area', 'mj-img2img-file-input', 'mj-fileUrl-img2img');
+    setupFileDropArea('mj-video-file-drop-area', 'mj-video-file-input', 'mj-fileUrl-video');
+
 
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
@@ -227,7 +316,7 @@ function setupEventListeners() {
     });
 }
 
-// --- FORM SUBMIT HANDLERS & VALIDATION ---
+// --- FORM SUBMIT HANDLERS & VALIDATION (без изменений) ---
 
 function handleMjTxt2ImgSubmit(e) {
     e.preventDefault();
@@ -363,8 +452,12 @@ function validateUploadCoverForm() {
     const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('uc-uploadUrl').value;
     if (!url || !url.trim()) {
         const field = document.getElementById('uc-uploadUrl');
-        field.classList.add('input-error');
-        setTimeout(() => field.classList.remove('input-error'), 1000);
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Валидируем новую зону, а не скрытое поле ---
+        const dropArea = document.getElementById('uc-file-drop-area');
+        if (dropArea) {
+            dropArea.classList.add('is-error'); // Можно добавить стиль для ошибки
+            setTimeout(() => dropArea.classList.remove('is-error'), 1000);
+        }
         return false;
     }
 
@@ -425,9 +518,11 @@ function validateUploadExtendForm() {
     const songToEdit = getSongToEdit();
     const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('ue-uploadUrl').value;
     if (!url || !url.trim()) {
-        const field = document.getElementById('ue-uploadUrl');
-        field.classList.add('input-error');
-        setTimeout(() => field.classList.remove('input-error'), 1000);
+        const dropArea = document.getElementById('ue-file-drop-area');
+        if (dropArea) {
+            dropArea.classList.add('is-error');
+            setTimeout(() => dropArea.classList.remove('is-error'), 1000);
+        }
         return false;
     }
 

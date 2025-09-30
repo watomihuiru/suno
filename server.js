@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
+import multer from 'multer'; // --- НОВОЕ: Импортируем multer
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +30,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// --- DATABASE SETUP ---
+// --- DATABASE SETUP (без изменений) ---
 async function setupDatabase() {
     const client = await pool.connect();
     try {
@@ -90,6 +91,20 @@ async function setupDatabase() {
     }
 }
 
+// --- НОВОЕ: Настройка Multer для сохранения файлов ---
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Папка, куда сохраняем файлы
+    },
+    filename: function (req, file, cb) {
+        // Генерируем уникальное имя файла, чтобы избежать конфликтов
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage: storage });
+
+
 // --- MIDDLEWARE ---
 app.use(express.json());
 app.use((req, res, next) => {
@@ -97,6 +112,9 @@ app.use((req, res, next) => {
     next();
 });
 app.use(express.static(__dirname));
+// --- НОВОЕ: Делаем папку 'uploads' публичной ---
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -113,7 +131,18 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// --- AUTH ROUTES ---
+// --- НОВОЕ: Эндпоинт для загрузки файлов ---
+app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Файл не был загружен.' });
+    }
+    // Формируем полный URL к загруженному файлу
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    res.json({ fileUrl: fileUrl });
+});
+
+
+// --- AUTH ROUTES (без изменений) ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -166,7 +195,7 @@ app.post('/api/auth/google', async (req, res) => {
     }
 });
 
-// --- USER PROFILE & CREDITS ---
+// --- USER PROFILE & CREDITS (без изменений) ---
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT name, email, picture_url, credits, is_admin FROM users WHERE id = $1', [req.user.id]);
@@ -238,7 +267,7 @@ app.get('/api/chat/credit', authMiddleware, async (req, res) => {
     }
 });
 
-// --- PROJECTS API ---
+// --- PROJECTS API (без изменений) ---
 app.get('/api/projects', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at ASC', [req.user.id]);
@@ -277,7 +306,7 @@ app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// --- SONGS & IMAGES API ---
+// --- SONGS & IMAGES API (без изменений) ---
 app.get('/api/songs', authMiddleware, async (req, res) => {
     const { projectId } = req.query;
     let queryText;
@@ -337,7 +366,7 @@ app.put('/api/songs/:id/favorite', authMiddleware, async (req, res) => {
     }
 });
 
-// --- STREAMING & SUNO PROXY ---
+// --- STREAMING & SUNO PROXY (без изменений) ---
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -361,9 +390,6 @@ app.get('/api/stream/:id', async (req, res) => {
             validateStatus: status => status >= 200 && status < 400
         });
 
-        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
-        // Вместо слепого копирования заголовков, устанавливаем их явно.
-        // Это обеспечивает корректную работу Range-запросов и перемотки.
         const headers = {
             'Content-Type': response.headers['content-type'],
             'Content-Length': response.headers['content-length'],
@@ -375,7 +401,6 @@ app.get('/api/stream/:id', async (req, res) => {
         }
 
         res.writeHead(response.status, headers);
-        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
         response.data.pipe(res);
 
@@ -475,7 +500,7 @@ app.post('/api/lyrics', authMiddleware, async (req, res) => {
     }
 });
 
-// --- WebSocket Server ---
+// --- WebSocket Server (без изменений) ---
 const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
     console.log('Клиент подключился по WebSocket');

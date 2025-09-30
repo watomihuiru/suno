@@ -99,7 +99,7 @@
             <h2>AI Creative Hub</h2>
             <div id="mobile-credits-container" class="credits-display" style="display: none;">
                 <span class="credits-value" id="mobile-credits-value">...</span>
-                <span class="credits-icon"><svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
+                <span class="credits-icon"><svg width="16" height="16" viewBox="0-0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#f7b731" d="M9.91 15.42c-1.2.7-2.62.7-3.82 0L2.14 13.1c-1.2-.7-1.95-2-1.95-3.37V6.27c0-1.37.75-2.67 1.95-3.37L6.09 0.58c1.2-.7 2.62-.7 3.82 0l3.95 2.32c1.2.7 1.95 2 1.95 3.37v3.46c0 1.37-.75 2.67-1.95 3.37l-3.95 2.32z"></path><path fill="#ffffff" d="M8 10.87a.6.6 0 01-.35-.11L5.5 9.53a.6.6 0 01-.22-.8l.74-2.16-1.63-1.63a.6.6 0 01.16-.94l2.16-.73L7.9 1.1a.6.6 0 011.08.38l.73 2.16 2.16.73a.6.6 0 01.16.94L10.4 7.57l.74 2.16a.6.6 0 01-.22.8l-2.15 1.23a.6.6 0 01-.35.11z"></path></svg></span>
             </div>
         </header>
 
@@ -155,7 +155,6 @@
                         <div class="form-grid">
                             <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
-                                <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый переключатель моделей --- -->
                                 <div class="segmented-control-wrapper">
                                     <input type="hidden" id="g-model-value" value="V5">
                                     <div class="segmented-control" id="g-model-selector">
@@ -189,7 +188,6 @@
                                 <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
                                 <div class="form-group" id="g-vocalGender-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                                <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый переключатель "Дополнительно" --- -->
                                 <div class="advanced-options-toggle">
                                     <button type="button" class="advanced-options-button" data-target="g-advanced-content">
                                         <span>Дополнительно</span>
@@ -236,7 +234,22 @@
                     <div class="view-header"><h2>Midjourney: Image to Image</h2><p>Создайте новое изображение на основе существующего.</p></div>
                     <form id="midjourney-form-img2img">
                         <div class="form-grid">
-                            <div class="form-group"><label for="mj-fileUrl-img2img">URL исходного изображения</label><input type="text" id="mj-fileUrl-img2img" placeholder="https://example.com/image.jpg"></div>
+                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
+                            <div class="form-group" id="mj-img2img-upload-group">
+                                <label>Исходное изображение</label>
+                                <div class="file-drop-area" id="mj-img2img-file-drop-area">
+                                    <div class="file-drop-area__content">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Перетащите файл сюда</p>
+                                        <span>или</span>
+                                        <label for="mj-img2img-file-input" class="file-drop-area__button">Выберите файл</label>
+                                    </div>
+                                    <div class="file-drop-area__preview" style="display: none;"></div>
+                                    <div class="file-drop-area__progress" style="display: none;"><div class="progress-bar"></div></div>
+                                </div>
+                                <input type="file" id="mj-img2img-file-input" accept="image/*" style="display: none;">
+                                <input type="hidden" id="mj-fileUrl-img2img">
+                            </div>
                             <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Transform this into a cyberpunk style..."></textarea><div class="char-counter" id="mj-prompt-img2img-counter">0/2000</div></div>
                              <div class="form-row">
                                 <div class="form-group"><label for="mj-version-img2img">Версия</label><select id="mj-version-img2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
@@ -251,7 +264,22 @@
                     <div class="view-header"><h2>Midjourney: Image to Video</h2><p>Анимируйте статичное изображение.</p></div>
                     <form id="midjourney-form-video">
                         <div class="form-grid">
-                            <div class="form-group"><label for="mj-fileUrl-video">URL исходного изображения</label><input type="text" id="mj-fileUrl-video" placeholder="https://example.com/image.jpg"></div>
+                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
+                            <div class="form-group" id="mj-video-upload-group">
+                                <label>Исходное изображение</label>
+                                <div class="file-drop-area" id="mj-video-file-drop-area">
+                                    <div class="file-drop-area__content">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Перетащите файл сюда</p>
+                                        <span>или</span>
+                                        <label for="mj-video-file-input" class="file-drop-area__button">Выберите файл</label>
+                                    </div>
+                                    <div class="file-drop-area__preview" style="display: none;"></div>
+                                    <div class="file-drop-area__progress" style="display: none;"><div class="progress-bar"></div></div>
+                                </div>
+                                <input type="file" id="mj-video-file-input" accept="image/*" style="display: none;">
+                                <input type="hidden" id="mj-fileUrl-video">
+                            </div>
                             <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" maxlength="2000" placeholder="Add gentle movement and atmospheric effects..."></textarea><div class="char-counter" id="mj-prompt-video-counter">0/2000</div></div>
                             <div class="form-row">
                                 <div class="form-group"><label for="mj-version-video">Версия</label><select id="mj-version-video"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
@@ -264,7 +292,7 @@
 
 
                 <div id="upload-extend" class="view-content">
-                    <div class="view-header"><h2>Расширить трек</h2><p>Выберите трек из библиотеки или вставьте URL.</p></div>
+                    <div class="view-header"><h2>Расширить трек</h2><p>Выберите трек из библиотеки или загрузите свой.</p></div>
                     <form id="upload-extend-form">
                         <div class="form-grid">
                              <div class="form-row">
@@ -281,7 +309,22 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" id="ue-url-group"><label for="ue-uploadUrl">URL аудио</label><input type="text" id="ue-uploadUrl" placeholder="https://storage.example.com/audio.mp3"></div>
+                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
+                            <div class="form-group" id="ue-url-group">
+                                <label>Аудиофайл</label>
+                                <div class="file-drop-area" id="ue-file-drop-area">
+                                    <div class="file-drop-area__content">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Перетащите файл сюда</p>
+                                        <span>или</span>
+                                        <label for="ue-file-input" class="file-drop-area__button">Выберите файл</label>
+                                    </div>
+                                    <div class="file-drop-area__preview" style="display: none;"></div>
+                                    <div class="file-drop-area__progress" style="display: none;"><div class="progress-bar"></div></div>
+                                </div>
+                                <input type="file" id="ue-file-input" accept="audio/*" style="display: none;">
+                                <input type="hidden" id="ue-uploadUrl">
+                            </div>
                             <div id="ue-audio-editor" class="audio-editor" style="display: none;"></div>
                             
                             <div id="ue-simple-mode-fields" class="form-grid" style="display: none;">
@@ -315,7 +358,7 @@
                 </div>
 
                 <div id="upload" class="view-content">
-                    <div class="view-header"><h2>Создать кавер</h2><p>Выберите трек из библиотеки или вставьте URL.</p></div>
+                    <div class="view-header"><h2>Создать кавер</h2><p>Выберите трек из библиотеки или загрузите свой.</p></div>
                     <form id="upload-cover-form">
                         <div class="form-grid">
                             <div class="form-row">
@@ -333,7 +376,22 @@
                                 </div>
                             </div>
                             
-                            <div class="form-group" id="uc-url-group"><label for="uc-uploadUrl">URL аудио</label><input type="text" id="uc-uploadUrl" placeholder="https://storage.example.com/audio.mp3"></div>
+                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
+                            <div class="form-group" id="uc-url-group">
+                                <label>Аудиофайл</label>
+                                <div class="file-drop-area" id="uc-file-drop-area">
+                                    <div class="file-drop-area__content">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Перетащите файл сюда</p>
+                                        <span>или</span>
+                                        <label for="uc-file-input" class="file-drop-area__button">Выберите файл</label>
+                                    </div>
+                                    <div class="file-drop-area__preview" style="display: none;"></div>
+                                    <div class="file-drop-area__progress" style="display: none;"><div class="progress-bar"></div></div>
+                                </div>
+                                <input type="file" id="uc-file-input" accept="audio/*" style="display: none;">
+                                <input type="hidden" id="uc-uploadUrl">
+                            </div>
                             <div id="uc-audio-editor" class="audio-editor" style="display: none;"></div>
 
                             <div id="uc-simple-mode-fields" class="form-grid" style="display: none;">
