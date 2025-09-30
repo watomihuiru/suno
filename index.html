@@ -155,15 +155,16 @@
                         <div class="form-grid">
                             <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="g-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
-                                <div class="custom-select-wrapper">
+                                <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый переключатель моделей --- -->
+                                <div class="segmented-control-wrapper">
                                     <input type="hidden" id="g-model-value" value="V5">
-                                    <div class="select-button" id="select-model-button">V5</div>
-                                    <div class="select-dropdown" id="select-model-dropdown">
-                                        <div class="select-option selected" data-value="V5">V5</div>
-                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
-                                        <div class="select-option" data-value="V4_5">V4.5</div>
-                                        <div class="select-option" data-value="V4">V4</div>
-                                        <div class="select-option" data-value="V3_5">V3.5</div>
+                                    <div class="segmented-control" id="g-model-selector">
+                                        <input type="radio" name="g-model" id="g-model-v3_5" value="V3_5"><label for="g-model-v3_5">v3.5</label>
+                                        <input type="radio" name="g-model" id="g-model-v4" value="V4"><label for="g-model-v4">v4</label>
+                                        <input type="radio" name="g-model" id="g-model-v4_5" value="V4_5"><label for="g-model-v4_5">v4.5</label>
+                                        <input type="radio" name="g-model" id="g-model-v4_5plus" value="V4_5PLUS"><label for="g-model-v4_5plus">v4.5+</label>
+                                        <input type="radio" name="g-model" id="g-model-v5" value="V5" checked><label for="g-model-v5">v5</label>
+                                        <div class="segmented-control__glider"></div>
                                     </div>
                                 </div>
                             </div>
@@ -188,7 +189,17 @@
                                 <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
                                 <div class="form-group" id="g-vocalGender-group"><label for="g-vocalGender">Пол вокала</label><select id="g-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                                <details class="advanced-options"><summary>Дополнительно</summary><div class="form-group slider-group"><label for="g-styleWeight">Сила стиля</label><input type="range" id="g-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div><div class="form-group slider-group"><label for="g-weirdnessConstraint">Креативность</label><input type="range" id="g-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div></details>
+                                <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый переключатель "Дополнительно" --- -->
+                                <div class="advanced-options-toggle">
+                                    <button type="button" class="advanced-options-button" data-target="g-advanced-content">
+                                        <span>Дополнительно</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="advanced-options-content" id="g-advanced-content" style="display: none;">
+                                    <div class="form-group slider-group"><label for="g-styleWeight">Сила стиля</label><input type="range" id="g-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                    <div class="form-group slider-group"><label for="g-weirdnessConstraint">Креативность</label><input type="range" id="g-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="submit-button" id="g-submit-button">Сгенерировать</button>
@@ -206,11 +217,17 @@
                                 <div class="form-group"><label for="mj-aspect-ratio-txt2img">Соотношение</label><select id="mj-aspect-ratio-txt2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="2:1">2:1</option><option value="3:4">3:4</option><option value="5:6">5:6</option><option value="2:3">2:3</option><option value="6:5">6:5</option><option value="1:2">1:2</option></select></div>
                                 <div class="form-group"><label for="mj-speed-txt2img">Скорость</label><select id="mj-speed-txt2img"><option value="relaxed">Relaxed</option><option value="fast">Fast</option><option value="turbo">Turbo</option></select></div>
                             </div>
-                            <details class="advanced-options"><summary>Дополнительно</summary>
+                            <div class="advanced-options-toggle">
+                                <button type="button" class="advanced-options-button" data-target="mj-advanced-content">
+                                    <span>Дополнительно</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="advanced-options-content" id="mj-advanced-content" style="display: none;">
                                 <div class="form-group slider-group"><label for="mj-stylization-txt2img">Стилизация</label><input type="range" id="mj-stylization-txt2img" min="0" max="1000" step="50" value="250"><span class="slider-value">250</span></div>
                                 <div class="form-group slider-group"><label for="mj-weirdness-txt2img">Необычность</label><input type="range" id="mj-weirdness-txt2img" min="0" max="3000" step="100" value="0"><span class="slider-value">0</span></div>
                                 <div class="form-group slider-group"><label for="mj-variety-txt2img">Разнообразие</label><input type="range" id="mj-variety-txt2img" min="0" max="100" step="5" value="10"><span class="slider-value">10</span></div>
-                            </details>
+                            </div>
                         </div>
                         <button type="submit" class="submit-button">Сгенерировать</button>
                     </form>
@@ -252,15 +269,15 @@
                         <div class="form-grid">
                              <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="ue-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
-                                <div class="custom-select-wrapper">
+                                <div class="segmented-control-wrapper">
                                     <input type="hidden" id="ue-model-value" value="V5">
-                                    <div class="select-button" id="select-model-button-ue">V5</div>
-                                    <div class="select-dropdown" id="select-model-dropdown-ue">
-                                        <div class="select-option selected" data-value="V5">V5</div>
-                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
-                                        <div class="select-option" data-value="V4_5">V4.5</div>
-                                        <div class="select-option" data-value="V4">V4</div>
-                                        <div class="select-option" data-value="V3_5">V3.5</div>
+                                    <div class="segmented-control" id="ue-model-selector">
+                                        <input type="radio" name="ue-model" id="ue-model-v3_5" value="V3_5"><label for="ue-model-v3_5">v3.5</label>
+                                        <input type="radio" name="ue-model" id="ue-model-v4" value="V4"><label for="ue-model-v4">v4</label>
+                                        <input type="radio" name="ue-model" id="ue-model-v4_5" value="V4_5"><label for="ue-model-v4_5">v4.5</label>
+                                        <input type="radio" name="ue-model" id="ue-model-v4_5plus" value="V4_5PLUS"><label for="ue-model-v4_5plus">v4.5+</label>
+                                        <input type="radio" name="ue-model" id="ue-model-v5" value="V5" checked><label for="ue-model-v5">v5</label>
+                                        <div class="segmented-control__glider"></div>
                                     </div>
                                 </div>
                             </div>
@@ -280,11 +297,17 @@
                                 <label class="toggle-switch"><input type="checkbox" id="ue-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="ue-negativeTags">Негативные теги</label><input type="text" id="ue-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
                                 <div class="form-group" id="ue-vocalGender-group"><label for="ue-vocalGender">Пол вокала</label><select id="ue-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                                <details class="advanced-options"><summary>Дополнительно</summary>
+                                <div class="advanced-options-toggle">
+                                    <button type="button" class="advanced-options-button" data-target="ue-advanced-content">
+                                        <span>Дополнительно</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="advanced-options-content" id="ue-advanced-content" style="display: none;">
                                     <div class="form-group slider-group"><label for="ue-styleWeight">Сила стиля</label><input type="range" id="ue-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
                                     <div class="form-group slider-group"><label for="ue-weirdnessConstraint">Креативность</label><input type="range" id="ue-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
                                     <div class="form-group slider-group"><label for="ue-audioWeight">Следование оригиналу</label><input type="range" id="ue-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                </details>
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="submit-button">Расширить</button>
@@ -297,15 +320,15 @@
                         <div class="form-grid">
                             <div class="form-row">
                                 <label class="toggle-switch"><input type="checkbox" id="uc-customMode" checked><span class="slider"></span><span>Пользовательский режим</span></label>
-                                <div class="custom-select-wrapper">
+                                <div class="segmented-control-wrapper">
                                     <input type="hidden" id="uc-model-value" value="V5">
-                                    <div class="select-button" id="select-model-button-uc">V5</div>
-                                    <div class="select-dropdown" id="select-model-dropdown-uc">
-                                        <div class="select-option selected" data-value="V5">V5</div>
-                                        <div class="select-option" data-value="V4_5PLUS">V4.5+</div>
-                                        <div class="select-option" data-value="V4_5">V4.5</div>
-                                        <div class="select-option" data-value="V4">V4</div>
-                                        <div class="select-option" data-value="V3_5">V3.5</div>
+                                    <div class="segmented-control" id="uc-model-selector">
+                                        <input type="radio" name="uc-model" id="uc-model-v3_5" value="V3_5"><label for="uc-model-v3_5">v3.5</label>
+                                        <input type="radio" name="uc-model" id="uc-model-v4" value="V4"><label for="uc-model-v4">v4</label>
+                                        <input type="radio" name="uc-model" id="uc-model-v4_5" value="V4_5"><label for="uc-model-v4_5">v4.5</label>
+                                        <input type="radio" name="uc-model" id="uc-model-v4_5plus" value="V4_5PLUS"><label for="uc-model-v4_5plus">v4.5+</label>
+                                        <input type="radio" name="uc-model" id="uc-model-v5" value="V5" checked><label for="uc-model-v5">v5</label>
+                                        <div class="segmented-control__glider"></div>
                                     </div>
                                 </div>
                             </div>
@@ -325,11 +348,17 @@
                                 <label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
                                 <div class="form-group" id="uc-vocalGender-group"><label for="uc-vocalGender">Пол вокала</label><select id="uc-vocalGender"><option value="">Не выбрано</option><option value="m">Мужской</option><option value="f">Женский</option></select></div>
-                                <details class="advanced-options"><summary>Дополнительно</summary>
+                                <div class="advanced-options-toggle">
+                                    <button type="button" class="advanced-options-button" data-target="uc-advanced-content">
+                                        <span>Дополнительно</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="advanced-options-content" id="uc-advanced-content" style="display: none;">
                                     <div class="form-group slider-group"><label for="uc-styleWeight">Сила стиля</label><input type="range" id="uc-styleWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
                                     <div class="form-group slider-group"><label for="uc-weirdnessConstraint">Креативность</label><input type="range" id="uc-weirdnessConstraint" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
                                     <div class="form-group slider-group"><label for="uc-audioWeight">Следование оригиналу</label><input type="range" id="uc-audioWeight" min="0" max="1" step="0.05" value="0.65"><span class="slider-value">0.65</span></div>
-                                </details>
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="submit-button">Создать кавер</button>

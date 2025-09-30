@@ -12,7 +12,9 @@ import {
     setupSliderListeners, 
     setupCharCounters, 
     updateAllLimits, 
-    setupCustomSelect, 
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Обновляем импорты ---
+    setupSegmentedControls,
+    setupAdvancedOptionsToggle,
     setupInstrumentalToggle,
     validateField,
     updateStatus,
@@ -203,9 +205,9 @@ function setupEventListeners() {
     setupInstrumentalToggle('uc-instrumental', 'uc-prompt-group', 'uc-vocalGender-group');
     setupInstrumentalToggle('ue-instrumental', 'ue-prompt-group', 'ue-vocalGender-group');
     
-    setupCustomSelect('select-model-button', 'select-model-dropdown', 'g-model-value');
-    setupCustomSelect('select-model-button-uc', 'select-model-dropdown-uc', 'uc-model-value');
-    setupCustomSelect('select-model-button-ue', 'select-model-dropdown-ue', 'ue-model-value');
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем новые функции ---
+    setupSegmentedControls();
+    setupAdvancedOptionsToggle();
 
     document.getElementById("generate-music-form").addEventListener("submit", handleGenerateSubmit);
     document.getElementById("upload-cover-form").addEventListener("submit", handleCoverSubmit);
@@ -217,7 +219,6 @@ function setupEventListeners() {
     document.getElementById('boost-style-button').addEventListener('click', handleBoostStyle);
 
     window.addEventListener("click", () => { 
-        document.querySelectorAll('.select-dropdown.open').forEach(d => d.classList.remove('open'));
         document.querySelectorAll('.song-menu.active').forEach(menu => {
             menu.classList.remove('active');
             menu.closest('.song-card').classList.remove('menu-is-active');

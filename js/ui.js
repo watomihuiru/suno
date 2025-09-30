@@ -221,22 +221,67 @@ export function setupCharCounters() {
     });
 }
 
-export function setupCustomSelect(buttonId, dropdownId, valueInputId) {
-    const selectButton = document.getElementById(buttonId);
-    const selectDropdown = document.getElementById(dropdownId);
-    const valueInput = document.getElementById(valueInputId);
+// --- НОВАЯ ФУНКЦИЯ: Управление сегментированным переключателем ---
+export function setupSegmentedControls() {
+    document.querySelectorAll('.segmented-control').forEach(container => {
+        const glider = container.querySelector('.segmented-control__glider');
+        const radios = container.querySelectorAll('input[type="radio"]');
+        const valueInput = container.parentElement.querySelector('input[type="hidden"]');
 
-    selectButton.addEventListener("click", e => { e.stopPropagation(); selectDropdown.classList.toggle("open"); });
-    selectDropdown.addEventListener("click", e => {
-        if (e.target.classList.contains("select-option")) {
-            const currentSelected = selectDropdown.querySelector('.select-option.selected');
-            if (currentSelected) currentSelected.classList.remove('selected');
-            e.target.classList.add('selected');
-            valueInput.value = e.target.dataset.value;
-            selectButton.textContent = e.target.textContent;
-            selectDropdown.classList.remove("open");
-            updateAllLimits();
-        }
+        const moveGlider = () => {
+            const checkedRadio = container.querySelector('input[type="radio"]:checked');
+            if (!checkedRadio) return;
+            
+            const label = container.querySelector(`label[for="${checkedRadio.id}"]`);
+            if (label) {
+                glider.style.width = `${label.offsetWidth}px`;
+                glider.style.transform = `translateX(${label.offsetLeft - container.firstElementChild.offsetLeft}px)`;
+                if (valueInput) {
+                    valueInput.value = checkedRadio.value;
+                }
+                updateAllLimits();
+            }
+        };
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', moveGlider);
+        });
+
+        // Set initial position
+        moveGlider();
+        // Recalculate on resize
+        new ResizeObserver(moveGlider).observe(container);
+    });
+}
+
+// --- НОВАЯ ФУНКЦИЯ: Управление раскрывающимся блоком "Дополнительно" ---
+export function setupAdvancedOptionsToggle() {
+    document.querySelectorAll('.advanced-options-button').forEach(button => {
+        const targetId = button.dataset.target;
+        const content = document.getElementById(targetId);
+
+        button.addEventListener('click', () => {
+            const isOpen = button.classList.toggle('is-open');
+            if (isOpen) {
+                content.style.display = 'flex';
+                const height = content.scrollHeight;
+                content.style.height = 0;
+                content.style.opacity = 0;
+                requestAnimationFrame(() => {
+                    content.style.transition = 'height 0.3s ease, opacity 0.3s ease';
+                    content.style.height = `${height}px`;
+                    content.style.opacity = 1;
+                });
+            } else {
+                content.style.height = 0;
+                content.style.opacity = 0;
+                content.addEventListener('transitionend', () => {
+                    if (!button.classList.contains('is-open')) {
+                        content.style.display = 'none';
+                    }
+                }, { once: true });
+            }
+        });
     });
 }
 

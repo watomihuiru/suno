@@ -1,4 +1,4 @@
-/* --- ОБНОВЛЕННЫЙ ДИЗАЙН ФОРМ --- */
+/* --- ПОЛНОЕ ОБНОВЛЕНИЕ ДИЗАЙНА ФОРМ --- */
 
 .view-content > form { 
     display: flex; 
@@ -22,11 +22,11 @@
     gap: 8px; 
 }
 
-/* Новый стиль для полей ввода */
+/* Стиль для полей ввода (остается из прошлого шага) */
 .form-group input, .form-group textarea, .form-group select { 
     background-color: var(--bg-input); 
-    border: 1px solid var(--border); /* Тонкая, едва заметная граница */
-    border-radius: 8px; /* Увеличено */
+    border: 1px solid var(--border);
+    border-radius: 8px;
     color: var(--text-primary); 
     padding: 10px 12px; 
     font-size: 14px; 
@@ -38,14 +38,12 @@
     color: var(--text-secondary); 
 }
 
-/* Эффект свечения при фокусе */
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus { 
     border-color: var(--accent-blue); 
     outline: none; 
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3), var(--accent-glow);
 }
 
-/* Эффект свечения для ошибки */
 .form-group .input-error { 
     border-color: var(--accent-red); 
     box-shadow: 0 0 0 3px rgba(218, 51, 51, 0.3), 0 0 15px -2px var(--accent-red); 
@@ -74,12 +72,12 @@
     font-weight: 600; 
 }
 
-/* Новый стиль для основной кнопки */
+/* Стиль для основной кнопки (остается из прошлого шага) */
 .submit-button { 
     background: linear-gradient(45deg, var(--accent-blue), var(--accent-blue-hover));
     border: none;
     border-radius: 8px; 
-    padding: 12px; /* Увеличено */
+    padding: 12px;
     font-weight: 600; 
     color: white; 
     font-size: 14px; 
@@ -99,7 +97,7 @@
     transform: scale(0.98) translateY(0); 
 }
 
-/* Новый стиль для переключателя */
+/* Стиль для переключателя (остается из прошлого шага) */
 .toggle-switch { 
     display: flex; 
     align-items: center; 
@@ -115,8 +113,8 @@
 
 .toggle-switch .slider { 
     position: relative; 
-    width: 42px; /* Увеличено */
-    height: 24px; /* Увеличено */
+    width: 42px;
+    height: 24px;
     background-color: #30363D; 
     border-radius: 12px; 
     cursor: pointer; 
@@ -143,100 +141,131 @@
     transform: translateX(18px); 
 }
 
-/* Новый стиль для кастомного селекта */
-.custom-select-wrapper { 
-    position: relative; 
-    width: 100px; 
-    user-select: none; 
+/* --- НОВЫЕ СТИЛИ: Сегментированный переключатель --- */
+.segmented-control-wrapper {
+    display: flex;
+    justify-content: flex-end;
+}
+.segmented-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-input);
+    border-radius: 99px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    user-select: none;
+}
+.segmented-control input[type="radio"] {
+    display: none;
+}
+.segmented-control label {
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-secondary);
+    z-index: 2;
+    transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.segmented-control input:checked + label {
+    color: var(--text-primary);
+}
+.segmented-control__glider {
+    position: absolute;
+    top: 4px;
+    left: 4px; /* Начальная позиция, будет управляться JS */
+    height: calc(100% - 8px);
+    background-color: #30363D;
+    border-radius: 99px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+    z-index: 1;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.select-button { 
-    background-color: var(--bg-input); 
-    border: 1px solid var(--border); 
-    border-radius: 8px; 
-    color: var(--text-primary); 
-    padding: 8px 12px; 
-    font-size: 14px; 
-    font-weight: 500; 
-    cursor: pointer; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
+/* --- НОВЫЕ СТИЛИ: Кнопка "Дополнительно" --- */
+.advanced-options-toggle {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+}
+.advanced-options-button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: color 0.2s, background-color 0.2s;
+}
+.advanced-options-button:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.advanced-options-button i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.advanced-options-button.is-open i {
+    transform: rotate(180deg);
+}
+.advanced-options-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    /* Анимация появления будет управляться JS */
 }
 
-.select-button::after { 
-    content: ''; 
-    border: solid var(--text-secondary); 
-    border-width: 0 2px 2px 0; 
-    display: inline-block; 
-    padding: 3px; 
-    transform: rotate(45deg); 
-    transition: transform 0.2s; 
-}
-
-.select-dropdown.open ~ .select-button::after { 
-    transform: rotate(-135deg); 
-}
-
-.select-dropdown { 
-    position: absolute; 
-    top: calc(100% + 4px); 
-    left: 0; 
-    right: 0; 
-    background-color: rgba(33, 38, 45, 0.8); /* Полупрозрачный фон */
-    backdrop-filter: blur(8px); /* Эффект стекла */
-    border: 1px solid var(--border); 
-    border-radius: 8px; 
-    padding: 4px; 
-    z-index: 10; 
-    display: none; 
-}
-
-.select-dropdown.open { 
-    display: block; 
-}
-
-.select-option { 
-    padding: 8px 12px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    font-size: 14px; 
-}
-
-.select-option:hover { 
-    background-color: rgba(255, 255, 255, 0.1); 
-}
-
-.select-option.selected { 
-    background-color: var(--accent-blue-active); 
-    font-weight: 600; 
-}
-
-.advanced-options summary { 
-    cursor: pointer; 
-    font-weight: 600; 
-    color: var(--text-secondary); 
-    margin: 10px 0; 
-    outline: none; 
-}
-
-.advanced-options summary:hover { 
-    color: var(--text-primary); 
-}
-
+/* --- НОВЫЕ СТИЛИ: Слайдеры --- */
 .form-group.slider-group { 
     flex-direction: row; 
     align-items: center; 
     gap: 12px; 
 }
-
 .form-group.slider-group label { 
     flex-basis: 120px; 
     flex-shrink: 0; 
 }
-
 .form-group.slider-group input[type="range"] { 
-    flex-grow: 1; 
+    -webkit-appearance: none;
+    appearance: none;
+    flex-grow: 1;
+    height: 4px;
+    background: var(--bg-input);
+    border-radius: 2px;
+    outline: none;
+}
+.form-group.slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--text-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+}
+.form-group.slider-group input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--text-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+}
+.form-group.slider-group input[type="range"]:focus::-webkit-slider-thumb,
+.form-group.slider-group input[type="range"]:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), var(--accent-glow);
+}
+.form-group.slider-group input[type="range"]:focus::-moz-range-thumb,
+.form-group.slider-group input[type="range"]:hover::-moz-range-thumb {
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), var(--accent-glow);
 }
 
 .slider-value { 
@@ -248,14 +277,13 @@
     text-align: right; 
 }
 
+/* Стили для кнопки Boost (остаются) */
 .style-input-container { 
     position: relative; 
 }
-
 #g-style { 
     padding-right: 40px; 
 }
-
 .input-action-btn { 
     position: absolute; 
     top: 50%;
@@ -270,13 +298,11 @@
     transition: opacity 0.2s, color 0.2s, transform 0.2s; 
     padding: 4px; 
 }
-
 .input-action-btn:hover { 
     opacity: 1; 
     color: var(--accent-pink);
     transform: translateY(-50%) scale(1.1);
 }
-
 .input-action-btn:disabled { 
     cursor: not-allowed; 
     opacity: 0.5; 
