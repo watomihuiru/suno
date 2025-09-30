@@ -361,7 +361,22 @@ app.get('/api/stream/:id', async (req, res) => {
             validateStatus: status => status >= 200 && status < 400
         });
 
-        res.writeHead(response.status, response.headers);
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+        // Вместо слепого копирования заголовков, устанавливаем их явно.
+        // Это обеспечивает корректную работу Range-запросов и перемотки.
+        const headers = {
+            'Content-Type': response.headers['content-type'],
+            'Content-Length': response.headers['content-length'],
+            'Accept-Ranges': 'bytes',
+        };
+        
+        if (response.status === 206 && response.headers['content-range']) {
+            headers['Content-Range'] = response.headers['content-range'];
+        }
+
+        res.writeHead(response.status, headers);
+        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
         response.data.pipe(res);
 
     } catch (error) {
@@ -503,14 +518,11 @@ wss.on('connection', (ws, req) => {
                             const finalSuccessFlags = [1, 2, 3];
                             const isFinal = finalSuccessFlags.includes(taskData.successFlag);
                             
-                            // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
-                            // Отправляем обновление на каждом шаге, если задача не завершена
                             if (!isFinal) {
                                 if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(response.data));
-                                return; // Выходим из этой итерации интервала
+                                return; 
                             }
 
-                            // Если задача завершена, останавливаем интервал и обрабатываем результат
                             clearInterval(trackingInterval);
                             if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
                                 for (const image of taskData.resultInfoJson.resultUrls) {
