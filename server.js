@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
-import multer from 'multer'; // --- НОВОЕ: Импортируем multer
+import multer from 'multer';
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +30,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// --- DATABASE SETUP (без изменений) ---
+// --- DATABASE SETUP ---
 async function setupDatabase() {
     const client = await pool.connect();
     try {
@@ -72,6 +72,7 @@ async function setupDatabase() {
         `);
         console.log('Таблица "songs" готова.');
 
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлена колонка image_type ---
         await client.query(`
             CREATE TABLE IF NOT EXISTS images (
                 id SERIAL PRIMARY KEY,
@@ -79,6 +80,7 @@ async function setupDatabase() {
                 task_id VARCHAR(255) NOT NULL,
                 image_url TEXT NOT NULL,
                 prompt_data JSONB,
+                image_type VARCHAR(50) DEFAULT 'grid',
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -91,30 +93,24 @@ async function setupDatabase() {
     }
 }
 
-// --- НОВОЕ: Настройка Multer для сохранения файлов ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/'); // Папка, куда сохраняем файлы
+        cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
-        // Генерируем уникальное имя файла, чтобы избежать конфликтов
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
 });
 const upload = multer({ storage: storage });
 
-
-// --- MIDDLEWARE ---
 app.use(express.json());
 app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     next();
 });
 app.use(express.static(__dirname));
-// --- НОВОЕ: Делаем папку 'uploads' публичной ---
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -131,18 +127,14 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// --- НОВОЕ: Эндпоинт для загрузки файлов ---
 app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'Файл не был загружен.' });
     }
-    // Формируем полный URL к загруженному файлу
     const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     res.json({ fileUrl: fileUrl });
 });
 
-
-// --- AUTH ROUTES (без изменений) ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -195,7 +187,6 @@ app.post('/api/auth/google', async (req, res) => {
     }
 });
 
-// --- USER PROFILE & CREDITS (без изменений) ---
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT name, email, picture_url, credits, is_admin FROM users WHERE id = $1', [req.user.id]);
@@ -267,7 +258,6 @@ app.get('/api/chat/credit', authMiddleware, async (req, res) => {
     }
 });
 
-// --- PROJECTS API (без изменений) ---
 app.get('/api/projects', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at ASC', [req.user.id]);
@@ -306,7 +296,6 @@ app.delete('/api/projects/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// --- SONGS & IMAGES API (без изменений) ---
 app.get('/api/songs', authMiddleware, async (req, res) => {
     const { projectId } = req.query;
     let queryText;
@@ -338,6 +327,22 @@ app.get('/api/images', authMiddleware, async (req, res) => {
     }
 });
 
+// --- НОВЫЙ ЭНДПОИНТ: Удаление изображения ---
+app.delete('/api/images/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('DELETE FROM images WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Изображение не найдено или у вас нет прав на его удаление.' });
+        }
+        res.status(200).json({ message: 'Изображение успешно удалено.' });
+    } catch (err) {
+        console.error('Ошибка при удалении изображения:', err);
+        res.status(500).json({ message: 'Не удалось удалить изображение.' });
+    }
+});
+
+
 app.put('/api/songs/:id/move', authMiddleware, async (req, res) => {
     const { projectId } = req.body;
     try {
@@ -366,7 +371,6 @@ app.put('/api/songs/:id/favorite', authMiddleware, async (req, res) => {
     }
 });
 
-// --- STREAMING & SUNO PROXY (без изменений) ---
 app.get('/api/stream/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -500,7 +504,6 @@ app.post('/api/lyrics', authMiddleware, async (req, res) => {
     }
 });
 
-// --- WebSocket Server (без изменений) ---
 const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
     console.log('Клиент подключился по WebSocket');
@@ -550,12 +553,17 @@ wss.on('connection', (ws, req) => {
 
                             clearInterval(trackingInterval);
                             if (taskData.successFlag === 1 && taskData.resultInfoJson?.resultUrls) {
+                                // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Определяем и сохраняем тип изображения ---
+                                let imageType = 'grid'; // По умолчанию
+                                if (taskType === 'mj_upscale') imageType = 'upscale';
+                                if (taskType === 'mj_vary') imageType = 'variation';
+
                                 for (const image of taskData.resultInfoJson.resultUrls) {
                                     let promptData = {};
                                     try { promptData = JSON.parse(taskData.paramJson) } catch (e) {}
                                     await pool.query(
-                                        `INSERT INTO images (user_id, task_id, image_url, prompt_data) VALUES ($1, $2, $3, $4)`,
-                                        [userId, taskId, image.resultUrl, promptData]
+                                        `INSERT INTO images (user_id, task_id, image_url, prompt_data, image_type) VALUES ($1, $2, $3, $4, $5)`,
+                                        [userId, taskId, image.resultUrl, promptData, imageType]
                                     );
                                 }
                             }
@@ -608,7 +616,6 @@ wss.on('connection', (ws, req) => {
     });
 });
 
-// --- SERVER START ---
 server.listen(port, async () => {
     await setupDatabase();
     console.log(`Сервер запущен на http://localhost:${port}`);

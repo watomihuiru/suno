@@ -168,22 +168,42 @@
                                 </div>
                             </div>
                             <div id="simple-mode-fields" class="form-grid" style="display: none;">
-                                <div class="form-group" id="g-song-description-group"><label for="g-song-description">Описание песни</label><textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea><div class="char-counter" id="g-song-description-counter">0/400</div></div>
+                                <div class="form-group" id="g-song-description-group">
+                                    <label for="g-song-description">Описание песни</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="g-song-description" placeholder="Опишите стиль музыки, тему и настроение..."></textarea>
+                                        <div class="char-counter" id="g-song-description-counter">0/400</div>
+                                    </div>
+                                </div>
                                 <label class="toggle-switch"><input type="checkbox" id="g-instrumental-simple"><span class="slider"></span><span>Инструментал</span></label>
                             </div>
                             <div id="custom-mode-fields" class="form-grid">
-                                <div class="form-group"><label for="g-title">Название</label><input type="text" id="g-title" placeholder="Введите название"><div class="char-counter" id="g-title-counter">0/80</div></div>
+                                <div class="form-group">
+                                    <label for="g-title">Название</label>
+                                    <div class="input-wrapper">
+                                        <input type="text" id="g-title" placeholder="Введите название">
+                                        <div class="char-counter" id="g-title-counter">0/80</div>
+                                    </div>
+                                </div>
                                 <div class="form-group">
                                     <label for="g-style">Стиль музыки</label>
-                                    <div class="style-input-container">
-                                        <textarea id="g-style" placeholder="Пример: Pop, Mysterious, Upbeat"></textarea>
-                                        <button type="button" id="boost-style-button" class="input-action-btn" title="Улучшить стиль (Boost)">
-                                            <i class="fas fa-wand-magic-sparkles"></i>
-                                        </button>
+                                    <div class="input-wrapper">
+                                        <div class="style-input-container">
+                                            <textarea id="g-style" placeholder="Пример: Pop, Mysterious, Upbeat"></textarea>
+                                            <button type="button" id="boost-style-button" class="input-action-btn" title="Улучшить стиль (Boost)">
+                                                <i class="fas fa-wand-magic-sparkles"></i>
+                                            </button>
+                                        </div>
+                                        <div class="char-counter" id="g-style-counter">0/1000</div>
                                     </div>
-                                    <div class="char-counter" id="g-style-counter">0/1000</div>
                                 </div>
-                                <div class="form-group" id="g-prompt-group"><label for="g-prompt">Текст песни</label><textarea id="g-prompt"></textarea><div class="char-counter" id="g-prompt-counter">0/5000</div></div>
+                                <div class="form-group" id="g-prompt-group">
+                                    <label for="g-prompt">Текст песни</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="g-prompt"></textarea>
+                                        <div class="char-counter" id="g-prompt-counter">0/5000</div>
+                                    </div>
+                                </div>
                                 <hr class="divider">
                                 <label class="toggle-switch"><input type="checkbox" id="g-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="g-negativeTags">Негативные теги</label><input type="text" id="g-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
@@ -209,7 +229,13 @@
                     <div class="view-header"><h2>Midjourney: Text to Image</h2><p>Создайте изображение по текстовому описанию.</p></div>
                     <form id="midjourney-form-txt2img">
                         <div class="form-grid">
-                            <div class="form-group"><label for="mj-prompt-txt2img">Промпт (описание)</label><textarea id="mj-prompt-txt2img" maxlength="2000" placeholder="A majestic mountain landscape at sunset..."></textarea><div class="char-counter" id="mj-prompt-txt2img-counter">0/2000</div></div>
+                            <div class="form-group">
+                                <label for="mj-prompt-txt2img">Промпт (описание)</label>
+                                <div class="input-wrapper">
+                                    <textarea id="mj-prompt-txt2img" maxlength="2000" placeholder="A majestic mountain landscape at sunset..."></textarea>
+                                    <div class="char-counter" id="mj-prompt-txt2img-counter">0/2000</div>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group"><label for="mj-version-txt2img">Версия</label><select id="mj-version-txt2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
                                 <div class="form-group"><label for="mj-aspect-ratio-txt2img">Соотношение</label><select id="mj-aspect-ratio-txt2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="2:1">2:1</option><option value="3:4">3:4</option><option value="5:6">5:6</option><option value="2:3">2:3</option><option value="6:5">6:5</option><option value="1:2">1:2</option></select></div>
@@ -222,9 +248,9 @@
                                 </button>
                             </div>
                             <div class="advanced-options-content" id="mj-advanced-content" style="display: none;">
-                                <div class="form-group slider-group"><label for="mj-stylization-txt2img">Стилизация</label><input type="range" id="mj-stylization-txt2img" min="0" max="1000" step="50" value="250"><span class="slider-value">250</span></div>
+                                <div class="form-group slider-group"><label for="mj-stylization-txt2img">Стилизация</label><input type="range" id="mj-stylization-txt2img" min="0" max="1000" step="50" value="100"><span class="slider-value">100</span></div>
                                 <div class="form-group slider-group"><label for="mj-weirdness-txt2img">Необычность</label><input type="range" id="mj-weirdness-txt2img" min="0" max="3000" step="100" value="0"><span class="slider-value">0</span></div>
-                                <div class="form-group slider-group"><label for="mj-variety-txt2img">Разнообразие</label><input type="range" id="mj-variety-txt2img" min="0" max="100" step="5" value="10"><span class="slider-value">10</span></div>
+                                <div class="form-group slider-group"><label for="mj-variety-txt2img">Разнообразие</label><input type="range" id="mj-variety-txt2img" min="0" max="100" step="5" value="0"><span class="slider-value">0</span></div>
                             </div>
                         </div>
                         <button type="submit" class="submit-button">Сгенерировать</button>
@@ -234,7 +260,6 @@
                     <div class="view-header"><h2>Midjourney: Image to Image</h2><p>Создайте новое изображение на основе существующего.</p></div>
                     <form id="midjourney-form-img2img">
                         <div class="form-grid">
-                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
                             <div class="form-group" id="mj-img2img-upload-group">
                                 <label>Исходное изображение</label>
                                 <div class="file-drop-area" id="mj-img2img-file-drop-area">
@@ -250,7 +275,13 @@
                                 <input type="file" id="mj-img2img-file-input" accept="image/*" style="display: none;">
                                 <input type="hidden" id="mj-fileUrl-img2img">
                             </div>
-                            <div class="form-group"><label for="mj-prompt-img2img">Промпт (описание)</label><textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Transform this into a cyberpunk style..."></textarea><div class="char-counter" id="mj-prompt-img2img-counter">0/2000</div></div>
+                            <div class="form-group">
+                                <label for="mj-prompt-img2img">Промпт (описание)</label>
+                                <div class="input-wrapper">
+                                    <textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Transform this into a cyberpunk style..."></textarea>
+                                    <div class="char-counter" id="mj-prompt-img2img-counter">0/2000</div>
+                                </div>
+                            </div>
                              <div class="form-row">
                                 <div class="form-group"><label for="mj-version-img2img">Версия</label><select id="mj-version-img2img"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
                                 <div class="form-group"><label for="mj-aspect-ratio-img2img">Соотношение</label><select id="mj-aspect-ratio-img2img"><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="2:1">2:1</option><option value="3:4">3:4</option><option value="5:6">5:6</option><option value="2:3">2:3</option><option value="6:5">6:5</option><option value="1:2">1:2</option></select></div>
@@ -264,7 +295,6 @@
                     <div class="view-header"><h2>Midjourney: Image to Video</h2><p>Анимируйте статичное изображение.</p></div>
                     <form id="midjourney-form-video">
                         <div class="form-grid">
-                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
                             <div class="form-group" id="mj-video-upload-group">
                                 <label>Исходное изображение</label>
                                 <div class="file-drop-area" id="mj-video-file-drop-area">
@@ -280,7 +310,13 @@
                                 <input type="file" id="mj-video-file-input" accept="image/*" style="display: none;">
                                 <input type="hidden" id="mj-fileUrl-video">
                             </div>
-                            <div class="form-group"><label for="mj-prompt-video">Промпт (описание)</label><textarea id="mj-prompt-video" maxlength="2000" placeholder="Add gentle movement and atmospheric effects..."></textarea><div class="char-counter" id="mj-prompt-video-counter">0/2000</div></div>
+                            <div class="form-group">
+                                <label for="mj-prompt-video">Промпт (описание)</label>
+                                <div class="input-wrapper">
+                                    <textarea id="mj-prompt-video" maxlength="2000" placeholder="Add gentle movement and atmospheric effects..."></textarea>
+                                    <div class="char-counter" id="mj-prompt-video-counter">0/2000</div>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group"><label for="mj-version-video">Версия</label><select id="mj-version-video"><option value="7">V7</option><option value="6.1">V6.1</option><option value="6">V6</option><option value="5.2">V5.2</option><option value="5.1">V5.1</option><option value="niji6">Niji 6</option></select></div>
                                 <div class="form-group"><label for="mj-motion-video">Движение</label><select id="mj-motion-video"><option value="high">Высокое</option><option value="low">Низкое</option></select></div>
@@ -309,7 +345,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
                             <div class="form-group" id="ue-url-group">
                                 <label>Аудиофайл</label>
                                 <div class="file-drop-area" id="ue-file-drop-area">
@@ -328,14 +363,38 @@
                             <div id="ue-audio-editor" class="audio-editor" style="display: none;"></div>
                             
                             <div id="ue-simple-mode-fields" class="form-grid" style="display: none;">
-                                 <div class="form-group"><label for="ue-prompt-simple">Новый текст (Prompt)</label><textarea id="ue-prompt-simple" placeholder="Extend the music with more relaxing notes..."></textarea><div class="char-counter" id="ue-prompt-simple-counter">0/5000</div></div>
+                                 <div class="form-group">
+                                    <label for="ue-prompt-simple">Новый текст (Prompt)</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="ue-prompt-simple" placeholder="Extend the music with more relaxing notes..."></textarea>
+                                        <div class="char-counter" id="ue-prompt-simple-counter">0/5000</div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div id="ue-custom-mode-fields" class="form-grid">
                                 <div class="form-group" id="ue-continueAt-group"><label for="ue-continueAt">Расширить с (секунды)</label><input type="number" id="ue-continueAt" value="60"></div>
-                                <div class="form-group"><label for="ue-title">Новое название</label><input type="text" id="ue-title" placeholder="Введите новое название"><div class="char-counter" id="ue-title-counter">0/100</div></div>
-                                <div class="form-group"><label for="ue-style">Стиль музыки</label><textarea id="ue-style" placeholder="Pop, Mysterious, Upbeat"></textarea><div class="char-counter" id="ue-style-counter">0/1000</div></div>
-                                <div class="form-group" id="ue-prompt-group"><label for="ue-prompt">Новый текст (Prompt)</label><textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..."></textarea><div class="char-counter" id="ue-prompt-counter">0/5000</div></div>
+                                <div class="form-group">
+                                    <label for="ue-title">Новое название</label>
+                                    <div class="input-wrapper">
+                                        <input type="text" id="ue-title" placeholder="Введите новое название">
+                                        <div class="char-counter" id="ue-title-counter">0/100</div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ue-style">Стиль музыки</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="ue-style" placeholder="Pop, Mysterious, Upbeat"></textarea>
+                                        <div class="char-counter" id="ue-style-counter">0/1000</div>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="ue-prompt-group">
+                                    <label for="ue-prompt">Новый текст (Prompt)</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..."></textarea>
+                                        <div class="char-counter" id="ue-prompt-counter">0/5000</div>
+                                    </div>
+                                </div>
                                 <hr class="divider">
                                 <label class="toggle-switch"><input type="checkbox" id="ue-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="ue-negativeTags">Негативные теги</label><input type="text" id="ue-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
@@ -376,7 +435,6 @@
                                 </div>
                             </div>
                             
-                            <!-- --- ИЗМЕНЕНИЕ ЗДЕСЬ: Новый блок Drag-and-Drop --- -->
                             <div class="form-group" id="uc-url-group">
                                 <label>Аудиофайл</label>
                                 <div class="file-drop-area" id="uc-file-drop-area">
@@ -395,13 +453,37 @@
                             <div id="uc-audio-editor" class="audio-editor" style="display: none;"></div>
 
                             <div id="uc-simple-mode-fields" class="form-grid" style="display: none;">
-                                <div class="form-group" id="uc-song-description-group"><label for="uc-song-description">Описание кавера</label><textarea id="uc-song-description" placeholder="A calm and relaxing piano track..."></textarea><div class="char-counter" id="uc-song-description-counter">0/400</div></div>
+                                <div class="form-group" id="uc-song-description-group">
+                                    <label for="uc-song-description">Описание кавера</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="uc-song-description" placeholder="A calm and relaxing piano track..."></textarea>
+                                        <div class="char-counter" id="uc-song-description-counter">0/400</div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div id="uc-custom-mode-fields" class="form-grid">
-                                <div class="form-group"><label for="uc-title">Название</label><input type="text" id="uc-title" placeholder="Введите название кавера"><div class="char-counter" id="uc-title-counter">0/80</div></div>
-                                <div class="form-group"><label for="uc-style">Стиль музыки</label><textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat"></textarea><div class="char-counter" id="uc-style-counter">0/1000</div></div>
-                                <div class="form-group" id="uc-prompt-group"><label for="uc-prompt">Prompt (описание кавера)</label><textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea><div class="char-counter" id="uc-prompt-counter">0/5000</div></div>
+                                <div class="form-group">
+                                    <label for="uc-title">Название</label>
+                                    <div class="input-wrapper">
+                                        <input type="text" id="uc-title" placeholder="Введите название кавера">
+                                        <div class="char-counter" id="uc-title-counter">0/80</div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="uc-style">Стиль музыки</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="uc-style" placeholder="Pop, Mysterious, Upbeat"></textarea>
+                                        <div class="char-counter" id="uc-style-counter">0/1000</div>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="uc-prompt-group">
+                                    <label for="uc-prompt">Prompt (описание кавера)</label>
+                                    <div class="input-wrapper">
+                                        <textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea>
+                                        <div class="char-counter" id="uc-prompt-counter">0/5000</div>
+                                    </div>
+                                </div>
                                 <hr class="divider">
                                 <label class="toggle-switch"><input type="checkbox" id="uc-instrumental"><span class="slider"></span><span>Инструментал</span></label>
                                 <div class="form-group"><label for="uc-negativeTags">Негативные теги</label><input type="text" id="uc-negativeTags" placeholder="Heavy Metal, Upbeat Drums"></div>
@@ -565,6 +647,27 @@
             <div class="confirm-modal-actions">
                 <button id="confirm-modal-cancel-btn">Отмена</button>
                 <button id="confirm-modal-confirm-btn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- НОВЫЙ БЛОК: Лайтбокс для изображений --- -->
+    <div id="image-lightbox-overlay" style="display: none;">
+        <button class="lightbox-close-btn">&times;</button>
+        <div class="lightbox-content">
+            <div class="lightbox-image-container">
+                <img id="lightbox-image" src="" alt="Увеличенное изображение">
+            </div>
+            <div class="lightbox-info-panel">
+                <h4>Информация</h4>
+                <div class="info-item">
+                    <label>Промпт:</label>
+                    <p id="lightbox-prompt"></p>
+                </div>
+                <div class="info-item">
+                    <label>Версия модели:</label>
+                    <p id="lightbox-version"></p>
+                </div>
             </div>
         </div>
     </div>

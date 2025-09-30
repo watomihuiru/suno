@@ -22,7 +22,6 @@
     gap: 8px; 
 }
 
-/* Стиль для полей ввода (остается из прошлого шага) */
 .form-group input, .form-group textarea, .form-group select { 
     background-color: var(--bg-input); 
     border: 1px solid var(--border);
@@ -60,19 +59,6 @@
     align-items: center; 
 }
 
-.char-counter { 
-    text-align: right; 
-    font-size: 12px; 
-    color: var(--text-secondary); 
-    margin-top: 4px; 
-}
-
-.char-counter.limit-exceeded { 
-    color: var(--accent-red); 
-    font-weight: 600; 
-}
-
-/* Стиль для основной кнопки (остается из прошлого шага) */
 .submit-button { 
     background: linear-gradient(45deg, var(--accent-blue), var(--accent-blue-hover));
     border: none;
@@ -97,7 +83,6 @@
     transform: scale(0.98) translateY(0); 
 }
 
-/* Стиль для переключателя (остается из прошлого шага) */
 .toggle-switch { 
     display: flex; 
     align-items: center; 
@@ -141,7 +126,6 @@
     transform: translateX(18px); 
 }
 
-/* --- СТИЛИ: Сегментированный переключатель --- */
 .segmented-control-wrapper {
     display: flex;
     justify-content: flex-end;
@@ -183,7 +167,6 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* --- СТИЛИ: Кнопка "Дополнительно" --- */
 .advanced-options-toggle {
     display: flex;
     justify-content: center;
@@ -219,7 +202,6 @@
     gap: 20px;
 }
 
-/* --- СТИЛИ: Слайдеры --- */
 .form-group.slider-group { 
     flex-direction: row; 
     align-items: center; 
@@ -276,7 +258,6 @@
     text-align: right; 
 }
 
-/* Стили для кнопки Boost (остаются) */
 .style-input-container { 
     position: relative; 
 }
@@ -307,7 +288,6 @@
     opacity: 0.5; 
 }
 
-/* --- НОВЫЕ СТИЛИ: Drag-and-Drop зона --- */
 .file-drop-area {
     position: relative;
     display: flex;
@@ -377,4 +357,35 @@
     background-color: var(--accent-blue);
     border-radius: 0 0 12px 12px;
     transition: width 0.3s;
+}
+
+/* --- НОВЫЕ СТИЛИ: Внутренний счетчик символов --- */
+.input-wrapper {
+    position: relative;
+}
+
+.char-counter {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    font-size: 11px;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.4);
+    background-color: var(--bg-input);
+    padding: 0 4px;
+    border-radius: 4px;
+    pointer-events: none;
+    transition: color 0.2s;
+    margin: 0;
+    text-align: left;
+}
+
+.char-counter.limit-exceeded {
+    color: var(--accent-red);
+    font-weight: 600;
+}
+
+.input-wrapper textarea,
+.input-wrapper input[type="text"] {
+    padding-bottom: 28px;
 }

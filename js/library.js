@@ -6,6 +6,7 @@ import { formatTime, copyToClipboard, showConfirmationModal } from './ui.js';
 import { playSongById, getPlayerState, showSimpleLyrics, showTimestampedLyrics, updateAllPlayIcons } from './player.js';
 import { setupExtendView, setupCoverView } from './editor.js';
 import { handleApiCall } from './api.js';
+import { openImageLightbox } from './app.js';
 
 let playlist = [];
 let projects = [];
@@ -37,7 +38,6 @@ export function initializeLibrary() {
     imageGrid = document.getElementById('image-gallery-grid');
     imageEmptyMessage = document.getElementById('image-gallery-empty-message');
 
-    // Initially load song projects and songs
     fetchProjects();
 }
 
@@ -45,11 +45,11 @@ export function toggleLibraryView(viewType) {
     if (viewType === 'songs') {
         songLibraryContainer.style.display = 'flex';
         imageGalleryContainer.style.display = 'none';
-        fetchProjects(); // Reload projects and songs
+        fetchProjects();
     } else if (viewType === 'images') {
         songLibraryContainer.style.display = 'none';
         imageGalleryContainer.style.display = 'flex';
-        fetchImagesFromServer(); // Load images
+        fetchImagesFromServer();
     }
 }
 
@@ -65,15 +65,57 @@ export async function fetchImagesFromServer() {
     }
 }
 
+// --- НОВАЯ ФУНКЦИЯ: Удаление изображения ---
+async function deleteImage(imageId, cardElement) {
+    try {
+        const response = await fetch(`/api/images/${imageId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            throw new Error('Ошибка при удалении на сервере');
+        }
+        // Плавное удаление элемента из DOM
+        cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
+        cardElement.style.opacity = '0';
+        cardElement.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            cardElement.remove();
+            if (imageGrid.children.length === 0) {
+                imageEmptyMessage.style.display = 'block';
+            }
+        }, 300);
+    } catch (e) {
+        console.error("Не удалось удалить изображение", e);
+        // Можно показать уведомление об ошибке
+    }
+}
+
+
 function renderImageGallery(images) {
     imageGrid.innerHTML = '';
     if (images.length > 0) {
+        imageEmptyMessage.style.display = 'none';
         images.forEach(image => {
             const item = document.createElement('div');
             item.className = 'mj-gallery-item';
-            item.innerHTML = `
-                <img src="${image.image_url}" alt="${image.prompt_data?.prompt || 'Generated image'}">
-                <div class="mj-gallery-item-overlay">
+            item.id = `mj-item-${image.id}`;
+
+            const img = document.createElement('img');
+            img.src = image.image_url;
+            img.alt = image.prompt_data?.prompt || 'Generated image';
+            img.addEventListener('click', () => {
+                openImageLightbox(image.image_url, image.prompt_data?.prompt, image.prompt_data?.version);
+            });
+            item.appendChild(img);
+
+            const overlay = document.createElement('div');
+            overlay.className = 'mj-gallery-item-overlay';
+
+            // --- НОВОЕ: Условное отображение кнопок U/V ---
+            // (Зависит от обновления бэкенда, которое добавит поле image_type)
+            if (image.image_type === 'grid') {
+                overlay.innerHTML += `
                     <div class="mj-gallery-actions">
                         <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="0">U1</button>
                         <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="1">U2</button>
@@ -86,8 +128,23 @@ function renderImageGallery(images) {
                         <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="2">V3</button>
                         <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="3">V4</button>
                     </div>
-                </div>
-            `;
+                `;
+            }
+
+            // --- НОВОЕ: Добавляем кнопку удаления для всех изображений ---
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'mj-delete-button';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteButton.title = 'Удалить изображение';
+            deleteButton.addEventListener('click', () => {
+                showConfirmationModal(
+                    'Вы уверены, что хотите удалить это изображение?',
+                    () => deleteImage(image.id, item)
+                );
+            });
+            overlay.appendChild(deleteButton);
+
+            item.appendChild(overlay);
             imageGrid.appendChild(item);
         });
 
@@ -95,7 +152,7 @@ function renderImageGallery(images) {
             button.addEventListener('click', handleMjAction);
         });
     } else {
-        imageGrid.innerHTML = '<p id="image-gallery-empty-message">Ваша галерея изображений пуста.</p>';
+        imageEmptyMessage.style.display = 'block';
     }
 }
 

@@ -22,6 +22,22 @@ import {
 
 window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
 
+// --- НОВАЯ ФУНКЦИЯ: Управление лайтбоксом ---
+export function openImageLightbox(imageUrl, prompt, version) {
+    const overlay = document.getElementById('image-lightbox-overlay');
+    const imageEl = document.getElementById('lightbox-image');
+    const promptEl = document.getElementById('lightbox-prompt');
+    const versionEl = document.getElementById('lightbox-version');
+
+    if (!overlay || !imageEl || !promptEl || !versionEl) return;
+
+    imageEl.src = imageUrl;
+    promptEl.textContent = prompt || 'Промпт не найден';
+    versionEl.textContent = version || 'Версия не указана';
+    
+    overlay.style.display = 'flex';
+}
+
 function loadGoogleGSI() {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -291,7 +307,6 @@ function setupEventListeners() {
     setupSegmentedControls();
     setupAdvancedOptionsToggle();
 
-    // --- НОВОЕ: Инициализируем все Drag-and-Drop зоны ---
     setupFileDropArea('uc-file-drop-area', 'uc-file-input', 'uc-uploadUrl');
     setupFileDropArea('ue-file-drop-area', 'ue-file-input', 'ue-uploadUrl');
     setupFileDropArea('mj-img2img-file-drop-area', 'mj-img2img-file-input', 'mj-fileUrl-img2img');
@@ -313,6 +328,19 @@ function setupEventListeners() {
             menu.closest('.song-card').classList.remove('menu-is-active');
         }); 
         document.querySelectorAll('.move-to-project-submenu.is-open').forEach(menu => menu.classList.remove('is-open'));
+    });
+
+    // --- НОВОЕ: Логика закрытия лайтбокса ---
+    const lightboxOverlay = document.getElementById('image-lightbox-overlay');
+    const lightboxCloseBtn = lightboxOverlay.querySelector('.lightbox-close-btn');
+    const closeLightbox = () => {
+        lightboxOverlay.style.display = 'none';
+    };
+    lightboxCloseBtn.addEventListener('click', closeLightbox);
+    lightboxOverlay.addEventListener('click', (e) => {
+        if (e.target === lightboxOverlay) {
+            closeLightbox();
+        }
     });
 }
 
@@ -452,10 +480,9 @@ function validateUploadCoverForm() {
     const url = songToEdit ? songToEdit.songData.audioUrl : document.getElementById('uc-uploadUrl').value;
     if (!url || !url.trim()) {
         const field = document.getElementById('uc-uploadUrl');
-        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Валидируем новую зону, а не скрытое поле ---
         const dropArea = document.getElementById('uc-file-drop-area');
         if (dropArea) {
-            dropArea.classList.add('is-error'); // Можно добавить стиль для ошибки
+            dropArea.classList.add('is-error'); 
             setTimeout(() => dropArea.classList.remove('is-error'), 1000);
         }
         return false;
