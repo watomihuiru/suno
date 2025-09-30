@@ -38,18 +38,19 @@ export function initializeLibrary() {
     imageGrid = document.getElementById('image-gallery-grid');
     imageEmptyMessage = document.getElementById('image-gallery-empty-message');
 
+    // Загружаем данные один раз при инициализации
     fetchProjects();
+    fetchImagesFromServer();
 }
 
+// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Функция больше не загружает данные, а только переключает видимость ---
 export function toggleLibraryView(viewType) {
     if (viewType === 'songs') {
         songLibraryContainer.style.display = 'flex';
         imageGalleryContainer.style.display = 'none';
-        fetchProjects();
     } else if (viewType === 'images') {
         songLibraryContainer.style.display = 'none';
         imageGalleryContainer.style.display = 'flex';
-        fetchImagesFromServer();
     }
 }
 
@@ -65,7 +66,6 @@ export async function fetchImagesFromServer() {
     }
 }
 
-// --- НОВАЯ ФУНКЦИЯ: Удаление изображения ---
 async function deleteImage(imageId, cardElement) {
     try {
         const response = await fetch(`/api/images/${imageId}`, {
@@ -75,7 +75,6 @@ async function deleteImage(imageId, cardElement) {
         if (!response.ok) {
             throw new Error('Ошибка при удалении на сервере');
         }
-        // Плавное удаление элемента из DOM
         cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
         cardElement.style.opacity = '0';
         cardElement.style.transform = 'scale(0.9)';
@@ -87,7 +86,6 @@ async function deleteImage(imageId, cardElement) {
         }, 300);
     } catch (e) {
         console.error("Не удалось удалить изображение", e);
-        // Можно показать уведомление об ошибке
     }
 }
 
@@ -112,8 +110,6 @@ function renderImageGallery(images) {
             const overlay = document.createElement('div');
             overlay.className = 'mj-gallery-item-overlay';
 
-            // --- НОВОЕ: Условное отображение кнопок U/V ---
-            // (Зависит от обновления бэкенда, которое добавит поле image_type)
             if (image.image_type === 'grid') {
                 overlay.innerHTML += `
                     <div class="mj-gallery-actions">
@@ -131,7 +127,6 @@ function renderImageGallery(images) {
                 `;
             }
 
-            // --- НОВОЕ: Добавляем кнопку удаления для всех изображений ---
             const deleteButton = document.createElement('button');
             deleteButton.className = 'mj-delete-button';
             deleteButton.innerHTML = '<i class="fas fa-trash"></i>';

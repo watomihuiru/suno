@@ -65,10 +65,15 @@ async function loadAndDisplayProfileData() {
 export function showView(viewName, isSetup = false) {
     if (currentViewName === viewName && !isSetup) return;
 
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Убираем вызов toggleLibraryView, управляем напрямую ---
+    const songLibrary = document.getElementById('song-library-container');
+    const imageGallery = document.getElementById('image-gallery-container');
     if (viewName.startsWith('midjourney')) {
-        toggleLibraryView('images');
+        songLibrary.style.display = 'none';
+        imageGallery.style.display = 'flex';
     } else if (['generate', 'upload-extend', 'upload'].includes(viewName)) {
-        toggleLibraryView('songs');
+        songLibrary.style.display = 'flex';
+        imageGallery.style.display = 'none';
     }
     
     const viewBeingLeft = document.getElementById(currentViewName);
@@ -221,7 +226,6 @@ export function setupCharCounters() {
     });
 }
 
-// --- НОВАЯ ФУНКЦИЯ: Управление сегментированным переключателем ---
 export function setupSegmentedControls() {
     document.querySelectorAll('.segmented-control').forEach(container => {
         const glider = container.querySelector('.segmented-control__glider');
@@ -247,14 +251,11 @@ export function setupSegmentedControls() {
             radio.addEventListener('change', moveGlider);
         });
 
-        // Set initial position
         moveGlider();
-        // Recalculate on resize
         new ResizeObserver(moveGlider).observe(container);
     });
 }
 
-// --- НОВАЯ ФУНКЦИЯ: Управление раскрывающимся блоком "Дополнительно" ---
 export function setupAdvancedOptionsToggle() {
     document.querySelectorAll('.advanced-options-button').forEach(button => {
         const targetId = button.dataset.target;

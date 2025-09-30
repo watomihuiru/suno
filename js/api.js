@@ -1,4 +1,5 @@
 import { updateStatus } from './ui.js';
+// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Импортируем функции обновления ---
 import { loadSongsFromServer, fetchImagesFromServer } from './library.js';
 
 let taskWebSocket = null;
@@ -72,13 +73,10 @@ function createMjPlaceholderCard(taskId, count = 4) {
     const resultsGrid = document.getElementById('image-gallery-grid');
     if (!resultsGrid) return;
     
-    // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-    // Добавляем проверку, чтобы избежать ошибки, если галерея не пуста
     const emptyMessage = document.getElementById('image-gallery-empty-message');
     if (emptyMessage) {
         emptyMessage.style.display = 'none';
     }
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
     for (let i = 1; i <= count; i++) {
         const placeholder = document.createElement('div');
@@ -136,7 +134,7 @@ async function startTaskTracking(taskId, taskType) {
 
                     if (taskData.successFlag === 1) {
                         updateStatus("✅ Изображения сгенерированы!", true);
-                        await fetchImagesFromServer(); 
+                        await fetchImagesFromServer(); // --- ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ---
                     } else {
                         throw new Error(taskData.errorMessage || `API вернул статус сбоя: ${taskData.successFlag}`);
                     }
@@ -155,7 +153,7 @@ async function startTaskTracking(taskId, taskType) {
                     updateStatus("✅ Задача выполнена!", true);
                     document.getElementById(`placeholder-${taskId}-1`)?.remove();
                     document.getElementById(`placeholder-${taskId}-2`)?.remove();
-                    await loadSongsFromServer();
+                    await loadSongsFromServer(); // --- ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ---
                     const token = sessionStorage.getItem('authToken');
                     await handleApiCall("/api/chat/credit", { 
                         method: "GET",
