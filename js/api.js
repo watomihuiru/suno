@@ -70,8 +70,15 @@ export async function handleApiCall(endpoint, options, isCreditCheck = false, is
 
 function createMjPlaceholderCard(taskId, count = 4) {
     const resultsGrid = document.getElementById('image-gallery-grid');
-    if(!resultsGrid) return;
-    document.getElementById('image-gallery-empty-message').style.display = 'none';
+    if (!resultsGrid) return;
+    
+    // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+    // Добавляем проверку, чтобы избежать ошибки, если галерея не пуста
+    const emptyMessage = document.getElementById('image-gallery-empty-message');
+    if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
     for (let i = 1; i <= count; i++) {
         const placeholder = document.createElement('div');
