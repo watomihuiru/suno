@@ -7,6 +7,7 @@
     overflow-y: auto;
     padding-right: 10px;
     flex-grow: 1;
+    align-items: start; /* --- ИЗМЕНЕНИЕ ЗДЕСЬ: Фиксим баг со "съезжанием" --- */
 }
 
 .mj-gallery-item {
@@ -45,7 +46,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    cursor: pointer; /* Добавляем курсор для кликабельности */
+    cursor: pointer;
 }
 
 .mj-gallery-item-overlay {
@@ -63,7 +64,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px;
-    pointer-events: none; /* Оверлей не должен перехватывать клики, предназначенные для img */
+    pointer-events: none;
 }
 
 .mj-gallery-item:hover .mj-gallery-item-overlay {
@@ -73,7 +74,7 @@
 .mj-gallery-actions {
     display: flex;
     gap: 8px;
-    pointer-events: auto; /* Кнопки должны быть кликабельны */
+    pointer-events: auto;
 }
 
 .mj-action-button {
@@ -94,7 +95,6 @@
     color: white;
 }
 
-/* --- НОВЫЕ СТИЛИ: Кнопка удаления --- */
 .mj-delete-button {
     position: absolute;
     top: 8px;
@@ -111,7 +111,7 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s, transform 0.2s;
-    pointer-events: auto; /* Кнопка должна быть кликабельна */
+    pointer-events: auto;
 }
 .mj-delete-button:hover {
     background-color: var(--accent-red);

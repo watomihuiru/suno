@@ -38,12 +38,10 @@ export function initializeLibrary() {
     imageGrid = document.getElementById('image-gallery-grid');
     imageEmptyMessage = document.getElementById('image-gallery-empty-message');
 
-    // Загружаем данные один раз при инициализации
     fetchProjects();
     fetchImagesFromServer();
 }
 
-// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Функция больше не загружает данные, а только переключает видимость ---
 export function toggleLibraryView(viewType) {
     if (viewType === 'songs') {
         songLibraryContainer.style.display = 'flex';
@@ -110,7 +108,8 @@ function renderImageGallery(images) {
             const overlay = document.createElement('div');
             overlay.className = 'mj-gallery-item-overlay';
 
-            if (image.image_type === 'grid') {
+            // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлено || !image.image_type для обратной совместимости ---
+            if (image.image_type === 'grid' || !image.image_type) {
                 overlay.innerHTML += `
                     <div class="mj-gallery-actions">
                         <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="0">U1</button>
