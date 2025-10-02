@@ -76,7 +76,7 @@ function openFullscreenPlayer() {
 
 function closeFullscreenPlayer() {
     globalPlayer.fsOverlay.classList.remove('is-open');
-    globalPlayer.fsOverlay.style.setProperty('--adaptive-gradient', 'transparent');
+    globalPlayer.fsOverlay.style.setProperty('--fs-player-bg', 'none');
     stopLyricsAnimationLoop();
 }
 
@@ -139,33 +139,7 @@ function stopLyricsAnimationLoop() {
 function updatePlayerBackground(imageUrl) {
     const playerOverlay = document.getElementById('fullscreen-player-overlay');
     if (!playerOverlay || !imageUrl) return;
-
-    playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
-
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.src = imageUrl;
-
-    img.onload = () => {
-        const colorThief = new ColorThief();
-        try {
-            const palette = colorThief.getPalette(img, 2);
-            if (palette && palette.length >= 2) {
-                const color1 = `rgb(${palette[0].join(',')})`;
-                const color2 = `rgb(${palette[1].join(',')})`;
-                const gradient = `linear-gradient(270deg, ${color1}, ${color2})`;
-                playerOverlay.style.setProperty('--adaptive-gradient', gradient);
-            }
-        } catch (e) {
-            console.error("ColorThief error:", e);
-            playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
-        }
-    };
-
-    img.onerror = (e) => {
-        console.error("Error loading image for color extraction:", e);
-        playerOverlay.style.setProperty('--adaptive-gradient', 'transparent');
-    }
+    playerOverlay.style.setProperty('--fs-player-bg', `url('${imageUrl}')`);
 }
 
 function setupPlayerListeners() {

@@ -107,24 +107,41 @@ function renderImageGallery(images) {
 
             const overlay = document.createElement('div');
             overlay.className = 'mj-gallery-item-overlay';
+            
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'mj-gallery-actions';
 
-            // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлено || !image.image_type для обратной совместимости ---
-            if (image.image_type === 'grid' || !image.image_type) {
-                overlay.innerHTML += `
-                    <div class="mj-gallery-actions">
-                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="0">U1</button>
-                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="1">U2</button>
-                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="2">U3</button>
-                        <button class="mj-action-button" data-action="upscale" data-task-id="${image.task_id}" data-index="3">U4</button>
-                    </div>
-                    <div class="mj-gallery-actions">
-                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="0">V1</button>
-                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="1">V2</button>
-                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="2">V3</button>
-                        <button class="mj-action-button" data-action="vary" data-task-id="${image.task_id}" data-index="3">V4</button>
-                    </div>
-                `;
+            if (image.image_type === 'grid' || !image.image_type) { // Grid of 4 images
+                 for (let i = 1; i <= 4; i++) {
+                    const upscaleBtn = document.createElement('button');
+                    upscaleBtn.className = 'mj-action-button';
+                    upscaleBtn.dataset.action = 'upscale';
+                    upscaleBtn.dataset.taskId = image.task_id;
+                    upscaleBtn.dataset.index = i - 1;
+                    upscaleBtn.textContent = `U${i}`;
+                    actionsContainer.appendChild(upscaleBtn);
+                }
+                 for (let i = 1; i <= 4; i++) {
+                    const varyBtn = document.createElement('button');
+                    varyBtn.className = 'mj-action-button';
+                    varyBtn.dataset.action = 'vary';
+                    varyBtn.dataset.taskId = image.task_id;
+                    varyBtn.dataset.index = i - 1;
+                    varyBtn.textContent = `V${i}`;
+                    actionsContainer.appendChild(varyBtn);
+                }
+            } else if (image.image_type === 'upscale' || image.image_type === 'variation') { // Single image
+                const varyBtn = document.createElement('button');
+                varyBtn.className = 'mj-action-button';
+                varyBtn.dataset.action = 'vary';
+                varyBtn.dataset.taskId = image.task_id;
+                varyBtn.dataset.index = 0;
+                varyBtn.textContent = `Vary`;
+                actionsContainer.appendChild(varyBtn);
             }
+            
+            overlay.appendChild(actionsContainer);
+
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'mj-delete-button';
@@ -410,7 +427,7 @@ export function createPlaceholderCard(taskId) {
         const card = document.createElement('div');
         card.className = 'song-card placeholder';
         card.id = `placeholder-${taskId}-${i}`;
-        card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div></div>`;
+        card.innerHTML = `<div class="song-cover"><div class="song-duration">--:--</div><div class="play-icon"><i class="fas fa-play"></i></div></div><div class="song-info"><span class="song-title">Генерация...</span><span class="song-style">Пожалуйста, подождите</span><div class="progress-bar-container"><div class="progress-bar-inner"></div></div>`;
         songListContainer.prepend(card);
     }
     updateAllPlayIcons();

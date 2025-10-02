@@ -1,7 +1,7 @@
 /* --- ОБНОВЛЕННЫЙ ДИЗАЙН ГЛОБАЛЬНОГО ПЛЕЕРА --- */
 #global-player {
     position: fixed;
-    bottom: 30px;
+    bottom: 20px; /* Смещено ниже */
     left: calc(var(--sidebar-width) + 30px + 24px);
     right: 30px;
     background-color: rgba(28, 33, 40, 0.7); /* Полупрозрачный фон */
@@ -172,13 +172,18 @@
 }
 
 /* --- ОБНОВЛЕННЫЙ ДИЗАЙН FULLSCREEN ПЛЕЕРА --- */
+@keyframes shimmer {
+    0%   { filter: blur(50px) brightness(0.5); }
+    50%  { filter: blur(50px) brightness(0.7); }
+    100% { filter: blur(50px) brightness(0.5); }
+}
+
 #fullscreen-player-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--bg-page);
     z-index: 1300;
     display: flex;
     flex-direction: column;
@@ -191,19 +196,20 @@
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--adaptive-gradient, transparent);
-    background-size: 400% 400%;
-    animation: animateGradient 25s ease infinite;
-    filter: brightness(0.4);
+    background-image: var(--fs-player-bg);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.2); /* Увеличиваем, чтобы скрыть размытые края */
     z-index: -2;
-    transition: background 0.5s ease-in-out;
+    transition: background-image 0.5s ease-in-out;
+    animation: shimmer 15s ease-in-out infinite;
 }
 
 #fullscreen-player-overlay::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(10, 10, 15, 0.6); /* Немного плотнее */
+    background-color: rgba(10, 10, 15, 0.8); /* Более плотное затемнение */
     z-index: -1;
 }
 

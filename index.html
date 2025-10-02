@@ -124,9 +124,9 @@
                             <details>
                                 <summary class="nav-category"><i class="fas fa-image"></i><span>Midjourney</span></summary>
                                 <ul class="nav-submenu">
-                                    <li><button class="nav-button" data-view="midjourney-txt2img"><i class="fas fa-font"></i><span>Text to Image</span></button></li>
-                                    <li><button class="nav-button" data-view="midjourney-img2img"><i class="fas fa-image"></i><span>Image to Image</span></button></li>
-                                    <li><button class="nav-button" data-view="midjourney-video"><i class="fas fa-film"></i><span>Image to Video</span></button></li>
+                                    <li><button class="nav-button" data-view="midjourney-txt2img"><i class="fas fa-font"></i><span>Текст в Изображение</span></button></li>
+                                    <li><button class="nav-button" data-view="midjourney-img2img"><i class="fas fa-image"></i><span>Изображение в Изображение</span></button></li>
+                                    <li><button class="nav-button" data-view="midjourney-video"><i class="fas fa-film"></i><span>Изображение в Видео</span></button></li>
                                 </ul>
                             </details>
                         </li>
@@ -226,13 +226,13 @@
 
                 <!-- Midjourney Views -->
                 <div id="midjourney-txt2img" class="view-content">
-                    <div class="view-header"><h2>Midjourney: Text to Image</h2><p>Создайте изображение по текстовому описанию.</p></div>
+                    <div class="view-header"><h2>Midjourney: Текст в Изображение</h2><p>Создайте изображение по текстовому описанию.</p></div>
                     <form id="midjourney-form-txt2img">
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="mj-prompt-txt2img">Промпт (описание)</label>
                                 <div class="input-wrapper">
-                                    <textarea id="mj-prompt-txt2img" maxlength="2000" placeholder="A majestic mountain landscape at sunset..."></textarea>
+                                    <textarea id="mj-prompt-txt2img" maxlength="2000" placeholder="Величественный горный пейзаж на закате..."></textarea>
                                     <div class="char-counter" id="mj-prompt-txt2img-counter">0/2000</div>
                                 </div>
                             </div>
@@ -257,7 +257,7 @@
                     </form>
                 </div>
                 <div id="midjourney-img2img" class="view-content">
-                    <div class="view-header"><h2>Midjourney: Image to Image</h2><p>Создайте новое изображение на основе существующего.</p></div>
+                    <div class="view-header"><h2>Midjourney: Изображение в Изображение</h2><p>Создайте новое изображение на основе существующего.</p></div>
                     <form id="midjourney-form-img2img">
                         <div class="form-grid">
                             <div class="form-group" id="mj-img2img-upload-group">
@@ -278,7 +278,7 @@
                             <div class="form-group">
                                 <label for="mj-prompt-img2img">Промпт (описание)</label>
                                 <div class="input-wrapper">
-                                    <textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Transform this into a cyberpunk style..."></textarea>
+                                    <textarea id="mj-prompt-img2img" maxlength="2000" placeholder="Превратите это в стиль киберпанк..."></textarea>
                                     <div class="char-counter" id="mj-prompt-img2img-counter">0/2000</div>
                                 </div>
                             </div>
@@ -292,7 +292,7 @@
                     </form>
                 </div>
                 <div id="midjourney-video" class="view-content">
-                    <div class="view-header"><h2>Midjourney: Image to Video</h2><p>Анимируйте статичное изображение.</p></div>
+                    <div class="view-header"><h2>Midjourney: Изображение в Видео</h2><p>Анимируйте статичное изображение.</p></div>
                     <form id="midjourney-form-video">
                         <div class="form-grid">
                             <div class="form-group" id="mj-video-upload-group">
@@ -313,7 +313,7 @@
                             <div class="form-group">
                                 <label for="mj-prompt-video">Промпт (описание)</label>
                                 <div class="input-wrapper">
-                                    <textarea id="mj-prompt-video" maxlength="2000" placeholder="Add gentle movement and atmospheric effects..."></textarea>
+                                    <textarea id="mj-prompt-video" maxlength="2000" placeholder="Добавьте плавное движение и атмосферные эффекты..."></textarea>
                                     <div class="char-counter" id="mj-prompt-video-counter">0/2000</div>
                                 </div>
                             </div>
@@ -364,9 +364,9 @@
                             
                             <div id="ue-simple-mode-fields" class="form-grid" style="display: none;">
                                  <div class="form-group">
-                                    <label for="ue-prompt-simple">Новый текст (Prompt)</label>
+                                    <label for="ue-prompt-simple">Новый текст (Промпт)</label>
                                     <div class="input-wrapper">
-                                        <textarea id="ue-prompt-simple" placeholder="Extend the music with more relaxing notes..."></textarea>
+                                        <textarea id="ue-prompt-simple" placeholder="Продолжить музыку с более расслабляющими нотами..."></textarea>
                                         <div class="char-counter" id="ue-prompt-simple-counter">0/5000</div>
                                     </div>
                                 </div>
@@ -389,9 +389,9 @@
                                     </div>
                                 </div>
                                 <div class="form-group" id="ue-prompt-group">
-                                    <label for="ue-prompt">Новый текст (Prompt)</label>
+                                    <label for="ue-prompt">Новый текст (Промпт)</label>
                                     <div class="input-wrapper">
-                                        <textarea id="ue-prompt" placeholder="Extend the music with more relaxing notes..."></textarea>
+                                        <textarea id="ue-prompt" placeholder="Продолжить музыку с более расслабляющими нотами..."></textarea>
                                         <div class="char-counter" id="ue-prompt-counter">0/5000</div>
                                     </div>
                                 </div>
@@ -456,7 +456,7 @@
                                 <div class="form-group" id="uc-song-description-group">
                                     <label for="uc-song-description">Описание кавера</label>
                                     <div class="input-wrapper">
-                                        <textarea id="uc-song-description" placeholder="A calm and relaxing piano track..."></textarea>
+                                        <textarea id="uc-song-description" placeholder="Спокойный и расслабляющий фортепианный трек..."></textarea>
                                         <div class="char-counter" id="uc-song-description-counter">0/400</div>
                                     </div>
                                 </div>
@@ -478,9 +478,9 @@
                                     </div>
                                 </div>
                                 <div class="form-group" id="uc-prompt-group">
-                                    <label for="uc-prompt">Prompt (описание кавера)</label>
+                                    <label for="uc-prompt">Промпт (описание кавера)</label>
                                     <div class="input-wrapper">
-                                        <textarea id="uc-prompt" placeholder="A calm and relaxing piano track..."></textarea>
+                                        <textarea id="uc-prompt" placeholder="Спокойный и расслабляющий фортепианный трек..."></textarea>
                                         <div class="char-counter" id="uc-prompt-counter">0/5000</div>
                                     </div>
                                 </div>

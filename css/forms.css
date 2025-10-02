@@ -31,6 +31,7 @@
     font-size: 14px; 
     width: 100%; 
     transition: border-color 0.3s, box-shadow 0.3s; 
+    font-family: inherit; /* Устанавливаем основной шрифт */
 }
 
 .form-group input::placeholder, .form-group textarea::placeholder { 
@@ -367,7 +368,7 @@
 .char-counter {
     position: absolute;
     bottom: 8px;
-    left: 12px;
+    right: 12px; /* Перемещено вправо */
     font-size: 11px;
     font-family: monospace;
     color: rgba(255, 255, 255, 0.4);
@@ -377,7 +378,7 @@
     pointer-events: none;
     transition: color 0.2s;
     margin: 0;
-    text-align: left;
+    text-align: right; /* Выравнивание по правому краю */
 }
 
 .char-counter.limit-exceeded {
