@@ -561,7 +561,7 @@ function updateActiveLyric(currentTime) {
 
                 if (!isUserScrollingLyrics && (!lastActiveElement || newFirstActiveElement.offsetTop !== lastActiveElement.offsetTop)) {
                     isProgrammaticScroll = true;
-                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 
                 lastActiveElement = newFirstActiveElement;
