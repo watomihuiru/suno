@@ -561,7 +561,20 @@ function updateActiveLyric(currentTime) {
 
                 if (!isUserScrollingLyrics && (!lastActiveElement || newFirstActiveElement.offsetTop !== lastActiveElement.offsetTop)) {
                     isProgrammaticScroll = true;
-                    newFirstActiveElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Ручной расчет для идеального центрирования ---
+                    const lyricsContainer = globalPlayer.fsLyricsContent;
+                    const lineElement = newFirstActiveElement.parentElement;
+                    
+                    const containerHeight = lyricsContainer.clientHeight;
+                    const lineTop = lineElement.offsetTop;
+                    const lineHeight = lineElement.offsetHeight;
+                    
+                    const newScrollTop = lineTop - (containerHeight / 2) + (lineHeight / 2);
+
+                    lyricsContainer.scrollTo({
+                        top: newScrollTop,
+                        behavior: 'smooth'
+                    });
                 }
                 
                 lastActiveElement = newFirstActiveElement;
