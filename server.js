@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import axios from 'axios';
 import path from 'path';
@@ -106,7 +107,7 @@ const upload = multer({ storage: storage });
 
 app.use(express.json());
 app.use((req, res, next) => {
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+   // res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     next();
 });
 app.use(express.static(__dirname));
